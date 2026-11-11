@@ -288,14 +288,13 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
             <div className="relative z-20 px-4 pt-3 pb-2 flex items-center justify-between">
               {/* Left: Quick Home / Brand Icon */}
               <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 rounded-full bg-white/95 text-stone-900 shadow-md flex items-center justify-center font-extrabold text-sm border border-white/40 flex-shrink-0">
-                  {storeSettings.storeLogo ? (
-                    <div className="w-6 h-6 rounded-full overflow-hidden relative">
-                      <Image src={storeSettings.storeLogo} alt="Logo" fill className="object-cover" />
-                    </div>
-                  ) : (
-                    <span>🥣</span>
-                  )}
+                <div className="w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center p-0.5 border border-white/60 flex-shrink-0 overflow-hidden relative">
+                  <Image 
+                    src={storeSettings.storeLogo || '/images/logo/bubur-khalid-logo.png'} 
+                    alt="Logo Bubur Khalid" 
+                    fill 
+                    className="object-cover" 
+                  />
                 </div>
                 <div className="drop-shadow-sm">
                   <span className="font-black text-sm text-white tracking-tight block leading-none">

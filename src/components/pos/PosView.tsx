@@ -103,8 +103,13 @@ export function PosView() {
           {/* Top Bar POS */}
           <div className="bg-white p-4 rounded-2xl shadow-soft border border-stone-200 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-xl bg-spicy-ember text-white flex items-center justify-center font-bold text-lg shadow-sm">
-                🏪
+              <div className="w-11 h-11 rounded-xl bg-white border border-stone-200 overflow-hidden relative shadow-sm flex-shrink-0 p-0.5">
+                <Image
+                  src={storeSettings.storeLogo || '/images/logo/bubur-khalid-logo.png'}
+                  alt="Logo Bubur Khalid"
+                  fill
+                  className="object-cover"
+                />
               </div>
               <div>
                 <h1 className="font-extrabold text-base text-matcha-leaf">POS Kasir Bubur Khalid</h1>

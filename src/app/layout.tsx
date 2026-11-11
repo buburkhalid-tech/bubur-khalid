@@ -4,6 +4,11 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'Bubur Khalid — Asli Minang',
   description: 'Pesan Bubur Kampiun, Kolak, Pulut Hitam, dan Menu Tradisional Minang Khas Bubur Khalid.',
+  icons: {
+    icon: '/images/logo/bubur-khalid-logo.png',
+    shortcut: '/images/logo/bubur-khalid-logo.png',
+    apple: '/images/logo/bubur-khalid-logo.png',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
