@@ -479,10 +479,16 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
               {/* Operating Hours Strip with Ample Breathing Room */}
               <div className="mt-4 pt-3 pb-1 border-t border-white/15 flex items-center justify-between text-[10.5px] text-noodle-cream/90">
                 <div className="flex items-center space-x-2">
-                  <span className={`w-2 h-2 rounded-full ${storeSettings.isStoreOpen ? 'bg-emerald-400 animate-pulse' : 'bg-red-500'}`} />
-                  <span className="font-semibold tracking-wide">{storeSettings.isStoreOpen ? storeSettings.operatingHours : 'Toko Sedang Tutup'}</span>
+                  <span className={`w-2 h-2 rounded-full ${storeSettings.isStoreHoliday ? 'bg-amber-400 animate-ping' : storeSettings.isStoreOpen ? 'bg-emerald-400 animate-pulse' : 'bg-red-500'}`} />
+                  <span className="font-semibold tracking-wide">
+                    {storeSettings.isStoreHoliday
+                      ? `🏖️ Toko Sedang Libur (${storeSettings.operatingHours})`
+                      : storeSettings.isStoreOpen
+                      ? storeSettings.operatingHours
+                      : 'Toko Sedang Tutup'}
+                  </span>
                 </div>
-                <span className="text-noodle-cream/80 hidden sm:inline font-medium text-[10px]">Hangat & Gurih Setiap Hari</span>
+                <span className="text-noodle-cream/80 hidden sm:inline font-medium text-[10px]">Hangat &amp; Gurih Setiap Hari</span>
               </div>
             </div>
           </div>
@@ -524,13 +530,23 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
               </div>
             </div>
 
-            {/* Toko Tutup Alert Banner */}
-            {!storeSettings.isStoreOpen && (
+            {/* Toko Libur / Tutup Alert Banner */}
+            {storeSettings.isStoreHoliday ? (
+              <div className="bg-gradient-to-r from-amber-500 to-amber-600 text-matcha-deep p-3.5 rounded-2xl shadow-md flex items-center space-x-3 text-xs border border-amber-400 animate-fadeIn">
+                <span className="text-2xl flex-shrink-0">🏖️</span>
+                <div className="text-left leading-tight">
+                  <div className="font-black text-sm">Pemberitahuan: Toko Sedang Libur</div>
+                  <div className="text-[11px] font-semibold text-matcha-deep/90 mt-0.5">
+                    {storeSettings.holidayReason || 'Bubur Khalid sedang libur hari ini. Anda tetap dapat melihat daftar menu kami.'}
+                  </div>
+                </div>
+              </div>
+            ) : !storeSettings.isStoreOpen ? (
               <div className="bg-red-600 text-white p-3 rounded-2xl shadow-md flex items-center justify-center space-x-2 text-xs font-bold animate-pulse">
                 <span className="text-base">🔒</span>
                 <span>Toko Sedang Tutup — Belum menerima pesanan saat ini. Anda tetap dapat melihat menu.</span>
               </div>
-            )}
+            ) : null}
 
             {/* Smart Detection Banner: jika user mengetik kode yang mirip nomor antrean / struk */}
             {searchQuery.trim() && /^(OT|WB|BK|#|\d{2,})/i.test(searchQuery.trim()) && (
@@ -1799,14 +1815,16 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
 
                 <button
                   type="submit"
-                  disabled={!storeSettings.isStoreOpen}
+                  disabled={!storeSettings.isStoreOpen || Boolean(storeSettings.isStoreHoliday)}
                   className={`w-full py-3 rounded-xl font-extrabold text-xs shadow-md transition ${
-                    storeSettings.isStoreOpen
+                    storeSettings.isStoreOpen && !storeSettings.isStoreHoliday
                       ? 'bg-spicy-ember hover:bg-spicy-hover text-white cursor-pointer active:scale-[0.99]'
                       : 'bg-stone-300 text-stone-500 cursor-not-allowed'
                   }`}
                 >
-                  {storeSettings.isStoreOpen
+                  {storeSettings.isStoreHoliday
+                    ? '🏖️ Toko Sedang Libur — Belum Menerima Pesanan'
+                    : storeSettings.isStoreOpen
                     ? `Bayar Sekarang • Rp${customerCartTotal.total.toLocaleString('id-ID')}`
                     : 'Toko Sedang Tutup — Belum Menerima Pesanan'}
                 </button>

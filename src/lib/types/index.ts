@@ -162,6 +162,8 @@ export interface StoreSettings {
   operatingHours: string;
   adminWhatsapp: string;
   isStoreOpen: boolean;
+  isStoreHoliday?: boolean;
+  holidayReason?: string;
   cupFee: number;
   cupName?: string;
   cupDescription?: string;

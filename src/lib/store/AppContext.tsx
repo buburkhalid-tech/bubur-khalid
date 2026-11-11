@@ -391,6 +391,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 ? cloudSettings.admin_whatsapp
                 : prev.adminWhatsapp || '6285274281819',
             isStoreOpen: cloudSettings.is_store_open ?? prev.isStoreOpen,
+            isStoreHoliday: cloudSettings.payment_methods?._holiday?.isHoliday ?? prev.isStoreHoliday ?? false,
+            holidayReason: cloudSettings.payment_methods?._holiday?.reason ?? prev.holidayReason ?? 'Toko sedang libur hari ini. Buka kembali besok.',
             cupFee: Number(cloudSettings.cup_fee ?? prev.cupFee),
             cupName: cloudSettings.cup_name || prev.cupName,
             cupDescription: cloudSettings.cup_description || prev.cupDescription,
@@ -1150,6 +1152,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Sync store settings to Supabase Cloud
+      const holidayPayload = {
+        isHoliday: Boolean(updated.isStoreHoliday),
+        reason: updated.holidayReason || '',
+      };
+      const paymentMethodsPayload = {
+        ...updated.paymentMethods,
+        _holiday: holidayPayload,
+      };
+
       supabase
         .from('store_settings')
         .upsert([
@@ -1164,12 +1175,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             banner_image: updated.bannerImage,
             operating_hours: updated.operatingHours,
             admin_whatsapp: updated.adminWhatsapp,
-            is_store_open: updated.isStoreOpen,
+            is_store_open: updated.isStoreHoliday ? false : updated.isStoreOpen,
             cup_fee: updated.cupFee,
             cup_name: updated.cupName,
             cup_description: updated.cupDescription,
             cup_enabled: updated.cupEnabled,
-            payment_methods: updated.paymentMethods,
+            payment_methods: paymentMethodsPayload,
           },
         ])
         .then(({ error }) => {
