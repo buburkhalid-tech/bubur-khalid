@@ -35,6 +35,8 @@ import {
   Store,
   CreditCard,
   Lock,
+  Eye,
+  EyeOff,
   BarChart3,
   LineChart,
   Sparkles,
@@ -439,6 +441,8 @@ export function AdminView() {
   const [userPhone, setUserPhone] = useState<string>('');
   const [userRole, setUserRole] = useState<UserRole>('ADMIN');
   const [userPin, setUserPin] = useState<string>('123456');
+  const [userPassword, setUserPassword] = useState<string>('');
+  const [showUserPassword, setShowUserPassword] = useState<boolean>(false);
   const [userActive, setUserActive] = useState<boolean>(true);
 
   // Table Management States (Tambah, Edit, Hapus, Preview QR, Cancel, Close)
@@ -754,6 +758,8 @@ export function AdminView() {
     setUserPhone('');
     setUserRole(initialRole);
     setUserPin('123456');
+    setUserPassword('');
+    setShowUserPassword(false);
     setUserActive(true);
     setIsUserModalOpen(true);
   };
@@ -766,6 +772,8 @@ export function AdminView() {
     setUserPhone(user.phone || '');
     setUserRole(user.role);
     setUserPin(user.pin || '123456');
+    setUserPassword(user.password || '');
+    setShowUserPassword(false);
     setUserActive(user.is_active);
     setIsUserModalOpen(true);
   };
@@ -782,6 +790,7 @@ export function AdminView() {
         phone: userPhone.trim(),
         role: userRole,
         pin: userPin.trim(),
+        ...(userPassword.trim() ? { password: userPassword.trim() } : {}),
         is_active: userActive,
       });
     } else {
@@ -792,6 +801,7 @@ export function AdminView() {
         phone: userPhone.trim(),
         role: userRole,
         pin: userPin.trim(),
+        password: userPassword.trim() || '123456',
         is_active: userActive,
         last_login: 'Belum pernah login',
       });
@@ -4623,6 +4633,33 @@ export function AdminView() {
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Kata Sandi Login */}
+              <div>
+                <label className="block text-xs font-bold text-matcha-leaf mb-1">
+                  Kata Sandi Login (Password):
+                </label>
+                <div className="relative flex items-center">
+                  <input
+                    type={showUserPassword ? 'text' : 'password'}
+                    placeholder={editingUser ? 'Masukkan kata sandi baru (atau biarkan yang lama)' : 'Kata sandi minimal 4 karakter'}
+                    value={userPassword}
+                    onChange={(e) => setUserPassword(e.target.value)}
+                    className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 pr-10 text-xs font-bold text-matcha-leaf focus:outline-none focus:border-spicy-ember placeholder:font-normal"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowUserPassword(!showUserPassword)}
+                    className="absolute right-3 text-stone-400 hover:text-matcha-leaf transition p-0.5"
+                    title={showUserPassword ? 'Sembunyikan sandi' : 'Tampilkan sandi'}
+                  >
+                    {showUserPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                <p className="text-[10px] text-stone-400 mt-1">
+                  *Digunakan untuk login di browser desktop & mobile bersama Email / Username
+                </p>
               </div>
 
               {/* PIN Akses */}

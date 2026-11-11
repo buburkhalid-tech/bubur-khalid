@@ -83,7 +83,7 @@ interface AppContextType {
   // Authentication & Session
   currentUser: SystemUser | null;
   isAuthenticated: boolean;
-  login: (identifier: string, passOrPin: string, rememberMe?: boolean) => { success: boolean; message?: string };
+  login: (identifier: string, passOrPin: string, rememberMe?: boolean) => Promise<{ success: boolean; message?: string }>;
   signup: (userData: {
     name: string;
     email: string;
@@ -91,7 +91,7 @@ interface AppContextType {
     password: string;
     role: UserRole;
     phone?: string;
-  }) => { success: boolean; message?: string };
+  }) => Promise<{ success: boolean; message?: string }>;
   resetPassword: (emailOrUsername: string, newPass: string) => { success: boolean; message?: string };
   logout: () => void;
 
@@ -963,6 +963,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       is_active: true,
     };
     setUsers((prev) => [newUser, ...prev]);
+    supabase
+      .from('users')
+      .upsert([newUser])
+      .then(({ error }) => {
+        if (error) console.warn('Supabase user upsert error:', error.message);
+      });
     addAuditLog('ADD_USER', 'User', newUser.id, `User baru ditambahkan: ${newUser.name} (${newUser.role})`);
     showToast(`Pengguna "${newUser.name}" (${newUser.role}) berhasil ditambahkan!`);
   };
@@ -971,8 +977,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setUsers((prev) =>
       prev.map((u) => {
         if (u.id === id) {
+          const updatedUser = { ...u, ...updated };
+          supabase
+            .from('users')
+            .upsert([updatedUser])
+            .then(({ error }) => {
+              if (error) console.warn('Supabase user update error:', error.message);
+            });
           addAuditLog('UPDATE_USER', 'User', id, `Data pengguna "${u.name}" diperbarui`);
-          return { ...u, ...updated };
+          return updatedUser;
         }
         return u;
       })
@@ -988,6 +1001,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     setUsers((prev) => prev.filter((u) => u.id !== id));
+    supabase
+      .from('users')
+      .delete()
+      .eq('id', id)
+      .then(({ error }) => {
+        if (error) console.warn('Supabase user delete error:', error.message);
+      });
     addAuditLog('DELETE_USER', 'User', id, `Pengguna "${target.name}" (${target.role}) dihapus`);
     showToast(`Pengguna "${target.name}" telah dihapus.`);
   };
@@ -997,9 +1017,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       prev.map((u) => {
         if (u.id === id) {
           const nextStatus = !u.is_active;
+          const updatedUser = { ...u, is_active: nextStatus };
+          supabase
+            .from('users')
+            .upsert([updatedUser])
+            .then(({ error }) => {
+              if (error) console.warn('Supabase user status update error:', error.message);
+            });
           addAuditLog('TOGGLE_USER_STATUS', 'User', id, `Status "${u.name}" diubah ke ${nextStatus ? 'AKTIF' : 'NON-AKTIF'}`);
           showToast(`Akun "${u.name}" sekarang ${nextStatus ? 'Aktif' : 'Dinonaktifkan'}.`);
-          return { ...u, is_active: nextStatus };
+          return updatedUser;
         }
         return u;
       })
@@ -1007,11 +1034,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   // User Authentication & Session Management
-  const login = (
+  const login = async (
     identifier: string,
     passOrPin: string,
     rememberMe: boolean = false
-  ): { success: boolean; message?: string } => {
+  ): Promise<{ success: boolean; message?: string }> => {
     const cleanId = identifier.trim().toLowerCase();
     const cleanPass = passOrPin.trim();
 
@@ -1019,11 +1046,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return { success: false, message: 'Harap masukkan ID/Email dan kata sandi' };
     }
 
-    const target = users.find((u) => {
+    let target = users.find((u) => {
       const uName = u.username.toLowerCase();
       const uEmail = (u.email || '').toLowerCase();
       return uName === cleanId || uEmail === cleanId;
     });
+
+    // If not found in local memory (e.g. newly registered from another device/browser), check Supabase directly
+    if (!target) {
+      try {
+        const { data: cloudUsers, error: fetchErr } = await supabase
+          .from('users')
+          .select('*');
+        if (!fetchErr && cloudUsers && cloudUsers.length > 0) {
+          const freshUsers = cloudUsers.filter(
+            (u: SystemUser) =>
+              !['usr-1', 'usr-2', 'usr-3', 'usr-4'].includes(u.id) &&
+              !['khalid_owner', 'ahmad_admin', 'siska_kasir', 'budi_kitchen'].includes(u.username)
+          );
+          setUsers(freshUsers);
+          try {
+            localStorage.setItem('bubur_khalid_users', JSON.stringify(freshUsers));
+          } catch (e) {}
+
+          target = freshUsers.find((u) => {
+            const uName = u.username.toLowerCase();
+            const uEmail = (u.email || '').toLowerCase();
+            return uName === cleanId || uEmail === cleanId;
+          });
+        }
+      } catch (err) {
+        console.warn('Direct cloud login check error:', err);
+      }
+    }
 
     if (!target) {
       return { success: false, message: 'ID Pengguna atau Email tidak ditemukan' };
@@ -1058,19 +1113,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       } catch (e) {}
     }
 
+    // Update last_login to Supabase
+    supabase
+      .from('users')
+      .update({ last_login: 'Baru saja' })
+      .eq('id', updatedUser.id)
+      .then(() => {});
+
     addAuditLog('LOGIN', 'Auth', updatedUser.id, `Pengguna ${updatedUser.name} (${updatedUser.role}) berhasil masuk ke portal`);
     showToast(`Selamat datang, ${updatedUser.name}!`);
     return { success: true };
   };
 
-  const signup = (userData: {
+  const signup = async (userData: {
     name: string;
     email: string;
     username: string;
     password: string;
     role: UserRole;
     phone?: string;
-  }): { success: boolean; message?: string } => {
+  }): Promise<{ success: boolean; message?: string }> => {
     const cleanEmail = userData.email.trim().toLowerCase();
     const cleanUsername = userData.username.trim().toLowerCase();
     const cleanName = userData.name.trim();
@@ -1120,12 +1182,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {}
 
     // Sync to Supabase Cloud
-    supabase
-      .from('users')
-      .upsert([newUser])
-      .then(({ error }) => {
-        if (error) console.warn('Supabase user upsert error:', error.message);
-      });
+    try {
+      const { error: upsertErr } = await supabase.from('users').upsert([newUser]);
+      if (upsertErr) {
+        console.warn('Supabase user upsert error:', upsertErr.message);
+      }
+    } catch (e) {}
 
     // Auto login after signup
     setCurrentUser(newUser);

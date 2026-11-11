@@ -56,29 +56,32 @@ export function AdminLogin() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
     setSuccessMessage(null);
     setIsLoading(true);
 
-    setTimeout(() => {
-      const res = login(identifier, password, rememberMe);
+    try {
+      const res = await login(identifier, password, rememberMe);
       setIsLoading(false);
       if (!res.success) {
         setErrorMessage(res.message || 'ID Pengguna / Email atau Kata Sandi salah');
       }
-    }, 350);
+    } catch (err: any) {
+      setIsLoading(false);
+      setErrorMessage(err?.message || 'Gagal masuk. Silakan coba lagi.');
+    }
   };
 
-  const handleSignupSubmit = (e: React.FormEvent) => {
+  const handleSignupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
     setSuccessMessage(null);
     setIsLoading(true);
 
-    setTimeout(() => {
-      const res = signup({
+    try {
+      const res = await signup({
         name: signupName,
         email: signupEmail,
         username: signupUsername,
@@ -93,7 +96,10 @@ export function AdminLogin() {
       } else {
         setSuccessMessage('Pendaftaran berhasil! Mengalihkan ke dashboard...');
       }
-    }, 400);
+    } catch (err: any) {
+      setIsLoading(false);
+      setErrorMessage(err?.message || 'Gagal mendaftar.');
+    }
   };
 
   const handleSendOtp = (e: React.FormEvent) => {
