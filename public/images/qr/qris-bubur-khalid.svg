@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500" width="100%" height="100%">
+  <!-- Background Card -->
+  <rect width="400" height="500" rx="20" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+  
+  <!-- Header QRIS Red -->
+  <rect width="400" height="75" rx="20" fill="#EE3F24"/>
+  <rect y="40" width="400" height="35" fill="#EE3F24"/>
+  
+  <text x="200" y="38" font-family="system-ui, sans-serif" font-weight="900" font-size="28" fill="#FFFFFF" text-anchor="middle" letter-spacing="2">QRIS</text>
+  <text x="200" y="58" font-family="system-ui, sans-serif" font-weight="700" font-size="10" fill="#FFEFCB" text-anchor="middle" letter-spacing="1">QUICK RESPONSE CODE INDONESIAN STANDARD</text>
+  
+  <!-- Store Name & NMID -->
+  <text x="200" y="110" font-family="system-ui, sans-serif" font-weight="800" font-size="18" fill="#023820" text-anchor="middle">BUBUR KHALID</text>
+  <text x="200" y="128" font-family="monospace" font-weight="600" font-size="11" fill="#64748B" text-anchor="middle">NMID: ID1020261108001</text>
+  <text x="200" y="142" font-family="system-ui, sans-serif" font-weight="600" font-size="10" fill="#F9A11B" text-anchor="middle">A/N: KHALID BUBUR MINANG</text>
+
+  <!-- QR Code Frame -->
+  <rect x="50" y="160" width="300" height="300" rx="16" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.5"/>
+
+  <!-- Corner Position Squares (Finder patterns) -->
+  <!-- Top Left -->
+  <rect x="75" y="185" width="60" height="60" rx="8" fill="#023820"/>
+  <rect x="85" y="195" width="40" height="40" rx="4" fill="#FFFFFF"/>
+  <rect x="93" y="203" width="24" height="24" rx="2" fill="#023820"/>
+
+  <!-- Top Right -->
+  <rect x="265" y="185" width="60" height="60" rx="8" fill="#023820"/>
+  <rect x="275" y="195" width="40" height="40" rx="4" fill="#FFFFFF"/>
+  <rect x="283" y="203" width="24" height="24" rx="2" fill="#023820"/>
+
+  <!-- Bottom Left -->
+  <rect x="75" y="375" width="60" height="60" rx="8" fill="#023820"/>
+  <rect x="85" y="385" width="40" height="40" rx="4" fill="#FFFFFF"/>
+  <rect x="93" y="393" width="24" height="24" rx="2" fill="#023820"/>
+
+  <!-- QR Grid Simulated Blocks -->
+  <g fill="#023820">
+    <!-- Row 1 -->
+    <rect x="150" y="185" width="16" height="16" rx="2"/>
+    <rect x="180" y="185" width="30" height="16" rx="2"/>
+    <rect x="230" y="185" width="16" height="16" rx="2"/>
+    <!-- Row 2 -->
+    <rect x="150" y="210" width="30" height="16" rx="2"/>
+    <rect x="200" y="210" width="16" height="16" rx="2"/>
+    <rect x="230" y="210" width="20" height="16" rx="2"/>
+    <!-- Center Clusters -->
+    <rect x="75" y="260" width="20" height="20" rx="2"/>
+    <rect x="110" y="260" width="30" height="16" rx="2"/>
+    <rect x="160" y="245" width="18" height="18" rx="2"/>
+    <rect x="190" y="245" width="20" height="30" rx="2"/>
+    <rect x="220" y="240" width="35" height="16" rx="2"/>
+    <rect x="270" y="260" width="25" height="20" rx="2"/>
+    <rect x="305" y="260" width="20" height="20" rx="2"/>
+
+    <rect x="75" y="300" width="40" height="16" rx="2"/>
+    <rect x="130" y="295" width="20" height="35" rx="2"/>
+    <rect x="250" y="290" width="35" height="20" rx="2"/>
+    <rect x="300" y="300" width="25" height="20" rx="2"/>
+
+    <rect x="75" y="335" width="25" height="20" rx="2"/>
+    <rect x="115" y="340" width="20" height="20" rx="2"/>
+    <rect x="150" y="340" width="35" height="16" rx="2"/>
+    <rect x="200" y="330" width="25" height="30" rx="2"/>
+    <rect x="240" y="335" width="20" height="20" rx="2"/>
+    <rect x="275" y="330" width="45" height="16" rx="2"/>
+
+    <!-- Bottom Rows -->
+    <rect x="150" y="375" width="20" height="30" rx="2"/>
+    <rect x="180" y="375" width="40" height="16" rx="2"/>
+    <rect x="235" y="375" width="16" height="25" rx="2"/>
+    <rect x="265" y="375" width="30" height="16" rx="2"/>
+    <rect x="310" y="375" width="15" height="15" rx="2"/>
+
+    <rect x="150" y="415" width="45" height="20" rx="2"/>
+    <rect x="210" y="410" width="25" height="25" rx="2"/>
+    <rect x="250" y="415" width="40" height="16" rx="2"/>
+    <rect x="305" y="410" width="20" height="25" rx="2"/>
+  </g>
+
+  <!-- Center QRIS Badge Icon -->
+  <rect x="175" y="285" width="50" height="50" rx="10" fill="#FFFFFF" stroke="#EE3F24" stroke-width="2"/>
+  <rect x="182" y="292" width="36" height="36" rx="6" fill="#EE3F24"/>
+  <text x="200" y="315" font-family="system-ui, sans-serif" font-weight="900" font-size="11" fill="#FFFFFF" text-anchor="middle">QRIS</text>
+
+  <!-- Footer support logos note -->
+  <text x="200" y="480" font-family="system-ui, sans-serif" font-weight="700" font-size="9" fill="#64748B" text-anchor="middle" letter-spacing="1">DAPAT DIBAYAR DENGAN SEMUA APLIKASI PEMBAYARAN DIGITAL</text>
+</svg>
