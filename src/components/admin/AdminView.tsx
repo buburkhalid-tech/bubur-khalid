@@ -803,7 +803,7 @@ export function AdminView() {
   };
 
   return (
-    <div className="min-h-screen bg-tofu-silkblaze flex flex-col md:flex-row text-matcha-leaf">
+    <div className="min-h-screen md:h-screen md:overflow-hidden bg-tofu-silkblaze flex flex-col md:flex-row text-matcha-leaf">
       
       {/* MOBILE TOP BAR (With 🍔 Hamburger Menu Button) */}
       <div className="flex md:hidden items-center justify-between bg-matcha-leaf text-tofu-silkblaze px-4 py-3 sticky top-0 z-40 border-b border-matcha-surface shadow-md">
@@ -1026,13 +1026,13 @@ export function AdminView() {
         </div>
       )}
 
-      {/* LEFT SIDEBAR (Desktop Only: hidden on mobile, md:flex on desktop) */}
+      {/* LEFT SIDEBAR (Desktop Only: hidden on mobile, md:flex on desktop, sticky & fixed on scroll) */}
       <aside
         onMouseEnter={() => setIsSidebarHovered(true)}
         onMouseLeave={() => setIsSidebarHovered(false)}
         className={`hidden md:flex ${
           isSidebarOpen ? 'md:w-64' : 'md:w-20'
-        } bg-matcha-leaf text-tofu-silkblaze p-3 md:p-4 flex-col justify-between border-r border-matcha-surface flex-shrink-0 transition-all duration-300 ease-in-out z-40 relative group shadow-xl`}
+        } bg-matcha-leaf text-tofu-silkblaze p-3 md:p-4 flex-col justify-between border-r border-matcha-surface flex-shrink-0 transition-all duration-300 ease-in-out z-40 sticky top-0 h-screen overflow-y-auto hide-scrollbar group shadow-xl`}
       >
         <div>
           {/* Brand Logo & Header with Pin Toggle */}
@@ -1256,8 +1256,8 @@ export function AdminView() {
         </div>
       </aside>
 
-      {/* MAIN CONTENT AREA */}
-      <main className="flex-1 p-6 md:p-8 overflow-y-auto">
+      {/* MAIN CONTENT AREA (Scrolls independently on desktop while sidebar stays locked) */}
+      <main className="flex-1 h-auto md:h-screen p-6 md:p-8 overflow-y-auto">
         
         {/* Top bar */}
         <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-stone-200">
