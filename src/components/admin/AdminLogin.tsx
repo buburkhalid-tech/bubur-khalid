@@ -3,252 +3,437 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { useApp } from '@/lib/store/AppContext';
+import { UserRole } from '@/lib/types';
 import {
   Mail,
   KeyRound,
   Eye,
   EyeOff,
   LogIn,
+  UserPlus,
   ShieldCheck,
   AlertCircle,
-  Sparkles,
-  ArrowRight,
-  Store,
-  UserCheck,
+  User,
+  Phone,
+  Crown,
   Lock,
+  ArrowRight,
+  CheckCircle2,
+  Sparkles,
 } from 'lucide-react';
 
 export function AdminLogin() {
-  const { login, storeSettings, setActiveView } = useApp();
+  const { login, signup, users, storeSettings, setActiveView } = useApp();
 
+  // Mode: LOGIN atau SIGNUP
+  const [authMode, setAuthMode] = useState<'LOGIN' | 'SIGNUP'>('LOGIN');
+
+  // Login Form States
   const [identifier, setIdentifier] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [rememberMe, setRememberMe] = useState<boolean>(true);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [showDemoHelp, setShowDemoHelp] = useState<boolean>(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Signup Form States
+  const [signupName, setSignupName] = useState<string>('');
+  const [signupEmail, setSignupEmail] = useState<string>('');
+  const [signupUsername, setSignupUsername] = useState<string>('');
+  const [signupPassword, setSignupPassword] = useState<string>('');
+  const [signupRole, setSignupRole] = useState<UserRole>('OWNER');
+  const [signupPhone, setSignupPhone] = useState<string>('');
+  const [showSignupPassword, setShowSignupPassword] = useState<boolean>(false);
+
+  // Status & Feedback
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+    setSuccessMessage(null);
     setIsLoading(true);
 
     setTimeout(() => {
       const res = login(identifier, password);
       setIsLoading(false);
       if (!res.success) {
-        setErrorMessage(res.message || 'ID Pengguna atau Kata Sandi salah');
+        setErrorMessage(res.message || 'ID Pengguna / Email atau Kata Sandi salah');
       }
     }, 350);
   };
 
-  const handleQuickLogin = (quickId: string, quickPass: string) => {
-    setIdentifier(quickId);
-    setPassword(quickPass);
+  const handleSignupSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     setErrorMessage(null);
+    setSuccessMessage(null);
     setIsLoading(true);
+
     setTimeout(() => {
-      login(quickId, quickPass);
+      const res = signup({
+        name: signupName,
+        email: signupEmail,
+        username: signupUsername,
+        password: signupPassword,
+        role: signupRole,
+        phone: signupPhone,
+      });
       setIsLoading(false);
-    }, 250);
+
+      if (!res.success) {
+        setErrorMessage(res.message || 'Pendaftaran gagal');
+      } else {
+        setSuccessMessage('Pendaftaran berhasil! Mengalihkan ke dashboard...');
+      }
+    }, 400);
   };
 
   return (
-    <div className="min-h-screen bg-tofu-silkblaze flex items-center justify-center p-4 sm:p-6 lg:p-10 relative overflow-hidden selection:bg-spicy-light selection:text-spicy-ember">
-      
+    <div className="min-h-screen bg-tofu-silkblaze flex items-center justify-center p-3 sm:p-6 lg:p-10 relative overflow-hidden selection:bg-spicy-light selection:text-spicy-ember">
       {/* Decorative Organic Ambient Glow Orbs in Background */}
       <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-matcha-leaf/10 blur-3xl pointer-events-none" />
       <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-spicy-ember/10 blur-3xl pointer-events-none" />
       <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-64 h-64 rounded-full bg-yolk-blaze/10 blur-2xl pointer-events-none" />
 
-      {/* Main Two-Column Card Container (Inspired by Reference Design) */}
-      <div className="w-full max-w-4xl bg-white rounded-[32px] shadow-2xl overflow-hidden grid grid-cols-1 md:grid-cols-12 border border-stone-200/80 relative z-10 animate-fadeIn">
+      {/* Main Two-Column Card Container */}
+      <div className="w-full max-w-4xl bg-white rounded-3xl sm:rounded-[32px] shadow-2xl overflow-hidden grid grid-cols-1 md:grid-cols-12 border border-stone-200/80 relative z-10 animate-fadeIn my-4">
         
-        {/* ================= LEFT COLUMN: LOGIN FORM ================= */}
-        <div className="md:col-span-7 p-6 sm:p-10 lg:p-12 flex flex-col justify-between">
-          
+        {/* ================= LEFT COLUMN: FORM ================= */}
+        <div className="md:col-span-7 p-5 sm:p-8 lg:p-10 flex flex-col justify-between">
           <div>
-            {/* Header / Brand */}
-            <div className="text-center mb-8">
+            {/* Header & Mode Switch Tabs */}
+            <div className="text-center mb-6">
               <span className="text-[10px] font-black uppercase tracking-wider text-spicy-ember bg-spicy-light px-3 py-1 rounded-full inline-block">
-                Portal Karyawan & Owner
+                Portal Resmi Bubur Khalid
               </span>
-              <h2 className="text-2xl sm:text-3xl font-black text-matcha-leaf mt-2 tracking-tight">
-                Masuk Admin Portal
+
+              {/* Mode Toggle Pills (Masuk vs Daftar) */}
+              <div className="mt-4 p-1 bg-stone-100 rounded-2xl flex items-center gap-1 max-w-xs mx-auto border border-stone-200">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode('LOGIN');
+                    setErrorMessage(null);
+                    setSuccessMessage(null);
+                  }}
+                  className={`flex-1 py-2 text-xs font-black rounded-xl transition flex items-center justify-center space-x-1.5 ${
+                    authMode === 'LOGIN'
+                      ? 'bg-matcha-leaf text-white shadow-sm'
+                      : 'text-stone-500 hover:text-matcha-leaf'
+                  }`}
+                >
+                  <LogIn className="w-3.5 h-3.5" />
+                  <span>MASUK</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode('SIGNUP');
+                    setErrorMessage(null);
+                    setSuccessMessage(null);
+                  }}
+                  className={`flex-1 py-2 text-xs font-black rounded-xl transition flex items-center justify-center space-x-1.5 ${
+                    authMode === 'SIGNUP'
+                      ? 'bg-spicy-ember text-white shadow-sm'
+                      : 'text-stone-500 hover:text-spicy-ember'
+                  }`}
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span>DAFTAR BARU</span>
+                </button>
+              </div>
+
+              <h2 className="text-xl sm:text-2xl font-black text-matcha-leaf mt-3 tracking-tight">
+                {authMode === 'LOGIN' ? 'Masuk ke Portal Operasional' : 'Daftar Akun Baru (Owner / Staf)'}
               </h2>
-              {/* Stylish accent underline */}
-              <div className="h-1.5 w-16 bg-spicy-ember rounded-full mx-auto my-2.5" />
-              <p className="text-xs sm:text-sm text-stone-500 font-medium">
-                Silakan masukkan ID/Email dan kata sandi operasional Anda
+              <p className="text-xs text-stone-500 font-medium mt-1">
+                {authMode === 'LOGIN'
+                  ? 'Gunakan email pribadi atau username yang telah Anda daftarkan'
+                  : 'Daftar dengan email pribadi Anda untuk mendapatkan akses dashboard'}
               </p>
             </div>
 
+            {/* Notification / Warning if system has no users yet */}
+            {users.length === 0 && authMode === 'LOGIN' && (
+              <div className="mb-5 p-3.5 bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl text-xs flex items-start space-x-2.5">
+                <Sparkles className="w-4 h-4 text-yolk-blaze flex-shrink-0 mt-0.5" />
+                <div className="leading-relaxed">
+                  <strong className="block font-bold">Data Pengguna Masih Kosong:</strong>
+                  Semua dummy user telah dibersihkan. Silakan klik tombol{' '}
+                  <button
+                    type="button"
+                    onClick={() => setAuthMode('SIGNUP')}
+                    className="font-black text-spicy-ember underline underline-offset-2 hover:text-spicy-hover"
+                  >
+                    DAFTAR BARU
+                  </button>{' '}
+                  di atas untuk membuat akun pertama Anda sebagai <strong>Owner</strong>.
+                </div>
+              </div>
+            )}
+
             {/* Error Notification */}
             {errorMessage && (
-              <div className="mb-6 p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-2xl flex items-center space-x-2.5 text-xs font-semibold animate-shake">
+              <div className="mb-5 p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-2xl flex items-center space-x-2.5 text-xs font-semibold animate-shake">
                 <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
                 <span>{errorMessage}</span>
               </div>
             )}
 
-            {/* Login Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              
-              {/* Field 1: User ID / Email */}
-              <div>
-                <label className="block text-xs font-bold text-matcha-leaf mb-1.5">
-                  ID Pengguna atau Email
-                </label>
-                <div className="relative flex items-center bg-stone-50 border border-stone-200 rounded-2xl focus-within:border-matcha-leaf focus-within:bg-white focus-within:ring-2 focus-within:ring-matcha-leaf/10 transition shadow-2xs">
-                  <div className="pl-4 pr-3 py-3.5 text-stone-400 border-r border-stone-200/80 flex items-center justify-center">
-                    <Mail className="w-4 h-4 text-matcha-leaf" />
-                  </div>
-                  <input
-                    type="text"
-                    required
-                    value={identifier}
-                    onChange={(e) => setIdentifier(e.target.value)}
-                    placeholder="Contoh: ahmad_admin atau admin"
-                    className="w-full bg-transparent py-3.5 px-4 text-xs sm:text-sm font-semibold text-stone-800 placeholder:text-stone-400 focus:outline-none"
-                  />
-                </div>
+            {/* Success Notification */}
+            {successMessage && (
+              <div className="mb-5 p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl flex items-center space-x-2.5 text-xs font-semibold animate-fadeIn">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <span>{successMessage}</span>
               </div>
+            )}
 
-              {/* Field 2: Password / PIN */}
-              <div>
-                <label className="block text-xs font-bold text-matcha-leaf mb-1.5">
-                  Kata Sandi atau PIN
-                </label>
-                <div className="relative flex items-center bg-stone-50 border border-stone-200 rounded-2xl focus-within:border-matcha-leaf focus-within:bg-white focus-within:ring-2 focus-within:ring-matcha-leaf/10 transition shadow-2xs">
-                  <div className="pl-4 pr-3 py-3.5 text-stone-400 border-r border-stone-200/80 flex items-center justify-center">
-                    <KeyRound className="w-4 h-4 text-spicy-ember" />
+            {/* ================= MODE 1: LOGIN ================= */}
+            {authMode === 'LOGIN' && (
+              <form onSubmit={handleLoginSubmit} className="space-y-3.5">
+                {/* Field: User ID / Email */}
+                <div>
+                  <label className="block text-xs font-bold text-matcha-leaf mb-1">
+                    Email Pribadi atau Username
+                  </label>
+                  <div className="relative flex items-center bg-stone-50 border border-stone-200 rounded-2xl focus-within:border-matcha-leaf focus-within:bg-white focus-within:ring-2 focus-within:ring-matcha-leaf/10 transition shadow-2xs">
+                    <div className="pl-4 pr-3 py-3 text-stone-400 border-r border-stone-200/80 flex items-center justify-center">
+                      <Mail className="w-4 h-4 text-matcha-leaf" />
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      value={identifier}
+                      onChange={(e) => setIdentifier(e.target.value)}
+                      placeholder="Contoh: fauzi@gmail.com atau fauzi"
+                      className="w-full bg-transparent py-3 px-3.5 text-xs sm:text-sm font-semibold text-stone-800 placeholder:text-stone-400 focus:outline-none"
+                    />
                   </div>
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Contoh: admin123 atau 112233"
-                    className="w-full bg-transparent py-3.5 px-4 text-xs sm:text-sm font-semibold text-stone-800 placeholder:text-stone-400 focus:outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="pr-4 pl-2 text-stone-400 hover:text-matcha-leaf transition"
-                    title={showPassword ? 'Sembunyikan' : 'Tampilkan'}
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
                 </div>
-              </div>
 
-              {/* Extra Row: Remember Me & Quick Help */}
-              <div className="flex items-center justify-between text-xs pt-1">
-                <label className="flex items-center space-x-2 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 rounded border-stone-300 text-matcha-leaf focus:ring-matcha-leaf cursor-pointer accent-matcha-leaf"
-                  />
-                  <span className="font-semibold text-stone-600">Ingat saya</span>
-                </label>
+                {/* Field: Password */}
+                <div>
+                  <label className="block text-xs font-bold text-matcha-leaf mb-1">
+                    Kata Sandi
+                  </label>
+                  <div className="relative flex items-center bg-stone-50 border border-stone-200 rounded-2xl focus-within:border-matcha-leaf focus-within:bg-white focus-within:ring-2 focus-within:ring-matcha-leaf/10 transition shadow-2xs">
+                    <div className="pl-4 pr-3 py-3 text-stone-400 border-r border-stone-200/80 flex items-center justify-center">
+                      <KeyRound className="w-4 h-4 text-spicy-ember" />
+                    </div>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Masukkan kata sandi akun Anda"
+                      className="w-full bg-transparent py-3 px-3.5 text-xs sm:text-sm font-semibold text-stone-800 placeholder:text-stone-400 focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="pr-4 pl-2 text-stone-400 hover:text-matcha-leaf transition"
+                      title={showPassword ? 'Sembunyikan' : 'Tampilkan'}
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
 
+                {/* Remember Me */}
+                <div className="flex items-center justify-between text-xs pt-1">
+                  <label className="flex items-center space-x-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="w-4 h-4 rounded border-stone-300 text-matcha-leaf focus:ring-matcha-leaf cursor-pointer accent-matcha-leaf"
+                    />
+                    <span className="font-semibold text-stone-600">Ingat sesi di browser ini</span>
+                  </label>
+                </div>
+
+                {/* Submit Button */}
                 <button
-                  type="button"
-                  onClick={() => setShowDemoHelp(!showDemoHelp)}
-                  className="font-bold text-spicy-ember hover:text-spicy-hover transition underline decoration-dotted"
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full mt-3 bg-matcha-leaf hover:bg-matcha-surface text-tofu-silkblaze font-black text-sm py-3.5 rounded-2xl shadow-lg transition flex items-center justify-center space-x-2 active:scale-[0.98] disabled:opacity-75 disabled:cursor-not-allowed"
                 >
-                  {showDemoHelp ? 'Tutup Bantuan' : 'Bantuan Akun?'}
+                  {isLoading ? (
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <LogIn className="w-4 h-4 text-yolk-blaze" />
+                      <span>MASUK KE DASHBOARD</span>
+                    </>
+                  )}
                 </button>
-              </div>
+              </form>
+            )}
 
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full mt-4 bg-matcha-leaf hover:bg-matcha-surface text-tofu-silkblaze font-black text-sm py-4 rounded-2xl shadow-lg transition flex items-center justify-center space-x-2 active:scale-[0.98] disabled:opacity-75 disabled:cursor-not-allowed"
-              >
-                {isLoading ? (
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <LogIn className="w-4 h-4 text-yolk-blaze" />
-                    <span>MASUK KE DASHBOARD</span>
-                  </>
-                )}
-              </button>
+            {/* ================= MODE 2: SIGNUP ================= */}
+            {authMode === 'SIGNUP' && (
+              <form onSubmit={handleSignupSubmit} className="space-y-3">
+                {/* Field: Full Name */}
+                <div>
+                  <label className="block text-xs font-bold text-matcha-leaf mb-1">
+                    Nama Lengkap
+                  </label>
+                  <div className="relative flex items-center bg-stone-50 border border-stone-200 rounded-2xl focus-within:border-spicy-ember focus-within:bg-white focus-within:ring-2 focus-within:ring-spicy-ember/10 transition shadow-2xs">
+                    <div className="pl-4 pr-3 py-2.5 text-stone-400 border-r border-stone-200/80 flex items-center justify-center">
+                      <User className="w-4 h-4 text-matcha-leaf" />
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      value={signupName}
+                      onChange={(e) => setSignupName(e.target.value)}
+                      placeholder="Contoh: Khalid Fauzi"
+                      className="w-full bg-transparent py-2.5 px-3 text-xs sm:text-sm font-semibold text-stone-800 placeholder:text-stone-400 focus:outline-none"
+                    />
+                  </div>
+                </div>
 
-            </form>
+                {/* Field: Email Pribadi */}
+                <div>
+                  <label className="block text-xs font-bold text-matcha-leaf mb-1">
+                    Email Pribadi (Untuk Login & Keamanan)
+                  </label>
+                  <div className="relative flex items-center bg-stone-50 border border-stone-200 rounded-2xl focus-within:border-spicy-ember focus-within:bg-white focus-within:ring-2 focus-within:ring-spicy-ember/10 transition shadow-2xs">
+                    <div className="pl-4 pr-3 py-2.5 text-stone-400 border-r border-stone-200/80 flex items-center justify-center">
+                      <Mail className="w-4 h-4 text-spicy-ember" />
+                    </div>
+                    <input
+                      type="email"
+                      required
+                      value={signupEmail}
+                      onChange={(e) => setSignupEmail(e.target.value)}
+                      placeholder="Contoh: emailanda@gmail.com"
+                      className="w-full bg-transparent py-2.5 px-3 text-xs sm:text-sm font-semibold text-stone-800 placeholder:text-stone-400 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Row: Username & Role */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block text-xs font-bold text-matcha-leaf mb-1">
+                      Username Unik
+                    </label>
+                    <div className="relative flex items-center bg-stone-50 border border-stone-200 rounded-2xl focus-within:border-spicy-ember focus-within:bg-white transition">
+                      <input
+                        type="text"
+                        required
+                        value={signupUsername}
+                        onChange={(e) => setSignupUsername(e.target.value.toLowerCase().replace(/\s+/g, ''))}
+                        placeholder="Contoh: fauzi_owner"
+                        className="w-full bg-transparent py-2.5 px-3.5 text-xs sm:text-sm font-semibold text-stone-800 placeholder:text-stone-400 focus:outline-none font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-matcha-leaf mb-1">
+                      Peran / Hak Akses
+                    </label>
+                    <div className="relative flex items-center bg-stone-50 border border-stone-200 rounded-2xl focus-within:border-spicy-ember focus-within:bg-white transition">
+                      <select
+                        value={signupRole}
+                        onChange={(e) => setSignupRole(e.target.value as UserRole)}
+                        className="w-full bg-transparent py-2.5 px-3 text-xs font-bold text-stone-800 focus:outline-none cursor-pointer"
+                      >
+                        <option value="OWNER">👑 Owner (Akses Penuh Finansial)</option>
+                        <option value="ADMIN">🛡️ Admin (Operasional & Menu)</option>
+                        <option value="CASHIER">🏪 Kasir (POS Kasir Tablet)</option>
+                        <option value="KITCHEN_STAFF">🍳 Dapur (Kitchen Display)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Field: Password */}
+                <div>
+                  <label className="block text-xs font-bold text-matcha-leaf mb-1">
+                    Kata Sandi Akun
+                  </label>
+                  <div className="relative flex items-center bg-stone-50 border border-stone-200 rounded-2xl focus-within:border-spicy-ember focus-within:bg-white focus-within:ring-2 focus-within:ring-spicy-ember/10 transition shadow-2xs">
+                    <div className="pl-4 pr-3 py-2.5 text-stone-400 border-r border-stone-200/80 flex items-center justify-center">
+                      <KeyRound className="w-4 h-4 text-yolk-blaze" />
+                    </div>
+                    <input
+                      type={showSignupPassword ? 'text' : 'password'}
+                      required
+                      minLength={4}
+                      value={signupPassword}
+                      onChange={(e) => setSignupPassword(e.target.value)}
+                      placeholder="Minimal 4 karakter"
+                      className="w-full bg-transparent py-2.5 px-3 text-xs sm:text-sm font-semibold text-stone-800 placeholder:text-stone-400 focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowSignupPassword(!showSignupPassword)}
+                      className="pr-4 pl-2 text-stone-400 hover:text-spicy-ember transition"
+                      title={showSignupPassword ? 'Sembunyikan' : 'Tampilkan'}
+                    >
+                      {showSignupPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Field: WhatsApp / Phone (Optional) */}
+                <div>
+                  <label className="block text-xs font-bold text-matcha-leaf mb-1">
+                    Nomor WhatsApp / HP (Opsional)
+                  </label>
+                  <div className="relative flex items-center bg-stone-50 border border-stone-200 rounded-2xl focus-within:border-spicy-ember focus-within:bg-white transition">
+                    <div className="pl-4 pr-3 py-2 text-stone-400 border-r border-stone-200/80 flex items-center justify-center">
+                      <Phone className="w-3.5 h-3.5 text-matcha-leaf" />
+                    </div>
+                    <input
+                      type="tel"
+                      value={signupPhone}
+                      onChange={(e) => setSignupPhone(e.target.value)}
+                      placeholder="0812xxxxxxx"
+                      className="w-full bg-transparent py-2 px-3 text-xs font-semibold text-stone-800 placeholder:text-stone-400 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full mt-3 bg-spicy-ember hover:bg-spicy-hover text-white font-black text-sm py-3.5 rounded-2xl shadow-lg transition flex items-center justify-center space-x-2 active:scale-[0.98] disabled:opacity-75 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? (
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <UserPlus className="w-4 h-4 text-yolk-blaze" />
+                      <span>DAFTAR & MASUK KE DASHBOARD</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
           </div>
 
-          {/* Quick Demo Credentials Shortcut Pills */}
-          <div className="mt-8 pt-6 border-t border-stone-100 space-y-2.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-extrabold text-stone-500 uppercase tracking-wider flex items-center space-x-1">
-                <Sparkles className="w-3.5 h-3.5 text-yolk-blaze" />
-                <span>Masuk Cepat 1-Klik (Uji Coba):</span>
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('ahmad_admin', 'admin123')}
-                className="p-2.5 bg-stone-50 hover:bg-noodle-cream/60 border border-stone-200 rounded-xl text-left transition group"
-              >
-                <div className="text-[10px] font-black text-matcha-leaf flex items-center justify-between">
-                  <span>🛡️ ADMIN</span>
-                  <ArrowRight className="w-3 h-3 text-stone-400 group-hover:text-matcha-leaf transition transform group-hover:translate-x-0.5" />
-                </div>
-                <div className="text-[9px] text-stone-500 font-mono mt-0.5">admin / admin123</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('khalid_owner', '123456')}
-                className="p-2.5 bg-stone-50 hover:bg-amber-50 border border-stone-200 rounded-xl text-left transition group"
-              >
-                <div className="text-[10px] font-black text-yolk-blaze flex items-center justify-between">
-                  <span>👑 OWNER</span>
-                  <ArrowRight className="w-3 h-3 text-stone-400 group-hover:text-yolk-blaze transition transform group-hover:translate-x-0.5" />
-                </div>
-                <div className="text-[9px] text-stone-500 font-mono mt-0.5">owner / 123456</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('siska_kasir', 'kasir123')}
-                className="p-2.5 bg-stone-50 hover:bg-spicy-light/60 border border-stone-200 rounded-xl text-left transition group"
-              >
-                <div className="text-[10px] font-black text-spicy-ember flex items-center justify-between">
-                  <span>🏪 KASIR</span>
-                  <ArrowRight className="w-3 h-3 text-stone-400 group-hover:text-spicy-ember transition transform group-hover:translate-x-0.5" />
-                </div>
-                <div className="text-[9px] text-stone-500 font-mono mt-0.5">kasir / kasir123</div>
-              </button>
-            </div>
-
-            {/* Back to Customer Web Link */}
-            <div className="text-center pt-2">
-              <button
-                type="button"
-                onClick={() => setActiveView('customer')}
-                className="text-xs font-bold text-stone-500 hover:text-spicy-ember transition inline-flex items-center space-x-1"
-              >
-                <span>Lihat Tampilan Web Pelanggan</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
+          {/* Footer Navigation */}
+          <div className="mt-6 pt-4 border-t border-stone-100 flex items-center justify-between text-xs">
+            <span className="text-stone-400 font-medium">Bubur Khalid © 2026</span>
+            <button
+              type="button"
+              onClick={() => setActiveView('customer')}
+              className="text-xs font-bold text-stone-600 hover:text-spicy-ember transition inline-flex items-center space-x-1"
+            >
+              <span>Lihat Tampilan Web Pelanggan</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
           </div>
-
         </div>
 
         {/* ================= RIGHT COLUMN: BRAND BANNER ================= */}
-        <div className="md:col-span-5 bg-gradient-to-br from-matcha-leaf via-[#02311c] to-[#011c10] text-tofu-silkblaze p-8 sm:p-10 lg:p-12 flex flex-col justify-between relative overflow-hidden">
-          
-          {/* Decorative Waves Overlay (Inspired by Reference Graphic Design) */}
+        <div className="md:col-span-5 bg-gradient-to-br from-matcha-leaf via-[#02311c] to-[#011c10] text-tofu-silkblaze p-6 sm:p-8 lg:p-10 flex flex-col justify-between relative overflow-hidden">
+          {/* Decorative Waves Overlay */}
           <div className="absolute inset-0 pointer-events-none opacity-20">
             <svg className="w-full h-full object-cover" viewBox="0 0 500 500" preserveAspectRatio="none">
               <path d="M0,100 C150,200 350,0 500,100 L500,0 L0,0 Z" fill="#F9A11B" />
@@ -261,7 +446,7 @@ export function AdminLogin() {
 
           {/* Top Logo Badge */}
           <div className="relative z-10 text-center">
-            <div className="w-24 h-24 rounded-full bg-white p-2 shadow-2xl border-4 border-white/20 mx-auto relative overflow-hidden">
+            <div className="w-20 h-20 rounded-full bg-white p-1.5 shadow-2xl border-4 border-white/20 mx-auto relative overflow-hidden">
               <Image
                 src={storeSettings.storeLogo || '/images/logo/bubur-khalid-logo.png'}
                 alt="Logo Bubur Khalid"
@@ -270,40 +455,64 @@ export function AdminLogin() {
                 priority
               />
             </div>
-            <h3 className="text-base font-black text-white mt-3 tracking-wide">
+            <h3 className="text-base font-black text-white mt-2.5 tracking-wide">
               {storeSettings.storeName}
             </h3>
-            <span className="text-[11px] text-noodle-cream/90 font-medium tracking-wider uppercase">
+            <span className="text-[10px] text-noodle-cream/90 font-medium tracking-wider uppercase">
               Asli Minang • Sejak 2026
             </span>
           </div>
 
-          {/* Middle: Welcome Message */}
-          <div className="relative z-10 text-center my-8 space-y-3">
-            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight uppercase leading-tight">
-              WELCOME!
+          {/* Middle: Info & Mode Switch Suggestion */}
+          <div className="relative z-10 text-center my-6 space-y-3">
+            <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight uppercase leading-tight">
+              {authMode === 'LOGIN' ? 'SELAMAT DATANG!' : 'GABUNG TIM KAMI!'}
             </h1>
-            <p className="text-xs sm:text-sm text-noodle-cream/90 font-normal leading-relaxed">
-              Portal Operasional Terpadu: POS Kasir Touchscreen, Kitchen Display Antrean FIFO, Manajemen Menu, dan Finansial.
+            <p className="text-xs text-noodle-cream/90 font-normal leading-relaxed">
+              {authMode === 'LOGIN'
+                ? 'Portal Terpadu Bubur Khalid: POS Kasir Touchscreen, Kitchen Display Antrean FIFO, Manajemen Menu, dan Finansial.'
+                : 'Buat akun dengan email pribadi untuk mengelola restoran, pantau keuangan, dan kelola operasional kasir serta dapur.'}
             </p>
+
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthMode(authMode === 'LOGIN' ? 'SIGNUP' : 'LOGIN');
+                  setErrorMessage(null);
+                  setSuccessMessage(null);
+                }}
+                className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-full bg-white/15 hover:bg-white/25 text-white text-xs font-black transition border border-white/20 active:scale-95"
+              >
+                {authMode === 'LOGIN' ? (
+                  <>
+                    <span>Belum punya akun? Buat Baru</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </>
+                ) : (
+                  <>
+                    <span>Sudah punya akun? Masuk Disini</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </>
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Bottom Security Highlights */}
-          <div className="relative z-10 space-y-2 bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/15 text-[11px]">
+          <div className="relative z-10 space-y-2 bg-white/10 backdrop-blur-md p-3.5 rounded-2xl border border-white/15 text-[11px]">
             <div className="flex items-center space-x-2">
               <ShieldCheck className="w-4 h-4 text-yolk-blaze flex-shrink-0" />
-              <span>Multi-level Role Access (Admin, Kasir, Owner)</span>
+              <span>Multi-level Role (Owner, Admin, Kasir, Dapur)</span>
             </div>
             <div className="flex items-center space-x-2">
               <Lock className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-              <span>Proteksi Finansial & Audit Log Real-Time</span>
+              <span>Penyimpanan Aman & Audit Log Operasional</span>
             </div>
           </div>
-
         </div>
 
       </div>
-
     </div>
   );
 }

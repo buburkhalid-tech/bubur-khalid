@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Product, Order, OrderStatus, PaymentMethod, TableInfo, AuditLog, FinancialSummary, StoreSettings, SystemUser, PromoBanner } from '../types';
+import { Product, Order, OrderStatus, PaymentMethod, TableInfo, AuditLog, FinancialSummary, StoreSettings, SystemUser, PromoBanner, UserRole } from '../types';
 import { INITIAL_PRODUCTS, INITIAL_TABLES, CUP_FEE, INITIAL_STORE_SETTINGS, INITIAL_USERS, INITIAL_PROMO_BANNERS } from '../constants';
 import { MOCK_ORDERS, MOCK_FINANCIAL_SUMMARY, MOCK_AUDIT_LOGS } from '../mock-data';
 
@@ -83,6 +83,14 @@ interface AppContextType {
   currentUser: SystemUser | null;
   isAuthenticated: boolean;
   login: (identifier: string, passOrPin: string) => { success: boolean; message?: string };
+  signup: (userData: {
+    name: string;
+    email: string;
+    username: string;
+    password: string;
+    role: UserRole;
+    phone?: string;
+  }) => { success: boolean; message?: string };
   logout: () => void;
 
   // Financial & Security Gate
@@ -134,7 +142,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [customerServiceType, setCustomerServiceType] = useState<'DINE_IN' | 'TAKEAWAY'>('TAKEAWAY');
   const [selectedTable, setSelectedTable] = useState<string>('Meja 04');
 
-  // Master Data State
+  // Master Data State with Full LocalStorage Persistence
+  const [isHydrated, setIsHydrated] = useState<boolean>(false);
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
   const [trashProducts, setTrashProducts] = useState<Product[]>([]);
   const [tables, setTables] = useState<TableInfo[]>(INITIAL_TABLES);
@@ -142,6 +151,170 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(MOCK_AUDIT_LOGS);
   const [storeSettings, setStoreSettings] = useState<StoreSettings>(INITIAL_STORE_SETTINGS);
   const [promoBanners, setPromoBanners] = useState<PromoBanner[]>(INITIAL_PROMO_BANNERS);
+  const [users, setUsers] = useState<SystemUser[]>(INITIAL_USERS);
+  const [currentUser, setCurrentUser] = useState<SystemUser | null>(null);
+
+  // Initialize and restore all data from localStorage on client mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        // Products
+        const savedProducts = localStorage.getItem('bubur_khalid_products');
+        if (savedProducts) {
+          const parsed = JSON.parse(savedProducts);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setProducts(parsed);
+          }
+        }
+
+        // Trash
+        const savedTrash = localStorage.getItem('bubur_khalid_trash_products');
+        if (savedTrash) {
+          const parsed = JSON.parse(savedTrash);
+          if (Array.isArray(parsed)) {
+            setTrashProducts(parsed);
+          }
+        }
+
+        // Store Settings
+        const savedSettings = localStorage.getItem('bubur_khalid_settings');
+        if (savedSettings) {
+          const parsed = JSON.parse(savedSettings);
+          if (parsed && typeof parsed === 'object') {
+            setStoreSettings(parsed);
+          }
+        }
+
+        // Promo Banners
+        const savedBanners = localStorage.getItem('bubur_khalid_promo_banners');
+        if (savedBanners) {
+          const parsed = JSON.parse(savedBanners);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setPromoBanners(parsed);
+          }
+        }
+
+        // Tables
+        const savedTables = localStorage.getItem('bubur_khalid_tables');
+        if (savedTables) {
+          const parsed = JSON.parse(savedTables);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setTables(parsed);
+          }
+        }
+
+        // Orders
+        const savedOrders = localStorage.getItem('bubur_khalid_orders');
+        if (savedOrders) {
+          const parsed = JSON.parse(savedOrders);
+          if (Array.isArray(parsed)) {
+            setOrders(parsed);
+          }
+        }
+
+        // Users & Session: Bersihkan data dummy lama jika ada
+        const savedUsers = localStorage.getItem('bubur_khalid_users');
+        if (savedUsers) {
+          const parsed = JSON.parse(savedUsers);
+          if (Array.isArray(parsed)) {
+            // Hapus pengguna dummy default lama (khalid_owner, ahmad_admin, siska_kasir, budi_kitchen)
+            const cleanUsers = parsed.filter(
+              (u: SystemUser) =>
+                !['usr-1', 'usr-2', 'usr-3', 'usr-4'].includes(u.id) &&
+                !['khalid_owner', 'ahmad_admin', 'siska_kasir', 'budi_kitchen'].includes(u.username)
+            );
+            setUsers(cleanUsers);
+            localStorage.setItem('bubur_khalid_users', JSON.stringify(cleanUsers));
+          }
+        } else {
+          setUsers([]);
+        }
+
+        const savedSession = localStorage.getItem('bubur_khalid_admin_session');
+        if (savedSession) {
+          const parsed = JSON.parse(savedSession);
+          if (
+            ['usr-1', 'usr-2', 'usr-3', 'usr-4'].includes(parsed.id) ||
+            ['khalid_owner', 'ahmad_admin', 'siska_kasir', 'budi_kitchen'].includes(parsed.username)
+          ) {
+            localStorage.removeItem('bubur_khalid_admin_session');
+            setCurrentUser(null);
+          } else {
+            setCurrentUser(parsed);
+          }
+        } else {
+          setCurrentUser(null);
+        }
+      } catch (err) {
+        console.error('Failed to load local storage:', err);
+      } finally {
+        setIsHydrated(true);
+      }
+    }
+  }, []);
+
+  // Auto-sync Products ke LocalStorage saat ada perubahan
+  useEffect(() => {
+    if (isHydrated && typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('bubur_khalid_products', JSON.stringify(products));
+      } catch (e) {}
+    }
+  }, [products, isHydrated]);
+
+  // Auto-sync Trash Products ke LocalStorage
+  useEffect(() => {
+    if (isHydrated && typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('bubur_khalid_trash_products', JSON.stringify(trashProducts));
+      } catch (e) {}
+    }
+  }, [trashProducts, isHydrated]);
+
+  // Auto-sync Settings ke LocalStorage
+  useEffect(() => {
+    if (isHydrated && typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('bubur_khalid_settings', JSON.stringify(storeSettings));
+      } catch (e) {}
+    }
+  }, [storeSettings, isHydrated]);
+
+  // Auto-sync Promo Banners ke LocalStorage
+  useEffect(() => {
+    if (isHydrated && typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('bubur_khalid_promo_banners', JSON.stringify(promoBanners));
+      } catch (e) {}
+    }
+  }, [promoBanners, isHydrated]);
+
+  // Auto-sync Tables ke LocalStorage
+  useEffect(() => {
+    if (isHydrated && typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('bubur_khalid_tables', JSON.stringify(tables));
+      } catch (e) {}
+    }
+  }, [tables, isHydrated]);
+
+  // Auto-sync Orders ke LocalStorage
+  useEffect(() => {
+    if (isHydrated && typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('bubur_khalid_orders', JSON.stringify(orders));
+      } catch (e) {}
+    }
+  }, [orders, isHydrated]);
+
+  // Auto-sync Users ke LocalStorage
+  useEffect(() => {
+    if (isHydrated && typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('bubur_khalid_users', JSON.stringify(users));
+      } catch (e) {}
+    }
+  }, [users, isHydrated]);
 
   const addPromoBanner = (newBanner: Omit<PromoBanner, 'id'>) => {
     const banner: PromoBanner = {
@@ -630,8 +803,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   // User & Security Management (Admin, Kasir, Owner, Dapur)
-  const [users, setUsers] = useState<SystemUser[]>(INITIAL_USERS);
-
   const addUser = (userData: Omit<SystemUser, 'id' | 'created_at'>) => {
     const newUser: SystemUser = {
       ...userData,
@@ -684,22 +855,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   // User Authentication & Session Management
-  const [currentUser, setCurrentUser] = useState<SystemUser | null>(null);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const savedSession = localStorage.getItem('bubur_khalid_admin_session');
-        if (savedSession) {
-          const parsed = JSON.parse(savedSession);
-          setCurrentUser(parsed);
-        }
-      } catch (err) {
-        console.error('Failed to restore session:', err);
-      }
-    }
-  }, []);
-
   const login = (identifier: string, passOrPin: string): { success: boolean; message?: string } => {
     const cleanId = identifier.trim().toLowerCase();
     const cleanPass = passOrPin.trim();
@@ -754,6 +909,73 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     addAuditLog('LOGIN', 'Auth', updatedUser.id, `Pengguna ${updatedUser.name} (${updatedUser.role}) berhasil masuk ke portal`);
     showToast(`Selamat datang, ${updatedUser.name}!`);
+    return { success: true };
+  };
+
+  const signup = (userData: {
+    name: string;
+    email: string;
+    username: string;
+    password: string;
+    role: UserRole;
+    phone?: string;
+  }): { success: boolean; message?: string } => {
+    const cleanEmail = userData.email.trim().toLowerCase();
+    const cleanUsername = userData.username.trim().toLowerCase();
+    const cleanName = userData.name.trim();
+    const cleanPassword = userData.password.trim();
+
+    if (!cleanEmail || !cleanUsername || !cleanName || !cleanPassword) {
+      return { success: false, message: 'Harap lengkapi semua data pendaftaran (Nama, Email, Username, Password)' };
+    }
+
+    if (!cleanEmail.includes('@') || !cleanEmail.includes('.')) {
+      return { success: false, message: 'Format email pribadi tidak valid' };
+    }
+
+    if (cleanPassword.length < 4) {
+      return { success: false, message: 'Kata sandi minimal 4 karakter' };
+    }
+
+    // Check if email or username already taken
+    const existing = users.find(
+      (u) =>
+        (u.email && u.email.toLowerCase() === cleanEmail) ||
+        u.username.toLowerCase() === cleanUsername
+    );
+
+    if (existing) {
+      return { success: false, message: 'Email atau Username ini sudah terdaftar. Silakan masuk.' };
+    }
+
+    const newUser: SystemUser = {
+      id: `usr-${Date.now()}`,
+      name: cleanName,
+      email: cleanEmail,
+      username: cleanUsername,
+      role: userData.role || 'OWNER',
+      pin: cleanPassword.length === 6 && /^\d+$/.test(cleanPassword) ? cleanPassword : '123456',
+      password: cleanPassword,
+      phone: userData.phone || '',
+      created_at: new Date().toISOString().split('T')[0],
+      is_active: true,
+      last_login: 'Baru saja',
+    };
+
+    const nextUsers = [newUser, ...users];
+    setUsers(nextUsers);
+    try {
+      localStorage.setItem('bubur_khalid_users', JSON.stringify(nextUsers));
+    } catch (e) {}
+
+    // Auto login after signup
+    setCurrentUser(newUser);
+    try {
+      localStorage.setItem('bubur_khalid_admin_session', JSON.stringify(newUser));
+    } catch (e) {}
+
+    addAuditLog('SIGNUP', 'Auth', newUser.id, `Akun baru terdaftar: ${newUser.name} (${newUser.email}) sebagai ${newUser.role}`);
+    showToast(`Pendaftaran berhasil! Selamat datang, ${newUser.name}!`);
     return { success: true };
   };
 
@@ -869,6 +1091,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         currentUser,
         isAuthenticated: Boolean(currentUser),
         login,
+        signup,
         logout,
         financialSummary: MOCK_FINANCIAL_SUMMARY,
         isFinancialUnlocked,

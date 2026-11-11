@@ -3198,7 +3198,7 @@ export function AdminView() {
                     <div>
                       <div className="flex items-center space-x-2">
                         <h4 className="font-black text-base text-matcha-leaf">
-                          {currentUser ? currentUser.name : 'Ahmad Fauzi'}
+                          {currentUser ? currentUser.name : 'Pengguna Aktif'}
                         </h4>
                         <span className="bg-spicy-ember text-white text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-xs">
                           {currentUser ? currentUser.role : 'ADMIN'}
@@ -3209,7 +3209,7 @@ export function AdminView() {
                         </span>
                       </div>
                       <p className="text-xs text-stone-500 mt-1">
-                        Username: <code className="font-bold text-matcha-leaf">@{currentUser?.username || 'ahmad_admin'}</code> • Akses:{' '}
+                        Username: <code className="font-bold text-matcha-leaf">@{currentUser?.username || '-'}</code> • Akses:{' '}
                         <span className="font-semibold text-stone-700">
                           {currentUser?.role === 'OWNER'
                             ? 'Owner / Pemilik Toko (Akses Penuh & Laporan Finansial)'
