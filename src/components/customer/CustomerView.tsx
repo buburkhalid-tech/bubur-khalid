@@ -1328,7 +1328,7 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
                     <span>Rekening Resmi Owner Khalid:</span>
                   </span>
                   <span className="text-xs bg-emerald-200 text-emerald-900 font-black px-2 py-0.5 rounded">
-                    {storeSettings.paymentMethods.transfer.bankName || 'BCA'}
+                    {storeSettings?.paymentMethods?.transfer?.bankName || 'BCA'}
                   </span>
                 </div>
 
@@ -1336,17 +1336,17 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
                   <div>
                     <span className="text-[10px] text-stone-400 font-semibold uppercase block">Nomor Rekening</span>
                     <div className="text-base font-mono font-black text-matcha-leaf">
-                      {storeSettings.paymentMethods.transfer.accountNumber || '8920192831'}
+                      {storeSettings?.paymentMethods?.transfer?.accountNumber || '8920192831'}
                     </div>
                     <span className="text-[11px] text-stone-600 font-bold block mt-0.5">
-                      a.n {storeSettings.paymentMethods.transfer.accountHolder || 'BUBUR KHALID'}
+                      a.n {storeSettings?.paymentMethods?.transfer?.accountHolder || 'BUBUR KHALID'}
                     </span>
                   </div>
                   <button
                     type="button"
                     onClick={() => {
                       if (typeof navigator !== 'undefined') {
-                        navigator.clipboard.writeText(storeSettings.paymentMethods.transfer.accountNumber || '8920192831');
+                        navigator.clipboard.writeText(storeSettings?.paymentMethods?.transfer?.accountNumber || '8920192831');
                         triggerToast('Nomor rekening berhasil disalin! 📋');
                       }
                     }}
@@ -1509,7 +1509,7 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
                 <div>
                   <div className="text-xs font-bold text-matcha-leaf mb-1.5">Pilih Metode Pembayaran:</div>
                   <div className="grid grid-cols-3 gap-2">
-                    {storeSettings.paymentMethods.transfer.enabled && (
+                    {storeSettings?.paymentMethods?.transfer?.enabled !== false && (
                       <button
                         type="button"
                         onClick={() => setPaymentMethod('TRANSFER')}
@@ -1528,12 +1528,12 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
                         <div>
                           <div className="text-[11px] font-bold leading-tight">Transfer Bank</div>
                           <div className="text-[9px] font-normal text-stone-500 mt-0.5">
-                            {storeSettings.paymentMethods.transfer.bankName || 'BCA / Mandiri'}
+                            {storeSettings?.paymentMethods?.transfer?.bankName || 'BCA / Mandiri'}
                           </div>
                         </div>
                       </button>
                     )}
-                    {storeSettings.paymentMethods.qris.enabled && (
+                    {storeSettings?.paymentMethods?.qris?.enabled !== false && (
                       <button
                         type="button"
                         onClick={() => setPaymentMethod('QRIS')}
@@ -1545,12 +1545,12 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
                       >
                         <span className="text-base mb-1">📱</span>
                         <div>
-                          <div className="text-[11px] font-bold leading-tight">{storeSettings.paymentMethods.qris.name}</div>
-                          <div className="text-[9px] font-normal text-stone-500 mt-0.5">{storeSettings.paymentMethods.qris.description}</div>
+                          <div className="text-[11px] font-bold leading-tight">{storeSettings?.paymentMethods?.qris?.name || 'QRIS Digital'}</div>
+                          <div className="text-[9px] font-normal text-stone-500 mt-0.5">{storeSettings?.paymentMethods?.qris?.description || 'Gopay, OVO, Shopee'}</div>
                         </div>
                       </button>
                     )}
-                    {storeSettings.paymentMethods.cash.enabled && (
+                    {storeSettings?.paymentMethods?.cash?.enabled !== false && (
                       <button
                         type="button"
                         onClick={() => setPaymentMethod('CASH')}
@@ -1562,8 +1562,8 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
                       >
                         <span className="text-base mb-1">💵</span>
                         <div>
-                          <div className="text-[11px] font-bold leading-tight">{storeSettings.paymentMethods.cash.name}</div>
-                          <div className="text-[9px] font-normal text-stone-500 mt-0.5">{storeSettings.paymentMethods.cash.description}</div>
+                          <div className="text-[11px] font-bold leading-tight">{storeSettings?.paymentMethods?.cash?.name || 'Bayar di Kasir'}</div>
+                          <div className="text-[9px] font-normal text-stone-500 mt-0.5">{storeSettings?.paymentMethods?.cash?.description || 'Tunai sebelum diproses'}</div>
                         </div>
                       </button>
                     )}
@@ -1578,23 +1578,23 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
                           <span>Rekening Tujuan Transfer:</span>
                         </span>
                         <span className="text-[10px] bg-emerald-200 text-emerald-900 font-extrabold px-1.5 py-0.2 rounded">
-                          {storeSettings.paymentMethods.transfer.bankName || 'BCA'}
+                          {storeSettings?.paymentMethods?.transfer?.bankName || 'BCA'}
                         </span>
                       </div>
                       <div className="bg-white p-2.5 rounded-lg border border-emerald-200 flex items-center justify-between">
                         <div>
                           <div className="text-[10px] text-stone-500">Nomor Rekening:</div>
                           <div className="text-sm font-mono font-black text-matcha-leaf">
-                            {storeSettings.paymentMethods.transfer.accountNumber || '8920192831'}
+                            {storeSettings?.paymentMethods?.transfer?.accountNumber || '8920192831'}
                           </div>
                           <div className="text-[10px] font-semibold text-stone-600">
-                            a.n {storeSettings.paymentMethods.transfer.accountHolder || 'BUBUR KHALID'}
+                            a.n {storeSettings?.paymentMethods?.transfer?.accountHolder || 'BUBUR KHALID'}
                           </div>
                         </div>
                         <button
                           type="button"
                           onClick={() => {
-                            navigator.clipboard.writeText(storeSettings.paymentMethods.transfer.accountNumber || '8920192831');
+                            navigator.clipboard.writeText(storeSettings?.paymentMethods?.transfer?.accountNumber || '8920192831');
                             alert('Nomor rekening berhasil disalin!');
                           }}
                           className="px-2.5 py-1.5 bg-emerald-100 hover:bg-emerald-200 rounded-lg text-[10px] font-bold text-emerald-900 flex items-center space-x-1"

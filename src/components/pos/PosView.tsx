@@ -803,7 +803,7 @@ Simpan struk ini untuk mengambil pesanan.`;
               <div className="text-left">
                 <h3 className="font-extrabold text-sm text-matcha-leaf">QRIS Kasir Bubur Khalid</h3>
                 <p className="text-[10px] text-stone-500 font-mono">
-                  NMID: {storeSettings.paymentMethods.qris.nmid || 'ID1020039485721'}
+                  NMID: {storeSettings?.paymentMethods?.qris?.nmid || 'ID1020039485721'}
                 </p>
               </div>
             </div>
@@ -811,7 +811,7 @@ Simpan struk ini untuk mengambil pesanan.`;
             <div className="my-3 p-4 bg-white rounded-2xl border-2 border-stone-200 flex flex-col items-center justify-center shadow-inner">
               <div className="relative w-56 h-56">
                 <Image
-                  src={storeSettings.paymentMethods.qris.qrisImageUrl || '/images/qr/qris-bubur-khalid.svg'}
+                  src={storeSettings?.paymentMethods?.qris?.qrisImageUrl || '/images/qr/qris-bubur-khalid.svg'}
                   alt="QRIS Barcode Kasir"
                   fill
                   className="object-contain"

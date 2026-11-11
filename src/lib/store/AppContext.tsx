@@ -187,10 +187,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               parsed.adminWhatsapp && parsed.adminWhatsapp !== '6281234567890'
                 ? parsed.adminWhatsapp
                 : '6285274281819';
-            setStoreSettings({
+            setStoreSettings((prev) => ({
+              ...prev,
               ...parsed,
               adminWhatsapp: cleanWhatsapp,
-            });
+              paymentMethods: {
+                qris: {
+                  ...prev.paymentMethods.qris,
+                  ...(parsed.paymentMethods?.qris || {}),
+                },
+                cash: {
+                  ...prev.paymentMethods.cash,
+                  ...(parsed.paymentMethods?.cash || {}),
+                },
+                transfer: {
+                  ...prev.paymentMethods.transfer,
+                  ...(parsed.paymentMethods?.transfer || {}),
+                },
+              },
+            }));
           }
         }
 
@@ -341,7 +356,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             cupName: cloudSettings.cup_name || prev.cupName,
             cupDescription: cloudSettings.cup_description || prev.cupDescription,
             cupEnabled: cloudSettings.cup_enabled ?? prev.cupEnabled,
-            paymentMethods: cloudSettings.payment_methods || prev.paymentMethods,
+            paymentMethods: {
+              qris: {
+                ...prev.paymentMethods.qris,
+                ...(cloudSettings.payment_methods?.qris || {}),
+              },
+              cash: {
+                ...prev.paymentMethods.cash,
+                ...(cloudSettings.payment_methods?.cash || {}),
+              },
+              transfer: {
+                ...prev.paymentMethods.transfer,
+                ...(cloudSettings.payment_methods?.transfer || {}),
+              },
+            },
           }));
         }
       } catch (e) {
