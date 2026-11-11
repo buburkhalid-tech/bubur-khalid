@@ -303,13 +303,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Sync Master Data from Supabase Cloud on client hydration
+  // Sync Master Data from Supabase Cloud with Realtime Subscriptions & Auto-polling
   useEffect(() => {
+    let isMounted = true;
+
     async function fetchCloudData() {
       try {
         // 1. Users
         const { data: cloudUsers, error: uErr } = await supabase.from('users').select('*');
-        if (!uErr && cloudUsers && cloudUsers.length > 0) {
+        if (!uErr && cloudUsers && cloudUsers.length > 0 && isMounted) {
           const cleanUsers = cloudUsers.filter(
             (u: SystemUser) =>
               !['usr-1', 'usr-2', 'usr-3', 'usr-4'].includes(u.id) &&
@@ -320,16 +322,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
 
         // 2. Products
-        const { data: cloudProds, error: pErr } = await supabase.from('products').select('*');
-        if (!pErr && cloudProds && cloudProds.length > 0) {
-          const active = cloudProds.filter((p: any) => !p.deleted_at).map((p: any) => ({
-            ...p,
-            price: Number(p.price),
-          }));
-          const trashed = cloudProds.filter((p: any) => p.deleted_at).map((p: any) => ({
-            ...p,
-            price: Number(p.price),
-          }));
+        const { data: cloudProds, error: pErr } = await supabase.from('products').select('*').order('sort_order', { ascending: true });
+        if (!pErr && cloudProds && cloudProds.length > 0 && isMounted) {
+          const active = cloudProds
+            .filter((p: any) => !p.deleted_at)
+            .map((p: any) => ({
+              ...p,
+              price: Number(p.price),
+              is_available: Boolean(p.is_available),
+            }));
+          const trashed = cloudProds
+            .filter((p: any) => p.deleted_at)
+            .map((p: any) => ({
+              ...p,
+              price: Number(p.price),
+              is_available: Boolean(p.is_available),
+            }));
           setProducts(active);
           setTrashProducts(trashed);
           localStorage.setItem('bubur_khalid_products', JSON.stringify(active));
@@ -341,7 +349,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           .from('orders')
           .select('*')
           .order('created_at', { ascending: false });
-        if (!oErr && cloudOrders) {
+        if (!oErr && cloudOrders && isMounted) {
           const cleanCloudOrders = cloudOrders
             .filter(
               (o: any) =>
@@ -365,7 +373,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           .select('*')
           .limit(1)
           .maybeSingle();
-        if (!sErr && cloudSettings) {
+        if (!sErr && cloudSettings && isMounted) {
           setStoreSettings((prev) => ({
             ...prev,
             storeName: cloudSettings.store_name || prev.storeName,
@@ -401,13 +409,71 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             },
           }));
         }
+
+        // 5. Tables
+        const { data: cloudTables, error: tErr } = await supabase.from('tables').select('*').order('table_number');
+        if (!tErr && cloudTables && cloudTables.length > 0 && isMounted) {
+          setTables(cloudTables);
+          localStorage.setItem('bubur_khalid_tables', JSON.stringify(cloudTables));
+        }
+
+        // 6. Promo Banners
+        const { data: cloudBanners, error: bErr } = await supabase.from('promo_banners').select('*').order('sort_order');
+        if (!bErr && cloudBanners && cloudBanners.length > 0 && isMounted) {
+          setPromoBanners(cloudBanners);
+          localStorage.setItem('bubur_khalid_promo_banners', JSON.stringify(cloudBanners));
+        }
       } catch (e) {
-        console.warn('Supabase offline or table pending initialization:', e);
+        console.warn('Supabase sync error:', e);
       }
     }
 
     if (isHydrated) {
       fetchCloudData();
+
+      // Realtime subscription via Supabase Channel
+      const realtimeChannel = supabase
+        .channel('bubur-khalid-sync')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
+          fetchCloudData();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'store_settings' }, () => {
+          fetchCloudData();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+          fetchCloudData();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'tables' }, () => {
+          fetchCloudData();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'promo_banners' }, () => {
+          fetchCloudData();
+        })
+        .subscribe();
+
+      // High-reliability polling fallback (every 3.5 seconds)
+      const pollTimer = setInterval(() => {
+        fetchCloudData();
+      }, 3500);
+
+      // Instant refresh on window focus / tab activation
+      const handleFocus = () => fetchCloudData();
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+          fetchCloudData();
+        }
+      };
+
+      window.addEventListener('focus', handleFocus);
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+
+      return () => {
+        isMounted = false;
+        clearInterval(pollTimer);
+        supabase.removeChannel(realtimeChannel);
+        window.removeEventListener('focus', handleFocus);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      };
     }
   }, [isHydrated]);
 
@@ -480,6 +546,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       id: `promo-${Date.now()}`,
     };
     setPromoBanners((prev) => [...prev, banner]);
+    supabase.from('promo_banners').upsert([banner]).then(({ error }) => {
+      if (error) console.warn('Supabase add promo banner error:', error.message);
+    });
     addAuditLog('CREATE', 'PromoBanner', banner.id, `Menambahkan banner promosi: ${banner.title}`);
     showToast('Banner promosi berhasil ditambahkan!');
   };
@@ -488,6 +557,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setPromoBanners((prev) =>
       prev.map((b) => (b.id === id ? { ...b, ...updates } : b))
     );
+    supabase.from('promo_banners').update(updates).eq('id', id).then(({ error }) => {
+      if (error) console.warn('Supabase update promo banner error:', error.message);
+    });
     addAuditLog('UPDATE', 'PromoBanner', id, `Memperbarui banner promosi`);
     showToast('Banner promosi berhasil diperbarui!');
   };
@@ -495,6 +567,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const deletePromoBanner = (id: string) => {
     const target = promoBanners.find((b) => b.id === id);
     setPromoBanners((prev) => prev.filter((b) => b.id !== id));
+    supabase.from('promo_banners').delete().eq('id', id).then(({ error }) => {
+      if (error) console.warn('Supabase delete promo banner error:', error.message);
+    });
     addAuditLog('DELETE', 'PromoBanner', id, `Menghapus banner promosi: ${target?.title || id}`);
     showToast('Banner promosi telah dihapus');
   };
@@ -504,6 +579,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       prev.map((b) => {
         if (b.id === id) {
           const next = !b.is_active;
+          supabase.from('promo_banners').update({ is_active: next }).eq('id', id).then(({ error }) => {
+            if (error) console.warn('Supabase toggle promo banner error:', error.message);
+          });
           showToast(`Banner ${b.title} kini ${next ? 'Aktif' : 'Nonaktif'}`);
           return { ...b, is_active: next };
         }
@@ -735,6 +813,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return o;
       })
     );
+    supabase
+      .from('orders')
+      .update({ transfer_proof_image: proofUrl })
+      .eq('id', orderId)
+      .then(({ error }) => {
+        if (error) console.warn('Supabase proof sync error:', error.message);
+      });
     showToast('Bukti transfer berhasil disimpan!');
   };
 
@@ -853,10 +938,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       })
     );
 
-    // Sync status change to Supabase Cloud
+    // Sync status change & status_history to Supabase Cloud
     supabase
       .from('orders')
-      .update({ order_status: newStatus })
+      .update({
+        order_status: newStatus,
+        status_history: (orders.find(o => o.id === orderId)?.status_history || []),
+      })
       .eq('id', orderId)
       .then(({ error }) => {
         if (error) console.warn('Supabase status update error:', error.message);
@@ -866,26 +954,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     showToast(`Status pesanan diperbarui: ${newStatus}`);
   };
 
-  // Master Product Operations (with Soft Delete & Price Snapshot protection)
+  // Master Product Operations (with Real-time Supabase Cloud Synchronization)
   const toggleProductAvailability = (id: string) => {
+    let nextState = false;
+    let targetName = '';
     setProducts((prev) =>
       prev.map((p) => {
         if (p.id === id) {
-          const nextState = !p.is_available;
-          addAuditLog(
-            'TOGGLE_AVAILABILITY',
-            'Product',
-            id,
-            `Status ketersediaan diubah: ${nextState ? 'TERSEDIA' : 'HABIS'}`
-          );
-          showToast(
-            `Menu "${p.name}" sekarang ${nextState ? 'TERSEDIA' : 'HABIS'}`
-          );
+          nextState = !p.is_available;
+          targetName = p.name;
           return { ...p, is_available: nextState };
         }
         return p;
       })
     );
+    addAuditLog('TOGGLE_AVAILABILITY', 'Product', id, `Status ketersediaan diubah: ${nextState ? 'TERSEDIA' : 'HABIS'}`);
+    showToast(`Menu "${targetName}" sekarang ${nextState ? 'TERSEDIA' : 'HABIS'}`);
+
+    // Sync to Supabase Cloud
+    supabase
+      .from('products')
+      .update({ is_available: nextState })
+      .eq('id', id)
+      .then(({ error }) => {
+        if (error) console.warn('Supabase toggle product error:', error.message);
+      });
   };
 
   const updateProductPrice = (id: string, newPrice: number) => {
@@ -898,29 +991,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return p;
       })
     );
-    showToast('Harga produk berhasil diperbarui. Transaksi lama tidak terpengaruh.');
+    supabase
+      .from('products')
+      .update({ price: newPrice })
+      .eq('id', id)
+      .then(({ error }) => {
+        if (error) console.warn('Supabase price update error:', error.message);
+      });
+    showToast('Harga produk berhasil diperbarui.');
   };
 
   const updateProduct = (id: string, updated: Partial<Product>) => {
     setProducts((prev) =>
       prev.map((p) => {
         if (p.id === id) {
-          const priceChanged = updated.price !== undefined && updated.price !== p.price;
-          const nameChanged = updated.name !== undefined && updated.name !== p.name;
-          const imgChanged = updated.image !== undefined && updated.image !== p.image;
-          
-          let logDetails = `Menu "${p.name}" diperbarui:`;
-          if (nameChanged) logDetails += ` Nama -> "${updated.name}";`;
-          if (priceChanged) logDetails += ` Harga -> Rp${p.price.toLocaleString('id-ID')} ke Rp${updated.price?.toLocaleString('id-ID')};`;
-          if (imgChanged) logDetails += ` Foto produk diperbarui;`;
-
-          addAuditLog('UPDATE_PRODUCT', 'Product', id, logDetails);
+          addAuditLog('UPDATE_PRODUCT', 'Product', id, `Menu "${p.name}" diperbarui`);
           return { ...p, ...updated };
         }
         return p;
       })
     );
-    showToast('Data menu berhasil diperbarui. Transaksi lama tetap mengunci snapshot awal.');
+    supabase
+      .from('products')
+      .update(updated)
+      .eq('id', id)
+      .then(({ error }) => {
+        if (error) console.warn('Supabase product update error:', error.message);
+      });
+    showToast('Data menu berhasil diperbarui.');
   };
 
   const addProduct = (newProdData: Omit<Product, 'id'>) => {
@@ -929,15 +1027,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       id: `prod-${Date.now()}`,
     };
     setProducts((prev) => [...prev, newProduct]);
-    addAuditLog('ADD_PRODUCT', 'Product', newProduct.id, `Menu baru "${newProduct.name}" ditambahkan dengan harga Rp${newProduct.price.toLocaleString('id-ID')}`);
+    supabase
+      .from('products')
+      .upsert([newProduct])
+      .then(({ error }) => {
+        if (error) console.warn('Supabase add product error:', error.message);
+      });
+    addAuditLog('ADD_PRODUCT', 'Product', newProduct.id, `Menu baru "${newProduct.name}" ditambahkan`);
     showToast(`Menu baru "${newProduct.name}" berhasil ditambahkan.`);
   };
 
   const softDeleteProduct = (id: string) => {
     const target = products.find((p) => p.id === id);
     if (!target) return;
+    const nowIso = new Date().toISOString();
     setProducts((prev) => prev.filter((p) => p.id !== id));
-    setTrashProducts((prev) => [...prev, { ...target, deleted_at: new Date().toISOString() }]);
+    setTrashProducts((prev) => [...prev, { ...target, deleted_at: nowIso }]);
+    supabase
+      .from('products')
+      .update({ deleted_at: nowIso })
+      .eq('id', id)
+      .then(({ error }) => {
+        if (error) console.warn('Supabase delete product error:', error.message);
+      });
     addAuditLog('SOFT_DELETE', 'Product', id, `Produk ${target.name} dipindahkan ke Tong Sampah`);
     showToast(`Produk "${target.name}" dipindahkan ke Tong Sampah.`);
   };
@@ -947,6 +1059,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!target) return;
     setTrashProducts((prev) => prev.filter((p) => p.id !== id));
     setProducts((prev) => [...prev, { ...target, deleted_at: null }]);
+    supabase
+      .from('products')
+      .update({ deleted_at: null })
+      .eq('id', id)
+      .then(({ error }) => {
+        if (error) console.warn('Supabase restore product error:', error.message);
+      });
     addAuditLog('RESTORE_PRODUCT', 'Product', id, `Produk ${target.name} dipulihkan dari Tong Sampah`);
     showToast(`Produk "${target.name}" berhasil dipulihkan.`);
   };
@@ -1348,6 +1467,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       id: newId,
     };
     setTables((prev) => [...prev, newTable]);
+    supabase.from('tables').upsert([newTable]).then(({ error }) => {
+      if (error) console.warn('Supabase add table error:', error.message);
+    });
     addAuditLog('ADD_TABLE', 'Table', newId, `Meja baru ditambahkan: ${newTable.table_number} (${newTable.qr_token})`);
     showToast(`Meja "${newTable.table_number}" berhasil ditambahkan!`);
   };
@@ -1362,6 +1484,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return t;
       })
     );
+    supabase.from('tables').update(updated).eq('id', id).then(({ error }) => {
+      if (error) console.warn('Supabase update table error:', error.message);
+    });
     showToast('Data meja berhasil diperbarui!');
   };
 
@@ -1369,6 +1494,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const target = tables.find((t) => t.id === id);
     if (!target) return;
     setTables((prev) => prev.filter((t) => t.id !== id));
+    supabase.from('tables').delete().eq('id', id).then(({ error }) => {
+      if (error) console.warn('Supabase delete table error:', error.message);
+    });
     addAuditLog('DELETE_TABLE', 'Table', id, `Meja "${target.table_number}" dihapus`);
     showToast(`Meja "${target.table_number}" telah dihapus.`);
   };
@@ -1378,6 +1506,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       prev.map((t) => {
         if (t.id === id) {
           const next = !t.is_active;
+          supabase.from('tables').update({ is_active: next }).eq('id', id).then(({ error }) => {
+            if (error) console.warn('Supabase toggle table error:', error.message);
+          });
           addAuditLog('TOGGLE_TABLE', 'Table', id, `Status meja "${t.table_number}" diubah menjadi ${next ? 'Aktif' : 'Non-Aktif'}`);
           showToast(`Status ${t.table_number} kini ${next ? 'Aktif' : 'Non-Aktif'}`);
           return { ...t, is_active: next };

@@ -87,6 +87,7 @@ export function AdminView() {
     showToast,
     currentUser,
     logout,
+    updateOrderStatus,
   } = useApp();
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
@@ -2121,7 +2122,7 @@ export function AdminView() {
                         </div>
                       </div>
 
-                      <div className="text-right">
+                      <div className="text-right flex flex-col items-end space-y-1">
                         <span
                           className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                             ord.order_status === 'PREPARING'
@@ -2137,14 +2138,47 @@ export function AdminView() {
                             ? 'Siap Saji'
                             : 'Menunggu'}
                         </span>
-                        <div className="text-xs font-black text-spicy-ember mt-1">
+                        <div className="text-xs font-black text-spicy-ember">
                           Rp{ord.total_amount.toLocaleString('id-ID')}
+                        </div>
+                        <div className="flex items-center space-x-1 pt-0.5">
+                          {ord.order_status === 'READY' ? (
+                            <button
+                              type="button"
+                              onClick={() => updateOrderStatus(ord.id, 'COMPLETED', 'Admin')}
+                              className="text-[9px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2 py-0.5 rounded shadow-xs transition"
+                              title="Tandai Pesanan Selesai"
+                            >
+                              ✓ Selesai
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => updateOrderStatus(ord.id, 'READY', 'Admin')}
+                              className="text-[9px] bg-yolk-blaze hover:bg-amber-600 text-stone-950 font-bold px-2 py-0.5 rounded shadow-xs transition"
+                              title="Tandai Siap Saji"
+                            >
+                              Siap Saji
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (window.confirm(`Batalkan pesanan ${ord.queue_number} (${ord.customer_name})?`)) {
+                                updateOrderStatus(ord.id, 'CANCELLED', 'Admin');
+                              }
+                            }}
+                            className="text-[9px] bg-red-100 hover:bg-red-200 text-red-700 font-bold px-1.5 py-0.5 rounded border border-red-300 transition"
+                            title="Batalkan Pesanan (Cancel)"
+                          >
+                            ✕ Batal
+                          </button>
                         </div>
                         {ord.transfer_proof_image && (
                           <button
                             type="button"
                             onClick={() => setPreviewProofUrl(ord.transfer_proof_image || null)}
-                            className="mt-1 inline-flex items-center space-x-1 text-[9px] bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold px-2 py-0.5 rounded-md border border-emerald-300 transition"
+                            className="mt-0.5 inline-flex items-center space-x-1 text-[9px] bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold px-2 py-0.5 rounded-md border border-emerald-300 transition"
                           >
                             <span>📎</span>
                             <span>Lihat Struk WA</span>
@@ -3806,7 +3840,11 @@ export function AdminView() {
                   <div className="flex items-center space-x-3 pt-1">
                     <button
                       type="button"
-                      onClick={() => setStoreForm({ ...storeForm, isStoreOpen: !storeForm.isStoreOpen })}
+                      onClick={() => {
+                        const nextOpen = !storeForm.isStoreOpen;
+                        setStoreForm((prev) => ({ ...prev, isStoreOpen: nextOpen }));
+                        updateStoreSettings({ isStoreOpen: nextOpen });
+                      }}
                       className={`px-4 py-2 rounded-xl font-bold text-xs transition ${
                         storeForm.isStoreOpen
                           ? 'bg-emerald-600 text-white shadow-sm'

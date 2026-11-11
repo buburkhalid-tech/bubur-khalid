@@ -524,6 +524,14 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
               </div>
             </div>
 
+            {/* Toko Tutup Alert Banner */}
+            {!storeSettings.isStoreOpen && (
+              <div className="bg-red-600 text-white p-3 rounded-2xl shadow-md flex items-center justify-center space-x-2 text-xs font-bold animate-pulse">
+                <span className="text-base">🔒</span>
+                <span>Toko Sedang Tutup — Belum menerima pesanan saat ini. Anda tetap dapat melihat menu.</span>
+              </div>
+            )}
+
             {/* Smart Detection Banner: jika user mengetik kode yang mirip nomor antrean / struk */}
             {searchQuery.trim() && /^(OT|WB|BK|#|\d{2,})/i.test(searchQuery.trim()) && (
               <div
@@ -1791,9 +1799,16 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
 
                 <button
                   type="submit"
-                  className="w-full bg-spicy-ember hover:bg-spicy-hover text-white py-3 rounded-xl font-extrabold text-xs shadow-md transition"
+                  disabled={!storeSettings.isStoreOpen}
+                  className={`w-full py-3 rounded-xl font-extrabold text-xs shadow-md transition ${
+                    storeSettings.isStoreOpen
+                      ? 'bg-spicy-ember hover:bg-spicy-hover text-white cursor-pointer active:scale-[0.99]'
+                      : 'bg-stone-300 text-stone-500 cursor-not-allowed'
+                  }`}
                 >
-                  Bayar Sekarang • Rp{customerCartTotal.total.toLocaleString('id-ID')}
+                  {storeSettings.isStoreOpen
+                    ? `Bayar Sekarang • Rp${customerCartTotal.total.toLocaleString('id-ID')}`
+                    : 'Toko Sedang Tutup — Belum Menerima Pesanan'}
                 </button>
               </form>
             </div>
