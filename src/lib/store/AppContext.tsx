@@ -468,8 +468,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
       };
 
+      // Instant cross-tab sync when localStorage updates
+      const handleStorageChange = (e: StorageEvent) => {
+        if (e.key === 'bubur_khalid_products' && e.newValue) {
+          try {
+            const parsed = JSON.parse(e.newValue);
+            if (Array.isArray(parsed)) {
+              setProducts(parsed);
+            }
+          } catch {}
+        }
+      };
+
       window.addEventListener('focus', handleFocus);
       document.addEventListener('visibilitychange', handleVisibilityChange);
+      window.addEventListener('storage', handleStorageChange);
 
       return () => {
         isMounted = false;
@@ -477,6 +490,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         supabase.removeChannel(realtimeChannel);
         window.removeEventListener('focus', handleFocus);
         document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('storage', handleStorageChange);
       };
     }
   }, [isHydrated]);
@@ -960,25 +974,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Master Product Operations (with Real-time Supabase Cloud Synchronization)
   const toggleProductAvailability = (id: string) => {
-    let nextState = false;
-    let targetName = '';
-    setProducts((prev) =>
-      prev.map((p) => {
-        if (p.id === id) {
-          nextState = !p.is_available;
-          targetName = p.name;
-          return { ...p, is_available: nextState };
-        }
-        return p;
-      })
+    const target = products.find((p) => p.id === id);
+    if (!target) return;
+
+    // Synchronous calculation: guaranteed correct boolean state
+    const nextState = !Boolean(target.is_available);
+    const targetName = target.name;
+
+    // 1. Optimistic Local State Update
+    const updatedProducts = products.map((p) =>
+      p.id === id ? { ...p, is_available: nextState } : p
     );
+    setProducts(updatedProducts);
+
+    // 2. Immediate LocalStorage Update for Instant Sync across Customer/POS Views
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('bubur_khalid_products', JSON.stringify(updatedProducts));
+      } catch (e) {}
+    }
+
     addAuditLog('TOGGLE_AVAILABILITY', 'Product', id, `Status ketersediaan diubah: ${nextState ? 'TERSEDIA' : 'HABIS'}`);
     showToast(`Menu "${targetName}" sekarang ${nextState ? 'TERSEDIA' : 'HABIS'}`);
 
-    // Sync to Supabase Cloud
+    // 3. Guaranteed Boolean update to Supabase Cloud
     supabase
       .from('products')
-      .update({ is_available: nextState })
+      .update({ is_available: Boolean(nextState) })
       .eq('id', id)
       .then(({ error }) => {
         if (error) console.warn('Supabase toggle product error:', error.message);
