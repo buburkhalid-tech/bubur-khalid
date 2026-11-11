@@ -175,6 +175,7 @@ export const INITIAL_PROMO_BANNERS: PromoBanner[] = [
 export const INITIAL_STORE_SETTINGS: StoreSettings = {
   storeName: 'Bubur Khalid',
   storeTagline: 'Asli Khas Minang • Hangat & Gurih',
+  storeAddress: 'Jl. Zaini No. 1c',
   storeLogo: '/images/logo/bubur-khalid-logo.png',
   bannerTitle: 'Selamat Datang',
   bannerSubtitle: 'Nikmati bubur tradisional khas kami, hangat, lezat, dan selalu segar setiap hari.',

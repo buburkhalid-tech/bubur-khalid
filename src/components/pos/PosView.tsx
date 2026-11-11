@@ -21,6 +21,8 @@ import {
   QrCode,
   X,
   LayoutDashboard,
+  MessageCircle,
+  Share2,
 } from 'lucide-react';
 
 export function PosView() {
@@ -34,6 +36,7 @@ export function PosView() {
     posCartTotal,
     createPosOrder,
     storeSettings,
+    currentUser,
     showToast,
     setActiveView,
   } = useApp();
@@ -53,6 +56,62 @@ export function PosView() {
   const [isReceiptOpen, setIsReceiptOpen] = useState<boolean>(false);
   const [lastCompletedOrder, setLastCompletedOrder] = useState<Order | null>(null);
   const [lastChange, setLastChange] = useState<number>(0);
+  const [customerWhatsapp, setCustomerWhatsapp] = useState<string>('');
+
+  const handlePrintReceipt = () => {
+    if (typeof window !== 'undefined') {
+      window.print();
+    }
+  };
+
+  const handleShareToWhatsApp = () => {
+    if (!lastCompletedOrder) return;
+
+    const itemsText = lastCompletedOrder.items
+      .map(
+        (it) =>
+          `• ${it.quantity}x ${it.product_name_snapshot}${it.use_cup ? ' (+Cup)' : ''} : Rp${it.line_total.toLocaleString('id-ID')}`
+      )
+      .join('\n');
+
+    const cupFeeText =
+      lastCompletedOrder.cup_fee > 0
+        ? `\nBiaya Kemasan Cup: Rp${lastCompletedOrder.cup_fee.toLocaleString('id-ID')}`
+        : '';
+
+    const paymentInfo =
+      lastCompletedOrder.payment_method === 'CASH'
+        ? `Tunai: Rp${(lastCompletedOrder.total_amount + lastChange).toLocaleString('id-ID')}\nKembalian: Rp${lastChange.toLocaleString('id-ID')}`
+        : `Metode: QRIS Lunas\nRef: ${lastCompletedOrder.qris_reference || '-'}`;
+
+    const text = `🧾 *STRUK PEMBELIAN - ${storeSettings.storeName || 'BUBUR KHALID'}*
+${storeSettings.storeAddress || 'Jl. Zaini No. 1c'} • Telp: ${storeSettings.adminWhatsapp || '0812-3456-7890'}
+------------------------------------------
+*Nomor Antrean: ${lastCompletedOrder.queue_number}*
+Urutan Dapur: #${lastCompletedOrder.global_queue_sequence} (FIFO)
+Waktu: ${new Date().toLocaleTimeString('id-ID')} WIB
+Kasir: ${currentUser ? currentUser.name : 'Kasir Toko'}
+Pelanggan: ${lastCompletedOrder.customer_name || 'Pelanggan Toko'}
+------------------------------------------
+*DETAIL PESANAN:*
+${itemsText}${cupFeeText}
+------------------------------------------
+*TOTAL TAGIHAN: Rp${lastCompletedOrder.total_amount.toLocaleString('id-ID')}*
+${paymentInfo}
+------------------------------------------
+Terima kasih atas kunjungan Anda di Bubur Khalid!
+Simpan struk ini untuk mengambil pesanan.`;
+
+    const encoded = encodeURIComponent(text);
+    let cleanPhone = customerWhatsapp.replace(/\D/g, '');
+    if (cleanPhone.startsWith('0')) {
+      cleanPhone = '62' + cleanPhone.slice(1);
+    }
+    const waUrl = cleanPhone
+      ? `https://wa.me/${cleanPhone}?text=${encoded}`
+      : `https://wa.me/?text=${encoded}`;
+    window.open(waUrl, '_blank');
+  };
 
   const filteredProducts = products.filter((p) => {
     const matchCategory = selectedCategory === 'Semua' || p.category === selectedCategory;
@@ -557,20 +616,28 @@ export function PosView() {
 
       {/* Digital Receipt Modal (Print preview simulation) */}
       {isReceiptOpen && lastCompletedOrder && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-floating border border-stone-200 text-matcha-leaf text-center font-mono text-xs">
-            
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div
+            id="thermal-receipt-print"
+            className="bg-white rounded-2xl max-w-sm w-full p-5 sm:p-6 shadow-floating border border-stone-200 text-matcha-leaf text-center font-mono text-xs my-auto"
+          >
             {/* Receipt Header */}
             <div className="border-b-2 border-dashed border-stone-300 pb-3">
-              <div className="text-base font-bold font-sans">BUBUR KHALID</div>
-              <div className="text-[10px] text-stone-500">Jl. Zaini No. 1c • Telp: 0812-3456-7890</div>
-              <div className="text-[10px] text-stone-500">Buka Senin-Sabtu 16.00-22.00 WIB</div>
+              <div className="text-base font-black font-sans uppercase">
+                {storeSettings.storeName || 'BUBUR KHALID'}
+              </div>
+              <div className="text-[10px] text-stone-500">
+                {storeSettings.storeAddress || 'Jl. Zaini No. 1c'} • Telp: {storeSettings.adminWhatsapp || '0812-3456-7890'}
+              </div>
+              <div className="text-[10px] text-stone-500">
+                {storeSettings.operatingHours || 'Buka Setiap Hari 16.00-22.00 WIB'}
+              </div>
             </div>
 
             {/* Big OT Queue */}
             <div className="my-3 py-2 bg-noodle-cream/50 rounded-xl border border-noodle-dark">
-              <div className="text-[10px] text-stone-600 font-sans">NOMOR ANTREAN TOKO</div>
-              <div className="text-3xl font-black font-sans text-spicy-ember">
+              <div className="text-[10px] text-stone-600 font-sans font-bold">NOMOR ANTREAN TOKO</div>
+              <div className="text-3xl font-black font-sans text-spicy-ember tracking-wide">
                 {lastCompletedOrder.queue_number}
               </div>
               <div className="text-[10px] text-stone-600 font-sans">
@@ -586,15 +653,15 @@ export function PosView() {
               </div>
               <div className="flex justify-between">
                 <span>Kasir:</span>
-                <span>Siska (CASHIER)</span>
+                <span>{currentUser ? `${currentUser.name} (${currentUser.role})` : 'Kasir Toko'}</span>
               </div>
               <div className="flex justify-between">
                 <span>Pelanggan:</span>
-                <span>{lastCompletedOrder.customer_name}</span>
+                <span>{lastCompletedOrder.customer_name || 'Pelanggan Toko'}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between font-bold">
                 <span>Pembayaran:</span>
-                <span>{lastCompletedOrder.payment_method} (LUNAS)</span>
+                <span className="text-emerald-700">{lastCompletedOrder.payment_method} (LUNAS)</span>
               </div>
               {lastCompletedOrder.payment_method === 'QRIS' && (
                 <>
@@ -611,7 +678,7 @@ export function PosView() {
             </div>
 
             {/* Items */}
-            <div className="text-left text-[11px] space-y-1 mb-3 border-b-2 border-dashed border-stone-300 pb-2">
+            <div className="text-left text-[11px] space-y-1.5 mb-3 border-b-2 border-dashed border-stone-300 pb-2">
               {lastCompletedOrder.items.map((it) => (
                 <div key={it.id} className="flex justify-between">
                   <span>
@@ -630,10 +697,12 @@ export function PosView() {
             </div>
 
             {/* Total & Change */}
-            <div className="text-left text-[11px] space-y-1 mb-4 font-bold">
+            <div className="text-left text-[11px] space-y-1 mb-3 font-bold">
               <div className="flex justify-between text-xs">
                 <span>TOTAL:</span>
-                <span>Rp{lastCompletedOrder.total_amount.toLocaleString('id-ID')}</span>
+                <span className="text-sm font-black text-matcha-leaf">
+                  Rp{lastCompletedOrder.total_amount.toLocaleString('id-ID')}
+                </span>
               </div>
               {lastCompletedOrder.payment_method === 'CASH' && (
                 <>
@@ -641,7 +710,7 @@ export function PosView() {
                     <span>Tunai:</span>
                     <span>Rp{(lastCompletedOrder.total_amount + lastChange).toLocaleString('id-ID')}</span>
                   </div>
-                  <div className="flex justify-between text-emerald-700">
+                  <div className="flex justify-between text-emerald-700 font-black">
                     <span>Kembalian:</span>
                     <span>Rp{lastChange.toLocaleString('id-ID')}</span>
                   </div>
@@ -649,27 +718,67 @@ export function PosView() {
               )}
             </div>
 
-            <div className="text-[10px] text-stone-400 mb-4 font-sans">
+            <div className="text-[10px] text-stone-500 mb-3 font-sans">
               Terima Kasih Atas Kunjungan Anda! Harap simpan struk ini untuk mengambil pesanan.
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex space-x-2 font-sans">
+            {/* WhatsApp Struk Sharing Section (no-print) */}
+            <div className="no-print mt-3 pt-3 border-t border-stone-200 text-left font-sans space-y-2">
+              <div className="flex items-center space-x-1.5">
+                <MessageCircle className="w-4 h-4 text-emerald-600" />
+                <span className="text-[11px] font-bold text-matcha-leaf">Kirim Struk ke WhatsApp Pelanggan:</span>
+              </div>
+              <div className="flex items-center space-x-1.5">
+                <input
+                  type="tel"
+                  placeholder="No. WA Pelanggan (0812...)"
+                  value={customerWhatsapp}
+                  onChange={(e) => setCustomerWhatsapp(e.target.value)}
+                  className="flex-1 bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-emerald-600 font-mono"
+                />
+                <button
+                  type="button"
+                  onClick={handleShareToWhatsApp}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center space-x-1 shadow-sm transition active:scale-95 cursor-pointer flex-shrink-0"
+                  title="Bagikan teks struk ke WhatsApp"
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span>Kirim WA</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Action Buttons (no-print) */}
+            <div className="no-print flex flex-col sm:flex-row gap-2 mt-4 font-sans">
               <button
-                onClick={() => {
-                  alert('Perintah cetak struk dikirim ke printer thermal Bluetooth/USB.');
-                }}
-                className="flex-1 bg-matcha-leaf text-white py-2 rounded-xl text-xs font-bold flex items-center justify-center space-x-1 shadow-sm"
+                type="button"
+                onClick={handlePrintReceipt}
+                className="flex-1 bg-matcha-leaf hover:bg-matcha-surface text-white py-3 rounded-xl text-xs font-extrabold flex items-center justify-center space-x-1.5 shadow-md active:scale-95 transition cursor-pointer"
+                title="Cetak struk ke printer thermal Bluetooth / USB / WiFi"
               >
-                <Printer className="w-3.5 h-3.5" />
-                <span>Cetak Struk</span>
+                <Printer className="w-4 h-4 text-yolk-blaze" />
+                <span>Cetak Printer (Bluetooth/USB)</span>
               </button>
               <button
-                onClick={() => setIsReceiptOpen(false)}
-                className="flex-1 bg-stone-200 hover:bg-stone-300 text-stone-800 py-2 rounded-xl text-xs font-bold"
+                type="button"
+                onClick={() => {
+                  setIsReceiptOpen(false);
+                  setCustomerWhatsapp('');
+                }}
+                className="bg-stone-200 hover:bg-stone-300 text-stone-800 py-3 px-5 rounded-xl text-xs font-extrabold transition cursor-pointer active:scale-95"
               >
                 Tutup / Selesai
               </button>
+            </div>
+
+            {/* Hardware Guide Note (no-print) */}
+            <div className="no-print mt-3 text-[10px] text-stone-500 font-sans leading-tight bg-stone-50 p-2.5 rounded-xl border border-stone-200 text-left">
+              💡 <strong>Cara Hubungkan Printer Thermal:</strong>
+              <ul className="list-disc pl-4 mt-1 space-y-0.5 text-[9.5px] text-stone-600">
+                <li><strong>Bluetooth:</strong> Sambungkan printer di menu Bluetooth tablet, lalu instal driver <em>RawBT</em> atau <em>ESC POS Service</em> dari Google Play Store.</li>
+                <li><strong>Wireless/WiFi:</strong> Sambungkan printer dan tablet ke jaringan WiFi toko yang sama.</li>
+                <li>Tekan tombol <strong>Cetak Printer</strong> di atas dan pilih printer thermal Anda.</li>
+              </ul>
             </div>
 
           </div>

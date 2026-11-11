@@ -154,6 +154,7 @@ export interface PaymentMethodConfig {
 export interface StoreSettings {
   storeName: string;
   storeTagline: string;
+  storeAddress?: string;
   storeLogo?: string;
   bannerTitle: string;
   bannerSubtitle: string;
