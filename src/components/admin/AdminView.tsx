@@ -93,6 +93,13 @@ export function AdminView() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'menu' | 'tables' | 'trash' | 'settings'>('dashboard');
   const [activeQueueTab, setActiveQueueTab] = useState<'ONLINE' | 'IN_STORE'>('ONLINE');
   const [settingsSubTab, setSettingsSubTab] = useState<'security' | 'promo' | 'banner' | 'payment'>('security');
+
+  // Proteksi: Tab Metode Pembayaran hanya boleh diakses oleh akun dengan role OWNER
+  useEffect(() => {
+    if (settingsSubTab === 'payment' && currentUser?.role !== 'OWNER') {
+      setSettingsSubTab('security');
+    }
+  }, [currentUser?.role, settingsSubTab]);
   const [revenueChartMode, setRevenueChartMode] = useState<'combo' | 'bar' | 'curve'>('combo');
   const [hoveredDayIdx, setHoveredDayIdx] = useState<number | null>(null);
   const [hoveredFinanceIdx, setHoveredFinanceIdx] = useState<number | null>(null);
@@ -1246,7 +1253,9 @@ export function AdminView() {
                 : activeTab === 'tables'
                 ? 'Pengaturan Meja & QR Code'
                 : activeTab === 'settings'
-                ? 'Pengaturan Toko, Banner & Metode Pembayaran'
+                ? currentUser?.role === 'OWNER'
+                  ? 'Pengaturan Toko, Banner & Metode Pembayaran'
+                  : 'Pengaturan Toko & Banner'
                 : 'Tong Sampah (Soft Delete)'}
             </h1>
             <p className="text-xs text-stone-500">Hari ini, 11 Nov 2026 • Zona Waktu Asia/Jakarta (WIB)</p>
@@ -3024,18 +3033,21 @@ export function AdminView() {
                 <Store className="w-4 h-4" />
                 <span>Hero Banner & Profil</span>
               </button>
-              <button
-                type="button"
-                onClick={() => setSettingsSubTab('payment')}
-                className={`flex-1 min-w-[160px] py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-center space-x-2 ${
-                  settingsSubTab === 'payment'
-                    ? 'bg-spicy-ember text-white shadow-md'
-                    : 'bg-transparent text-stone-700 hover:bg-stone-300/50'
-                }`}
-              >
-                <CreditCard className="w-4 h-4" />
-                <span>Metode Pembayaran</span>
-              </button>
+              {/* Hanya tampil jika akun yang login adalah OWNER */}
+              {currentUser?.role === 'OWNER' && (
+                <button
+                  type="button"
+                  onClick={() => setSettingsSubTab('payment')}
+                  className={`flex-1 min-w-[160px] py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-center space-x-2 ${
+                    settingsSubTab === 'payment'
+                      ? 'bg-spicy-ember text-white shadow-md'
+                      : 'bg-transparent text-stone-700 hover:bg-stone-300/50'
+                  }`}
+                >
+                  <CreditCard className="w-4 h-4" />
+                  <span>Metode Pembayaran</span>
+                </button>
+              )}
             </div>
 
             {/* SUB-TAB 1: SECURITY & USER MANAGEMENT */}
@@ -3832,8 +3844,8 @@ export function AdminView() {
           </div>
         )}
 
-        {/* Editor 2: Pengaturan Metode Pembayaran */}
-        {settingsSubTab === 'payment' && (
+        {/* Editor 2: Pengaturan Metode Pembayaran (Hanya Akses Role OWNER) */}
+        {settingsSubTab === 'payment' && currentUser?.role === 'OWNER' && (
                 <div className="space-y-6">
             <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-soft space-y-4">
               <div className="border-b border-stone-100 pb-3">
