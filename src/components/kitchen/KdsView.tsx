@@ -13,6 +13,7 @@ import {
   ArrowRight,
   Filter,
   Check,
+  LayoutDashboard,
 } from 'lucide-react';
 
 export function KdsView() {
@@ -40,10 +41,10 @@ export function KdsView() {
           <button
             type="button"
             onClick={() => setActiveView('admin')}
-            className="md:hidden flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-stone-700 text-stone-200 hover:text-white text-xs font-bold active:scale-95 transition"
+            className="w-10 h-10 rounded-xl bg-stone-700 hover:bg-stone-600 text-stone-200 flex items-center justify-center active:scale-95 transition shadow-sm flex-shrink-0"
             title="Kembali ke Dashboard Admin"
           >
-            <span>← Admin</span>
+            <LayoutDashboard className="w-5 h-5 text-noodle-cream" />
           </button>
 
           <div className="w-11 h-11 rounded-xl bg-spicy-ember flex items-center justify-center text-xl shadow-md">

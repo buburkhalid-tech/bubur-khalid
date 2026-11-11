@@ -20,6 +20,7 @@ import {
   Coffee,
   QrCode,
   X,
+  LayoutDashboard,
 } from 'lucide-react';
 
 export function PosView() {
@@ -102,41 +103,55 @@ export function PosView() {
         <div className="flex-1 min-w-0 w-full space-y-3">
           
           {/* Top Bar POS */}
-          <div className="bg-white p-3 sm:p-4 rounded-2xl shadow-soft border border-stone-200 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center space-x-3">
-              <button
-                type="button"
-                onClick={() => setActiveView('admin')}
-                className="md:hidden flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-matcha-leaf text-tofu-silkblaze text-xs font-bold active:scale-95 transition"
-                title="Kembali ke Dashboard Admin"
-              >
-                <span>← Admin</span>
-              </button>
+          <div className="bg-white rounded-2xl shadow-soft border border-stone-200 overflow-hidden">
+            {/* Brand Header Row */}
+            <div className="p-3 sm:p-4 flex items-center justify-between gap-3">
+              <div className="flex items-center space-x-3 min-w-0">
+                {/* Logo Dashboard Button (Tanpa Panah dan Tanpa Tulisan) */}
+                <button
+                  type="button"
+                  onClick={() => setActiveView('admin')}
+                  className="w-10 h-10 rounded-xl bg-matcha-leaf hover:bg-matcha-surface text-tofu-silkblaze flex items-center justify-center transition active:scale-95 shadow-sm flex-shrink-0"
+                  title="Kembali ke Dashboard Admin"
+                >
+                  <LayoutDashboard className="w-5 h-5 text-noodle-cream" />
+                </button>
 
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-white border border-stone-200 overflow-hidden relative shadow-sm flex-shrink-0 p-0.5">
-                <Image
-                  src={storeSettings.storeLogo || '/images/logo/bubur-khalid-logo.png'}
-                  alt="Logo Bubur Khalid"
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <div>
-                <h1 className="font-extrabold text-sm sm:text-base text-matcha-leaf">POS Kasir Bubur Khalid</h1>
-                <p className="text-[11px] sm:text-xs text-stone-500">Mode Tablet Touchscreen • Antrean Order di Tempat (OT)</p>
+                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-white border border-stone-200 overflow-hidden relative shadow-sm flex-shrink-0 p-0.5">
+                  <Image
+                    src={storeSettings.storeLogo || '/images/logo/bubur-khalid-logo.png'}
+                    alt="Logo Bubur Khalid"
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                <div className="min-w-0">
+                  <h1 className="font-extrabold text-sm sm:text-base text-matcha-leaf truncate">POS Kasir Bubur Khalid</h1>
+                  <p className="text-[11px] sm:text-xs text-stone-500 truncate">Mode Tablet Touchscreen • Antrean Order di Tempat (OT)</p>
+                </div>
               </div>
             </div>
 
-            {/* Quick Search */}
-            <div className="relative w-full sm:w-auto min-w-[200px] sm:min-w-[240px]">
-              <Search className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            {/* Menu Search Bar: Mengikuti Frame Penuh (Rata Mengikuti Frame, Tidak Menggantung) */}
+            <div className="relative w-full bg-stone-50 border-t border-stone-200">
+              <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Cari menu (sentuh untuk ketik)..."
+                placeholder="Cari menu bubur, kolak, lopis, atau kerupuk (sentuh untuk ketik)..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-stone-50 pl-9 pr-3 py-2 rounded-xl border border-stone-200 text-xs focus:outline-none focus:border-spicy-ember"
+                className="w-full bg-transparent pl-10 pr-10 py-2.5 text-xs text-matcha-leaf font-bold focus:outline-none focus:bg-white transition"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-stone-200 hover:bg-stone-300 text-stone-600 flex items-center justify-center text-xs font-bold transition"
+                  title="Hapus pencarian"
+                >
+                  ✕
+                </button>
+              )}
             </div>
           </div>
 
