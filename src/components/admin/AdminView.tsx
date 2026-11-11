@@ -165,6 +165,7 @@ export function AdminView() {
       const marginPct = uangMasuk > 0 ? `${((laba / uangMasuk) * 100).toFixed(1)}%` : '0%';
 
       return {
+        dateStr: day.dateStr,
         day: day.dayName,
         date: day.label,
         fullDay: day.fullDay,
@@ -252,6 +253,19 @@ export function AdminView() {
 
   const costBahanVal = Math.round(currentTotalKeluar * 0.75);
   const costOpexVal = currentTotalKeluar - costBahanVal;
+
+  // Real portion calculation dynamically matching selected timeframe (7D / 30D / Bulan Ini)
+  const currentPeriodPortionsSold = useMemo(() => {
+    const validDates = new Set(currentCashflowDataset.points.map((p) => p.dateStr));
+    return orders.reduce((sum, ord) => {
+      if (ord.order_status === 'CANCELLED') return sum;
+      const ordDate = ord.created_at ? ord.created_at.split('T')[0] : '';
+      if (validDates.has(ordDate)) {
+        return sum + (ord.items?.reduce((s, it) => s + (it.quantity || 1), 0) || 0);
+      }
+      return sum;
+    }, 0);
+  }, [orders, currentCashflowDataset.points]);
 
   // Store & Banner Settings State
   const [storeForm, setStoreForm] = useState(storeSettings);
@@ -2054,40 +2068,58 @@ export function AdminView() {
 
             </div>
 
-              {/* Bottom Quick KPI Summary Cards */}
+              {/* Bottom Quick KPI Summary Cards (100% Dynamic Real Data) */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-1">
                 <div className="bg-tofu-silkblaze/70 p-3 rounded-xl border border-stone-200/80">
                   <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Hari Penjualan Puncak</span>
                   <div className="text-xs font-black text-matcha-leaf mt-0.5 flex items-center space-x-1">
                     <span>👑</span>
-                    <span>Sabtu (Rp 1.800.000)</span>
+                    <span className="truncate">
+                      {currentCashflowDataset.totalMasukNum > 0 && currentCashflowDataset.peakDayTx > 0
+                        ? `${currentCashflowDataset.peakDayName} (${currentCashflowDataset.peakDayVal})`
+                        : 'Belum Ada Transaksi'}
+                    </span>
                   </div>
-                  <span className="text-[10px] text-stone-400">142 transaksi tercatat</span>
+                  <span className="text-[10px] text-stone-400">
+                    {currentCashflowDataset.totalMasukNum > 0
+                      ? `${currentCashflowDataset.peakDayTx} transaksi tercatat`
+                      : '0 transaksi'}
+                  </span>
                 </div>
 
                 <div className="bg-tofu-silkblaze/70 p-3 rounded-xl border border-stone-200/80">
                   <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Rata-rata Penjualan</span>
-                  <div className="text-xs font-black text-matcha-leaf mt-0.5">
-                    Rp 1.101.428 / hari
+                  <div className="text-xs font-black text-matcha-leaf mt-0.5 truncate">
+                    Rp {(currentCashflowDataset.points.length > 0 ? Math.round(currentCashflowDataset.totalMasukNum / currentCashflowDataset.points.length) : 0).toLocaleString('id-ID')} / hari
                   </div>
-                  <span className="text-[10px] text-stone-400">Estimasi stabil</span>
+                  <span className="text-[10px] text-stone-400 truncate block">
+                    {currentCashflowDataset.totalMasukNum > 0
+                      ? `${currentCashflowDataset.points.filter((p) => p.uangMasuk > 0).length} hari aktif penjualan`
+                      : 'Menunggu pesanan'}
+                  </span>
                 </div>
 
                 <div className="bg-tofu-silkblaze/70 p-3 rounded-xl border border-stone-200/80">
-                  <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Akumulasi 7 Hari</span>
-                  <div className="text-xs font-black text-spicy-ember mt-0.5">
-                    Rp 7.710.000
+                  <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block truncate">
+                    {`Akumulasi ${financeRangeFilter === '7D' ? '7 Hari' : financeRangeFilter === '30D' ? '30 Hari' : 'Bulan Ini'}`}
+                  </span>
+                  <div className="text-xs font-black text-spicy-ember mt-0.5 truncate">
+                    {currentCashflowDataset.totalMasuk}
                   </div>
-                  <span className="text-[10px] text-stone-400">Total 615 porsi terjual</span>
+                  <span className="text-[10px] text-stone-400 truncate block">
+                    Total {currentPeriodPortionsSold} porsi terjual
+                  </span>
                 </div>
 
                 <div className="bg-tofu-silkblaze/70 p-3 rounded-xl border border-stone-200/80">
-                  <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Pertumbuhan Mingguan</span>
-                  <div className="text-xs font-black text-emerald-600 mt-0.5 flex items-center space-x-1">
-                    <TrendingUp className="w-3.5 h-3.5" />
-                    <span>+18.4% vs Minggu Lalu</span>
+                  <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Margin Laba Bersih</span>
+                  <div className={`text-xs font-black mt-0.5 flex items-center space-x-1 ${costProfitPct > 0 ? 'text-emerald-600' : 'text-stone-500'}`}>
+                    <TrendingUp className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span className="truncate">{costProfitPct > 0 ? `+${costProfitPct}% Laba Bersih` : '0% (Belum Ada Omzet)'}</span>
                   </div>
-                  <span className="text-[10px] text-emerald-700/80">Tren positif</span>
+                  <span className="text-[10px] text-stone-400 truncate block">
+                    {currentCashflowDataset.totalMasukNum > 0 ? `Net: ${currentCashflowDataset.netLaba}` : 'Estimasi stabil'}
+                  </span>
                 </div>
               </div>
 
