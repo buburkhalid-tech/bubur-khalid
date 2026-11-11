@@ -98,7 +98,7 @@ interface AppContextType {
   // Financial & Security Gate
   financialSummary: FinancialSummary;
   isFinancialUnlocked: boolean;
-  unlockFinancialGate: (passcode: string) => boolean;
+  unlockFinancialGate: (passcode: string, dynamicOtp?: string) => boolean;
   lockFinancialGate: () => void;
   financialLockRemainingSeconds: number;
 
@@ -1071,16 +1071,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Financial Gate Operations
-  const unlockFinancialGate = (passcode: string): boolean => {
-    if (passcode === '123456' || passcode === '888888') {
+  const unlockFinancialGate = (passcode: string, dynamicOtp?: string): boolean => {
+    const trimmedInput = passcode.trim();
+    const isOtpValid = dynamicOtp && trimmedInput === dynamicOtp.trim();
+
+    if (trimmedInput === '123456' || trimmedInput === '888888' || isOtpValid) {
       setIsFinancialUnlocked(true);
       setFinancialLockRemainingSeconds(300);
-      addAuditLog('FINANCIAL_UNLOCK_SUCCESS', 'SecurityGate', 'owner-auth', 'Owner berhasil membuka laporan keuangan');
-      showToast('Verifikasi Owner berhasil. Sesi aktif selama 5 menit.');
+      addAuditLog(
+        'FINANCIAL_UNLOCK_SUCCESS',
+        'SecurityGate',
+        'owner-auth',
+        isOtpValid
+          ? 'Owner berhasil verifikasi OTP WhatsApp (+62 852-7428-1819)'
+          : 'Owner berhasil membuka laporan keuangan via PIN/Passcode'
+      );
+      showToast('Verifikasi Owner berhasil! Sesi aktif selama 5 menit.');
       return true;
     } else {
-      addAuditLog('FINANCIAL_UNLOCK_FAILED', 'SecurityGate', 'owner-auth', 'Percobaan verifikasi passcode gagal');
-      showToast('Passcode salah. Akses finansial ditolak.');
+      addAuditLog('FINANCIAL_UNLOCK_FAILED', 'SecurityGate', 'owner-auth', 'Percobaan verifikasi passcode/OTP gagal');
+      showToast('Kode OTP atau PIN salah. Akses finansial ditolak.');
       return false;
     }
   };

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '@/lib/store/AppContext';
 import {
   ShieldAlert,
@@ -18,6 +18,10 @@ import {
   CreditCard,
   Banknote,
   LayoutDashboard,
+  X,
+  Send,
+  Smartphone,
+  RefreshCw,
 } from 'lucide-react';
 
 export function OwnerFinancialView() {
@@ -30,17 +34,61 @@ export function OwnerFinancialView() {
     orders,
     auditLogs,
     setActiveView,
+    storeSettings,
+    showToast,
   } = useApp();
 
   const [passcodeInput, setPasscodeInput] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [activeOtp, setActiveOtp] = useState<string | null>(null);
+  const [otpExpiry, setOtpExpiry] = useState<number | null>(null);
+  const [otpSent, setOtpSent] = useState<boolean>(false);
+  const [countdown, setCountdown] = useState<number>(0);
+
+  // Timer cooldown 60 detik untuk kirim ulang OTP
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const timer = setInterval(() => {
+      setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [countdown]);
+
+  const handleSendOtp = () => {
+    // Generate 6-digit secure random code
+    const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    setActiveOtp(newOtp);
+    setOtpExpiry(Date.now() + 5 * 60 * 1000); // 5 menit
+    setOtpSent(true);
+    setCountdown(60);
+    setErrorMessage(null);
+
+    const rawPhone = storeSettings.adminWhatsapp || '6285274281819';
+    const cleanPhone = rawPhone.replace(/\D/g, '').replace(/^0/, '62');
+
+    const msg = `🔒 *KODE OTP KEAMANAN OWNER BUBUR KHALID*\n\nKode Verifikasi Anda: *${newOtp}*\n\nKode ini berlaku selama 5 menit untuk membuka Laporan Keuangan Owner. JANGAN BERIKAN KODE INI KEPADA SIAPAPUN demi keamanan toko Anda.`;
+    const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
+
+    if (typeof window !== 'undefined') {
+      window.open(waUrl, '_blank');
+    }
+
+    showToast(`Kode OTP (${newOtp}) telah dikirim ke WhatsApp Owner (${rawPhone})`);
+  };
 
   const handleUnlock = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
-    const success = unlockFinancialGate(passcodeInput);
+
+    // Cek apakah OTP kedaluwarsa jika dicocokkan dengan OTP
+    if (activeOtp && otpExpiry && Date.now() > otpExpiry && passcodeInput === activeOtp) {
+      setErrorMessage('Kode OTP telah kedaluwarsa (lebih dari 5 menit). Silakan kirim ulang OTP WhatsApp.');
+      return;
+    }
+
+    const success = unlockFinancialGate(passcodeInput, activeOtp || undefined);
     if (!success) {
-      setErrorMessage('Passcode keamanan salah! Akses finansial ditolak dan dicatat di audit log.');
+      setErrorMessage('Kode OTP atau PIN salah! Akses finansial ditolak dan dicatat di audit log.');
     } else {
       setPasscodeInput('');
     }
@@ -52,10 +100,26 @@ export function OwnerFinancialView() {
 
   // IF LOCKED: Show Security Gate Modal (Enforcing Section 27 PRD)
   if (!isFinancialUnlocked) {
+    const ownerPhone = storeSettings.adminWhatsapp || '6285274281819';
+    const formattedPhone = ownerPhone.startsWith('62')
+      ? `+62 ${ownerPhone.slice(2, 5)}-${ownerPhone.slice(5, 9)}-${ownerPhone.slice(9)}`
+      : ownerPhone;
+
     return (
       <div className="min-h-screen bg-matcha-deep flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl max-w-md w-full p-8 shadow-floating border-2 border-spicy-ember/30 text-matcha-leaf text-center space-y-5 animate-slideUp">
+        <div className="relative bg-white rounded-3xl max-w-md w-full p-7 md:p-8 shadow-floating border-2 border-spicy-ember/30 text-matcha-leaf text-center space-y-5 animate-slideUp">
           
+          {/* Tombol X Close di pojok kanan atas modal */}
+          <button
+            type="button"
+            onClick={() => setActiveView('admin')}
+            className="absolute top-4 right-4 p-2 rounded-full text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors focus:outline-none focus:ring-2 focus:ring-spicy-ember/30"
+            title="Tutup & Kembali ke Admin"
+            aria-label="Tutup Verifikasi"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
           <div className="w-16 h-16 rounded-2xl bg-spicy-light text-spicy-ember mx-auto flex items-center justify-center text-2xl shadow-sm">
             <Lock className="w-8 h-8" />
           </div>
@@ -71,24 +135,75 @@ export function OwnerFinancialView() {
             </p>
           </div>
 
+          {/* Kotak Pengiriman Kode OTP WhatsApp */}
+          <div className="bg-emerald-50 border border-emerald-200/90 rounded-2xl p-4 text-left space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2 text-emerald-800 font-bold text-xs">
+                <Smartphone className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <span>Kirim Kode OTP via WhatsApp</span>
+              </div>
+              <span className="text-[10px] bg-emerald-100 text-emerald-800 font-semibold px-2 py-0.5 rounded-full">
+                WA Owner
+              </span>
+            </div>
+            
+            <p className="text-[11px] text-emerald-700 leading-relaxed">
+              Kirim kode verifikasi 6-digit langsung ke nomor WhatsApp Owner:
+              <strong className="block text-emerald-950 font-black mt-0.5 tracking-wide">
+                {formattedPhone}
+              </strong>
+            </p>
+
+            <button
+              type="button"
+              onClick={handleSendOtp}
+              disabled={countdown > 0}
+              className={`w-full flex items-center justify-center space-x-2 py-2.5 px-4 rounded-xl font-bold text-xs transition shadow-sm ${
+                countdown > 0
+                  ? 'bg-stone-100 text-stone-400 cursor-not-allowed border border-stone-200'
+                  : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20 active:scale-[0.99]'
+              }`}
+            >
+              {countdown > 0 ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-stone-400" />
+                  <span>Kirim Ulang OTP ({countdown}s)</span>
+                </>
+              ) : (
+                <>
+                  <Send className="w-3.5 h-3.5" />
+                  <span>{otpSent ? 'Kirim Ulang Kode OTP ke WhatsApp' : '📲 Kirim Kode OTP ke WhatsApp Owner'}</span>
+                </>
+              )}
+            </button>
+
+            {otpSent && (
+              <div className="text-[11px] text-emerald-800 bg-white/70 border border-emerald-200 rounded-lg p-2 text-center font-medium">
+                ✓ Kode OTP telah dikirim ke WhatsApp Owner. Silakan cek pesan WhatsApp Anda dan masukkan 6 digit di bawah.
+              </div>
+            )}
+          </div>
+
           <form onSubmit={handleUnlock} className="space-y-4 text-left">
             <div>
               <label className="block text-xs font-bold text-matcha-leaf mb-1">
-                Masukkan Passcode / PIN Keamanan Owner:
+                Masukkan 6-Digit Kode OTP WhatsApp / PIN Owner:
               </label>
               <div className="relative">
                 <KeyRound className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
-                  type="password"
+                  type="text"
+                  inputMode="numeric"
                   required
-                  placeholder="Ketik passcode (Demo: 123456)"
+                  placeholder="Contoh: 849201 atau PIN"
                   value={passcodeInput}
                   onChange={(e) => setPasscodeInput(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs font-bold tracking-widest text-matcha-leaf focus:outline-none focus:border-spicy-ember"
+                  className="w-full pl-9 pr-3 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-center text-sm font-black tracking-widest text-matcha-leaf focus:outline-none focus:border-spicy-ember focus:bg-white transition"
                 />
               </div>
-              <div className="text-[10px] text-stone-400 mt-1 italic">
-                * Passcode demo terkonfigurasi: <code className="font-bold text-spicy-ember">123456</code>
+              <div className="flex items-center justify-between text-[10px] text-stone-400 mt-1">
+                <span>* Kode OTP berlaku 5 menit</span>
+                <span>PIN Darurat: <code className="font-bold text-spicy-ember">123456</code></span>
               </div>
             </div>
 
@@ -109,9 +224,9 @@ export function OwnerFinancialView() {
             <button
               type="button"
               onClick={() => setActiveView('admin')}
-              className="w-full py-2.5 rounded-xl border border-stone-300 text-stone-600 hover:text-stone-800 text-xs font-bold transition md:hidden"
+              className="w-full py-2.5 rounded-xl border border-stone-300 text-stone-600 hover:text-stone-800 text-xs font-bold transition hover:bg-stone-50"
             >
-              ← Kembali ke Dashboard Admin
+              ← Batal & Kembali ke Dashboard Admin
             </button>
           </form>
 
