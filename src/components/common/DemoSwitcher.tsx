@@ -9,13 +9,12 @@ import {
   Calculator,
   ChefHat,
   ShieldAlert,
-  LogOut,
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
 
 export function DemoSwitcher() {
-  const { activeView, setActiveView, isFinancialUnlocked, storeSettings, currentUser, logout } = useApp();
+  const { activeView, setActiveView, isFinancialUnlocked, storeSettings } = useApp();
   
   // Sembunyikan secara default saat tidak digunakan agar layar kerja 100% penuh & bersih
   const [isCollapsed, setIsCollapsed] = useState<boolean>(true);
@@ -102,16 +101,8 @@ export function DemoSwitcher() {
           })}
         </nav>
 
-        {/* Right: User Profile, Minimize & Logout Actions */}
+        {/* Right: Minimize Action (Profil Akun & Tombol Keluar dipindahkan ke tab Security & Pengguna) */}
         <div className="flex items-center space-x-2 flex-shrink-0">
-          {currentUser && (
-            <div className="text-right hidden sm:block">
-              <div className="text-xs font-black text-white leading-tight">{currentUser.name}</div>
-              <div className="text-[9px] text-yolk-blaze font-bold uppercase">{currentUser.role}</div>
-            </div>
-          )}
-
-          {/* Sembunyikan Bar Button */}
           <button
             type="button"
             onClick={() => setIsCollapsed(true)}
@@ -120,17 +111,6 @@ export function DemoSwitcher() {
           >
             <ChevronUp className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Sembunyikan</span>
-          </button>
-
-          {/* Logout Button */}
-          <button
-            type="button"
-            onClick={logout}
-            className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-red-600/80 hover:bg-red-600 text-white text-xs font-bold transition shadow-sm active:scale-95"
-            title="Keluar dari Akun"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Keluar</span>
           </button>
         </div>
       </div>

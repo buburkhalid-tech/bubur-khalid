@@ -1394,25 +1394,31 @@ export function AdminView() {
           </nav>
         </div>
 
-        {/* User Info / Logout */}
+        {/* User Info / Logout in Sidebar */}
         <div className="pt-4 border-t border-matcha-surface flex items-center justify-between overflow-hidden">
           <div className="flex items-center space-x-2.5 overflow-hidden">
             <div className="w-9 h-9 rounded-full bg-noodle-cream text-matcha-leaf font-bold flex items-center justify-center text-xs shadow-sm flex-shrink-0">
-              AP
+              {currentUser ? currentUser.name.slice(0, 2).toUpperCase() : 'AF'}
             </div>
             <div
               className={`transition-all duration-200 whitespace-nowrap overflow-hidden ${
                 isSidebarOpen ? 'opacity-100 max-w-[140px]' : 'opacity-0 max-w-0 hidden'
               }`}
             >
-              <div className="text-xs font-bold text-noodle-cream truncate">Admin Pemilik</div>
-              <div className="text-[10px] text-noodle-dark">Role: OWNER</div>
+              <div className="text-xs font-bold text-noodle-cream truncate">
+                {currentUser ? currentUser.name : 'Ahmad Fauzi'}
+              </div>
+              <div className="text-[10px] text-yolk-blaze font-bold uppercase">
+                {currentUser ? currentUser.role : 'ADMIN'}
+              </div>
             </div>
           </div>
           {isSidebarOpen && (
             <button
-              onClick={() => alert('Logout simulasi berhasil')}
-              className="text-[11px] text-noodle-dark hover:text-white px-2 py-1 rounded transition"
+              type="button"
+              onClick={logout}
+              className="text-[11px] text-red-300 hover:text-white hover:bg-red-600/60 px-2 py-1 rounded transition font-bold"
+              title="Keluar dari Akun"
             >
               Keluar
             </button>
@@ -3086,6 +3092,51 @@ export function AdminView() {
             {settingsSubTab === 'security' && (
               <div className="space-y-5">
                 
+                {/* SESI AKUN AKTIF & KONTROL PENGGUNA (DIPINDAHKAN DARI TOP BAR SESUAI INSTRUKSI) */}
+                <div className="bg-white p-5 rounded-2xl border-2 border-matcha-leaf/20 shadow-soft flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-14 h-14 rounded-2xl bg-matcha-leaf text-tofu-silkblaze flex items-center justify-center font-black text-xl shadow-md border-2 border-noodle-cream flex-shrink-0">
+                      {currentUser ? currentUser.name.slice(0, 2).toUpperCase() : 'AF'}
+                    </div>
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <h4 className="font-black text-base text-matcha-leaf">
+                          {currentUser ? currentUser.name : 'Ahmad Fauzi'}
+                        </h4>
+                        <span className="bg-spicy-ember text-white text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-xs">
+                          {currentUser ? currentUser.role : 'ADMIN'}
+                        </span>
+                        <span className="inline-flex items-center space-x-1 bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          <span>Sesi Aktif</span>
+                        </span>
+                      </div>
+                      <p className="text-xs text-stone-500 mt-1">
+                        Username: <code className="font-bold text-matcha-leaf">@{currentUser?.username || 'ahmad_admin'}</code> • Akses:{' '}
+                        <span className="font-semibold text-stone-700">
+                          {currentUser?.role === 'OWNER'
+                            ? 'Owner / Pemilik Toko (Akses Penuh & Laporan Finansial)'
+                            : currentUser?.role === 'ADMIN'
+                            ? 'Admin Operasional (Menu, Meja, Banner & Staf)'
+                            : 'Kasir / Staf Operasional'}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2.5 w-full md:w-auto">
+                    <button
+                      type="button"
+                      onClick={logout}
+                      className="w-full md:w-auto px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black flex items-center justify-center space-x-2 shadow-md transition active:scale-95"
+                      title="Keluar dari akun Anda saat ini"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Keluar (Logout)</span>
+                    </button>
+                  </div>
+                </div>
+
                 {/* PREVIEW SIMULASI MOBILE PELANGGAN (DIPINDAHKAN KE SINI SESUAI INSTRUKSI) */}
                 <div className="bg-gradient-to-r from-matcha-deep via-matcha-leaf to-[#012213] text-tofu-silkblaze p-5 rounded-2xl border border-matcha-surface shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div className="flex items-start sm:items-center space-x-3.5">
