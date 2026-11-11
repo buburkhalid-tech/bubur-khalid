@@ -99,6 +99,21 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [activeView, setActiveView] = useState<'customer' | 'admin' | 'pos' | 'kds' | 'owner-financial'>('customer');
+
+  // Auto-detect Admin Domain (e.g. bubur-khalid-admin.vercel.app) or ?view=admin
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const hostname = window.location.hostname.toLowerCase();
+      const params = new URLSearchParams(window.location.search);
+      const viewParam = params.get('view');
+
+      if (viewParam && ['customer', 'admin', 'pos', 'kds', 'owner-financial'].includes(viewParam)) {
+        setActiveView(viewParam as any);
+      } else if (hostname.includes('admin') || hostname.includes('kasir') || process.env.NEXT_PUBLIC_DEFAULT_VIEW === 'admin') {
+        setActiveView('admin');
+      }
+    }
+  }, []);
   const [customerServiceType, setCustomerServiceType] = useState<'DINE_IN' | 'TAKEAWAY'>('TAKEAWAY');
   const [selectedTable, setSelectedTable] = useState<string>('Meja 04');
 
