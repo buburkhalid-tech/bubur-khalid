@@ -66,6 +66,26 @@ export function CustomerView() {
 
   const [currentPromoIdx, setCurrentPromoIdx] = useState<number>(0);
   const [isPromoPaused, setIsPromoPaused] = useState<boolean>(false);
+  const [promoTouchStartX, setPromoTouchStartX] = useState<number | null>(null);
+
+  const handlePromoTouchStart = (e: React.TouchEvent) => {
+    setIsPromoPaused(true);
+    setPromoTouchStartX(e.touches[0].clientX);
+  };
+
+  const handlePromoTouchEnd = (e: React.TouchEvent) => {
+    setIsPromoPaused(false);
+    if (promoTouchStartX === null) return;
+    const diff = promoTouchStartX - e.changedTouches[0].clientX;
+    if (diff > 35 && activePromoBanners.length > 1) {
+      // Geser jari ke kiri -> banner berikutnya
+      setCurrentPromoIdx((prev) => (prev + 1) % activePromoBanners.length);
+    } else if (diff < -35 && activePromoBanners.length > 1) {
+      // Geser jari ke kanan -> banner sebelumnya
+      setCurrentPromoIdx((prev) => (prev - 1 + activePromoBanners.length) % activePromoBanners.length);
+    }
+    setPromoTouchStartX(null);
+  };
 
   // Auto-play Looping Carousel every 3.8 seconds
   useEffect(() => {
@@ -516,6 +536,7 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
               <div
                 ref={featuredCarouselRef}
                 className="flex space-x-3 overflow-x-auto pb-2.5 -mx-3 px-3 hide-scrollbar snap-x snap-mandatory scroll-smooth touch-pan-x"
+                style={{ WebkitOverflowScrolling: 'touch' }}
               >
                 {featuredProducts.map((p) => {
                   const isSoldOut = !p.is_available;
@@ -603,11 +624,11 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
             {/* Promo Banner Carousel Looping (Tepat di Bawah Menu Unggulan) */}
             {activePromoBanners.length > 0 && (
               <div 
-                className="relative my-2 select-none"
+                className="relative my-2 select-none touch-pan-y"
                 onMouseEnter={() => setIsPromoPaused(true)}
                 onMouseLeave={() => setIsPromoPaused(false)}
-                onTouchStart={() => setIsPromoPaused(true)}
-                onTouchEnd={() => setIsPromoPaused(false)}
+                onTouchStart={handlePromoTouchStart}
+                onTouchEnd={handlePromoTouchEnd}
               >
                 {/* Looping Carousel Card */}
                 <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-stone-900 via-stone-850 to-stone-900 border border-stone-800 shadow-md text-white">
