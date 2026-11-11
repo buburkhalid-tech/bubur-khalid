@@ -95,14 +95,14 @@ export function PosView() {
   };
 
   return (
-    <div className="min-h-screen bg-tofu-warm p-4 lg:p-6 text-matcha-leaf">
-      <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-6">
+    <div className="min-h-screen bg-tofu-warm p-2 sm:p-3 md:p-4 text-matcha-leaf max-w-full overflow-x-hidden">
+      <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-3 md:gap-4 lg:gap-6 items-start w-full">
         
-        {/* LEFT / CENTER: Touch Product Catalog Grid (65% width) */}
-        <div className="flex-1 space-y-4">
+        {/* LEFT / CENTER: Touch Product Catalog Grid (Tablet/Desktop: scrollable, flexible width) */}
+        <div className="flex-1 min-w-0 w-full space-y-3">
           
           {/* Top Bar POS */}
-          <div className="bg-white p-4 rounded-2xl shadow-soft border border-stone-200 flex flex-wrap items-center justify-between gap-3">
+          <div className="bg-white p-3 sm:p-4 rounded-2xl shadow-soft border border-stone-200 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center space-x-3">
               <button
                 type="button"
@@ -113,7 +113,7 @@ export function PosView() {
                 <span>← Admin</span>
               </button>
 
-              <div className="w-11 h-11 rounded-xl bg-white border border-stone-200 overflow-hidden relative shadow-sm flex-shrink-0 p-0.5">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-white border border-stone-200 overflow-hidden relative shadow-sm flex-shrink-0 p-0.5">
                 <Image
                   src={storeSettings.storeLogo || '/images/logo/bubur-khalid-logo.png'}
                   alt="Logo Bubur Khalid"
@@ -122,13 +122,13 @@ export function PosView() {
                 />
               </div>
               <div>
-                <h1 className="font-extrabold text-base text-matcha-leaf">POS Kasir Bubur Khalid</h1>
-                <p className="text-xs text-stone-500">Mode Tablet Touchscreen • Antrean Order di Tempat (OT)</p>
+                <h1 className="font-extrabold text-sm sm:text-base text-matcha-leaf">POS Kasir Bubur Khalid</h1>
+                <p className="text-[11px] sm:text-xs text-stone-500">Mode Tablet Touchscreen • Antrean Order di Tempat (OT)</p>
               </div>
             </div>
 
             {/* Quick Search */}
-            <div className="relative min-w-[240px]">
+            <div className="relative w-full sm:w-auto min-w-[200px] sm:min-w-[240px]">
               <Search className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
@@ -146,7 +146,7 @@ export function PosView() {
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap shadow-sm ${
+                className={`px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap shadow-sm select-none ${
                   selectedCategory === cat
                     ? 'bg-matcha-leaf text-tofu-silkblaze'
                     : 'bg-white text-matcha-leaf border border-stone-200 hover:bg-noodle-cream'
@@ -158,7 +158,7 @@ export function PosView() {
           </div>
 
           {/* Product Cards Touch Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3.5">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-3">
             {filteredProducts.map((p) => {
               const inCart = posCart.find((item) => item.product.id === p.id);
               const isSoldOut = !p.is_available;
@@ -172,7 +172,7 @@ export function PosView() {
                     }
                     addToPosCart(p);
                   }}
-                  className={`bg-white rounded-2xl p-3 shadow-soft border-2 transition-all cursor-pointer select-none active:scale-95 relative flex flex-col justify-between ${
+                  className={`bg-white rounded-2xl p-2.5 sm:p-3 shadow-soft border-2 transition-all cursor-pointer select-none active:scale-95 relative flex flex-col justify-between ${
                     isSoldOut
                       ? 'opacity-65 bg-stone-50 border-stone-200 cursor-not-allowed'
                       : inCart
@@ -186,7 +186,7 @@ export function PosView() {
                     </span>
                   )}
                   <div>
-                    <div className="w-full h-28 rounded-xl overflow-hidden relative mb-2 bg-tofu-silkblaze border border-stone-100">
+                    <div className="w-full h-24 sm:h-28 rounded-xl overflow-hidden relative mb-2 bg-tofu-silkblaze border border-stone-100">
                       <Image
                         src={p.image}
                         alt={p.name}
@@ -211,10 +211,10 @@ export function PosView() {
                         </span>
                       )}
                     </div>
-                    <h3 className="font-extrabold text-xs text-matcha-leaf mt-1 line-clamp-1">{p.name}</h3>
+                    <h3 className="font-extrabold text-xs sm:text-sm text-matcha-leaf mt-1 line-clamp-1">{p.name}</h3>
                   </div>
                   <div className="mt-2 pt-2 border-t border-stone-100 flex items-center justify-between">
-                    <span className={`font-black text-xs ${isSoldOut ? 'text-stone-400' : 'text-spicy-ember'}`}>
+                    <span className={`font-black text-xs sm:text-sm ${isSoldOut ? 'text-stone-400' : 'text-spicy-ember'}`}>
                       Rp{p.price.toLocaleString('id-ID')}
                     </span>
                     {isSoldOut ? (
@@ -234,22 +234,30 @@ export function PosView() {
 
         </div>
 
-        {/* RIGHT: Persistent Side Cart & Touch Checkout (35% width) */}
-        <div className="w-full lg:w-96 bg-white rounded-2xl shadow-card border border-stone-200 flex flex-col h-[calc(100vh-6rem)] sticky top-20">
+        {/* RIGHT: Persistent Side Cart & Touch Checkout (Tablet Optimized, fits on screen) */}
+        <div className="w-full md:w-[350px] lg:w-[400px] flex-shrink-0 bg-white rounded-2xl shadow-card border-2 border-stone-200 flex flex-col md:sticky md:top-2 md:h-[calc(100vh-1rem)] max-w-full overflow-hidden">
           
           {/* Cart Header */}
-          <div className="p-4 border-b border-stone-200 flex items-center justify-between bg-matcha-leaf text-tofu-silkblaze rounded-t-2xl">
+          <div className="p-3.5 border-b border-stone-200 flex items-center justify-between bg-matcha-leaf text-tofu-silkblaze rounded-t-2xl flex-shrink-0">
             <div className="flex items-center space-x-2">
-              <Receipt className="w-5 h-5 text-noodle-cream" />
+              <Receipt className="w-5 h-5 text-noodle-cream flex-shrink-0" />
               <div>
-                <h2 className="font-extrabold text-sm text-noodle-cream">Pesanan Kasir (OT)</h2>
+                <h2 className="font-extrabold text-sm text-noodle-cream flex items-center space-x-1.5">
+                  <span>Pesanan Kasir (OT)</span>
+                  {posCart.length > 0 && (
+                    <span className="bg-spicy-ember text-white text-[10px] font-black px-1.5 py-0.2 rounded-full">
+                      {posCartTotal.itemCount}
+                    </span>
+                  )}
+                </h2>
                 <span className="text-[10px] text-noodle-dark">Keranjang Transaksi Langsung</span>
               </div>
             </div>
             {posCart.length > 0 && (
               <button
+                type="button"
                 onClick={clearPosCart}
-                className="text-[11px] bg-red-600/30 hover:bg-red-600/50 text-white px-2 py-1 rounded transition"
+                className="text-[11px] bg-red-600/30 hover:bg-red-600/60 active:scale-95 text-white font-bold px-2.5 py-1 rounded-lg transition"
               >
                 Reset
               </button>
@@ -257,72 +265,81 @@ export function PosView() {
           </div>
 
           {/* Customer Name Input */}
-          <div className="p-3 bg-stone-50 border-b border-stone-200 flex items-center space-x-2">
-            <User className="w-4 h-4 text-stone-400" />
+          <div className="p-2.5 bg-stone-50 border-b border-stone-200 flex items-center space-x-2 flex-shrink-0">
+            <User className="w-4 h-4 text-stone-400 flex-shrink-0" />
             <input
               type="text"
               placeholder="Nama Pelanggan (opsional)"
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
-              className="bg-transparent text-xs text-matcha-leaf font-semibold focus:outline-none w-full"
+              className="bg-transparent text-xs text-matcha-leaf font-bold focus:outline-none w-full"
             />
           </div>
 
-          {/* Cart Items List */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 hide-scrollbar">
+          {/* Cart Items List (Scrollable, touch-friendly, high contrast) */}
+          <div className="flex-1 overflow-y-auto p-3 space-y-2.5 min-h-[140px] max-h-[40vh] md:max-h-none hide-scrollbar">
             {posCart.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-stone-400 text-center py-12">
+              <div className="h-full flex flex-col items-center justify-center text-stone-400 text-center py-8">
                 <Receipt className="w-12 h-12 stroke-[1.5] mb-2 text-stone-300" />
-                <p className="text-xs font-semibold">Keranjang Masih Kosong</p>
-                <p className="text-[11px] text-stone-400 mt-0.5">Sentuh produk di sebelah kiri untuk menambahkan</p>
+                <p className="text-xs font-bold text-stone-500">Keranjang Masih Kosong</p>
+                <p className="text-[11px] text-stone-400 mt-0.5">Sentuh produk di katalog untuk menambahkan pesanan</p>
               </div>
             ) : (
               posCart.map((item) => (
                 <div
                   key={item.product.id}
-                  className="bg-stone-50 rounded-xl p-3 border border-stone-200 space-y-2"
+                  className="bg-stone-50 rounded-xl p-2.5 sm:p-3 border border-stone-200 space-y-2"
                 >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h4 className="font-extrabold text-xs text-matcha-leaf">{item.product.name}</h4>
-                      <div className="text-[11px] text-stone-500">
-                        Rp{item.product.price.toLocaleString('id-ID')}
+                  {/* Row 1: Item Name & Subtotal */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <h4 className="font-extrabold text-xs sm:text-sm text-matcha-leaf leading-snug line-clamp-2">
+                        {item.product.name}
+                      </h4>
+                      <div className="text-[11px] text-stone-500 font-semibold mt-0.5">
+                        @Rp{item.product.price.toLocaleString('id-ID')}
                       </div>
                     </div>
-                    <div className="text-xs font-extrabold text-spicy-ember">
+                    <div className="text-xs sm:text-sm font-black text-spicy-ember flex-shrink-0 text-right">
                       Rp{(item.product.price * item.quantity + (item.useCup ? CUP_FEE * item.quantity : 0)).toLocaleString('id-ID')}
                     </div>
                   </div>
 
-                  {/* Cup Packaging Toggle for POS */}
-                  <div className="flex items-center justify-between pt-1 border-t border-stone-200/60">
+                  {/* Row 2: Cup Packaging Toggle & Stepper Quantity */}
+                  <div className="flex items-center justify-between gap-2 pt-1 border-t border-stone-200/80">
                     <button
                       type="button"
                       onClick={() => togglePosCartCup(item.product.id)}
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded flex items-center space-x-1 transition ${
+                      className={`text-[10px] sm:text-[11px] font-bold px-2 py-1 rounded-lg flex items-center space-x-1 transition select-none ${
                         item.useCup
-                          ? 'bg-spicy-ember text-white'
-                          : 'bg-stone-200 text-stone-600 hover:bg-stone-300'
+                          ? 'bg-spicy-ember text-white shadow-xs'
+                          : 'bg-stone-200 text-stone-700 hover:bg-stone-300'
                       }`}
                     >
-                      <Coffee className="w-3 h-3" />
-                      <span>{item.useCup ? 'Bungkus Cup (+Rp1.000)' : '+ Bungkus Cup'}</span>
+                      <Coffee className="w-3.5 h-3.5" />
+                      <span>{item.useCup ? 'Bungkus Cup (+1rb)' : '+ Bungkus Cup'}</span>
                     </button>
 
-                    {/* Stepper buttons */}
-                    <div className="flex items-center space-x-1.5">
+                    {/* Touch-Friendly Stepper */}
+                    <div className="flex items-center space-x-1 flex-shrink-0">
                       <button
+                        type="button"
                         onClick={() => updatePosCartQty(item.product.id, -1)}
-                        className="w-6 h-6 rounded bg-stone-200 hover:bg-stone-300 text-stone-700 flex items-center justify-center font-bold text-xs"
+                        className="w-8 h-8 rounded-lg bg-stone-200 hover:bg-stone-300 active:scale-90 text-stone-800 flex items-center justify-center font-black transition text-sm"
+                        title="Kurang 1"
                       >
-                        <Minus className="w-3 h-3" />
+                        <Minus className="w-3.5 h-3.5 stroke-[3]" />
                       </button>
-                      <span className="w-5 text-center text-xs font-bold">{item.quantity}</span>
+                      <span className="w-7 text-center text-xs sm:text-sm font-black text-matcha-leaf select-none">
+                        {item.quantity}
+                      </span>
                       <button
+                        type="button"
                         onClick={() => updatePosCartQty(item.product.id, 1)}
-                        className="w-6 h-6 rounded bg-spicy-ember hover:bg-spicy-hover text-white flex items-center justify-center font-bold text-xs"
+                        className="w-8 h-8 rounded-lg bg-spicy-ember hover:bg-spicy-hover active:scale-90 text-white flex items-center justify-center font-black transition text-sm shadow-xs"
+                        title="Tambah 1"
                       >
-                        <Plus className="w-3 h-3" />
+                        <Plus className="w-3.5 h-3.5 stroke-[3]" />
                       </button>
                     </div>
                   </div>
@@ -331,24 +348,21 @@ export function PosView() {
             )}
           </div>
 
-          {/* Payment & Checkout Section */}
-          <div className="p-4 bg-stone-50 border-t border-stone-200 rounded-b-2xl space-y-3">
+          {/* Payment & Checkout Section (Pinned at Bottom, clearly visible) */}
+          <div className="p-3 bg-stone-50 border-t-2 border-stone-200 rounded-b-2xl space-y-2 flex-shrink-0">
             
-            {/* Total Details */}
-            <div className="space-y-1 text-xs">
-              <div className="flex justify-between text-stone-600">
-                <span>Subtotal ({posCartTotal.itemCount} item)</span>
-                <span>Rp{posCartTotal.subtotal.toLocaleString('id-ID')}</span>
+            {/* TOTAL TAGIHAN BANNER (Highlight for Tablet POS) */}
+            <div className="bg-matcha-deep text-white p-2.5 sm:p-3 rounded-xl shadow-md flex items-center justify-between">
+              <div>
+                <span className="text-[11px] text-noodle-cream block font-medium">Total Tagihan ({posCartTotal.itemCount} menu)</span>
+                {posCartTotal.cupFee > 0 && (
+                  <span className="text-[10px] text-yolk-blaze font-bold block">+Rp{posCartTotal.cupFee.toLocaleString('id-ID')} Cup</span>
+                )}
               </div>
-              {posCartTotal.cupFee > 0 && (
-                <div className="flex justify-between text-stone-600">
-                  <span>Biaya Tambahan Cup</span>
-                  <span>+Rp{posCartTotal.cupFee.toLocaleString('id-ID')}</span>
-                </div>
-              )}
-              <div className="flex justify-between text-base font-extrabold text-matcha-leaf pt-1 border-t border-stone-200">
-                <span>Total Tagihan</span>
-                <span className="text-spicy-ember">Rp{posCartTotal.total.toLocaleString('id-ID')}</span>
+              <div className="text-right">
+                <span className="text-base sm:text-xl font-black text-yolk-blaze tracking-tight">
+                  Rp{posCartTotal.total.toLocaleString('id-ID')}
+                </span>
               </div>
             </div>
 
@@ -357,65 +371,70 @@ export function PosView() {
               <button
                 type="button"
                 onClick={() => setPaymentMethod('CASH')}
-                className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition ${
+                className={`py-2 px-2.5 rounded-xl text-xs font-black flex items-center justify-center space-x-1.5 transition active:scale-95 ${
                   paymentMethod === 'CASH'
-                    ? 'bg-matcha-leaf text-tofu-silkblaze shadow-sm'
-                    : 'bg-white border border-stone-300 text-stone-700'
+                    ? 'bg-matcha-leaf text-white shadow-sm ring-2 ring-matcha-leaf/30'
+                    : 'bg-white border-2 border-stone-200 text-stone-600 hover:bg-stone-50'
                 }`}
               >
-                <Banknote className="w-4 h-4" />
-                <span>Tunai</span>
+                <Banknote className="w-4 h-4 flex-shrink-0" />
+                <span>💵 Tunai</span>
               </button>
               <button
                 type="button"
                 onClick={() => setPaymentMethod('QRIS')}
-                className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition ${
+                className={`py-2 px-2.5 rounded-xl text-xs font-black flex items-center justify-center space-x-1.5 transition active:scale-95 ${
                   paymentMethod === 'QRIS'
-                    ? 'bg-matcha-leaf text-tofu-silkblaze shadow-sm'
-                    : 'bg-white border border-stone-300 text-stone-700'
+                    ? 'bg-matcha-leaf text-white shadow-sm ring-2 ring-matcha-leaf/30'
+                    : 'bg-white border-2 border-stone-200 text-stone-600 hover:bg-stone-50'
                 }`}
               >
-                <CreditCard className="w-4 h-4" />
-                <span>QRIS Kasir</span>
+                <CreditCard className="w-4 h-4 flex-shrink-0" />
+                <span>📱 QRIS Kasir</span>
               </button>
             </div>
 
             {/* Cash Input & Quick Bills */}
             {paymentMethod === 'CASH' && (
-              <div className="space-y-2 pt-1">
+              <div className="space-y-1.5 pt-0.5">
                 <div className="flex items-center justify-between text-xs font-bold text-matcha-leaf">
-                  <span>Uang Diterima:</span>
+                  <span className="text-[11px] text-stone-500 font-semibold">Nominal Cepat:</span>
                   <button
                     type="button"
                     onClick={handleUangPas}
-                    className="text-[11px] text-spicy-ember underline"
+                    className="text-[11px] font-black text-spicy-ember hover:underline px-2 py-0.5 rounded bg-spicy-light/40 active:scale-95 transition"
                   >
-                    Uang Pas
+                    ⚡ Uang Pas
                   </button>
                 </div>
-                <div className="grid grid-cols-4 gap-1.5">
+                <div className="grid grid-cols-4 gap-1">
                   {quickAmounts.map((amt) => (
                     <button
                       key={amt}
                       type="button"
                       onClick={() => handleQuickCash(amt)}
-                      className="py-1 bg-white border border-stone-300 rounded-lg text-[10px] font-bold hover:bg-noodle-cream transition"
+                      className="py-1.5 bg-white border border-stone-300 rounded-lg text-xs font-bold text-stone-800 hover:bg-noodle-cream active:scale-95 transition"
                     >
                       {amt / 1000}rb
                     </button>
                   ))}
                 </div>
-                <input
-                  type="number"
-                  placeholder="Nominal uang..."
-                  value={cashGiven || ''}
-                  onChange={(e) => setCashGiven(Number(e.target.value))}
-                  className="w-full bg-white border border-stone-300 rounded-xl px-3 py-1.5 text-xs font-bold text-matcha-leaf focus:outline-none focus:border-spicy-ember"
-                />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-stone-400">Rp</span>
+                  <input
+                    type="number"
+                    placeholder="Nominal uang diterima..."
+                    value={cashGiven || ''}
+                    onChange={(e) => setCashGiven(Number(e.target.value))}
+                    className="w-full bg-white border-2 border-stone-300 rounded-xl pl-9 pr-3 py-1.5 sm:py-2 text-xs sm:text-sm font-black text-matcha-leaf focus:outline-none focus:border-spicy-ember"
+                  />
+                </div>
                 {cashGiven >= posCartTotal.total && posCartTotal.total > 0 && (
-                  <div className="flex justify-between items-center text-xs font-extrabold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg">
+                  <div className="flex justify-between items-center text-xs sm:text-sm font-black text-emerald-900 bg-emerald-100 border border-emerald-300 px-3 py-1.5 rounded-xl shadow-xs animate-fadeIn">
                     <span>Kembalian:</span>
-                    <span>Rp{(cashGiven - posCartTotal.total).toLocaleString('id-ID')}</span>
+                    <span className="text-emerald-700 text-sm sm:text-base font-black">
+                      Rp{(cashGiven - posCartTotal.total).toLocaleString('id-ID')}
+                    </span>
                   </div>
                 )}
               </div>
@@ -423,10 +442,10 @@ export function PosView() {
 
             {/* QRIS Kasir Manual Input */}
             {paymentMethod === 'QRIS' && (
-              <div className="space-y-2.5 pt-1 bg-white p-3 rounded-xl border border-stone-200">
+              <div className="space-y-2 pt-1 bg-white p-2.5 rounded-xl border border-stone-200">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-matcha-leaf flex items-center space-x-1">
-                    <QrCode className="w-3.5 h-3.5 text-spicy-ember" />
+                    <QrCode className="w-3.5 h-3.5 text-spicy-ember flex-shrink-0" />
                     <span>Input QRIS Manual</span>
                   </span>
                   <button
@@ -449,7 +468,7 @@ export function PosView() {
                         key={prov}
                         type="button"
                         onClick={() => setQrisProvider(prov)}
-                        className={`py-1 px-1.5 rounded-lg text-[10px] font-bold transition ${
+                        className={`py-1 px-1 rounded-lg text-[10px] font-bold transition ${
                           qrisProvider === prov
                             ? 'bg-matcha-leaf text-white shadow-xs'
                             : 'bg-stone-50 border border-stone-200 text-stone-700 hover:bg-stone-100'
@@ -468,7 +487,7 @@ export function PosView() {
                     <button
                       type="button"
                       onClick={() => setQrisAmount(posCartTotal.total)}
-                      className="text-spicy-ember underline"
+                      className="text-spicy-ember underline font-bold"
                     >
                       Sesuai Tagihan
                     </button>
@@ -484,7 +503,7 @@ export function PosView() {
 
                 {/* RRN / Approval Reference Number */}
                 <div>
-                  <label className="block text-[10px] font-bold text-stone-500 mb-1">
+                  <label className="block text-[10px] font-bold text-stone-500 mb-0.5">
                     No. Referensi / RRN Bukti Bayar:
                   </label>
                   <input
@@ -492,27 +511,24 @@ export function PosView() {
                     placeholder="Contoh: RRN-892301 / 123456"
                     value={qrisRefNumber}
                     onChange={(e) => setQrisRefNumber(e.target.value)}
-                    className="w-full bg-stone-50 border border-stone-300 rounded-lg px-2.5 py-1.5 text-xs text-matcha-leaf font-mono focus:outline-none focus:border-spicy-ember"
+                    className="w-full bg-stone-50 border border-stone-300 rounded-lg px-2.5 py-1 text-xs text-matcha-leaf font-mono focus:outline-none focus:border-spicy-ember"
                   />
-                  <p className="text-[9px] text-stone-400 mt-0.5">
-                    *Masukkan RRN dari notifikasi / mutasi rekening kasir
-                  </p>
                 </div>
               </div>
             )}
 
-            {/* Submit Button */}
+            {/* Submit Button (Clear, prominent, comfortable touch) */}
             <button
               type="button"
               disabled={posCart.length === 0}
               onClick={handleProcessTransaction}
-              className={`w-full py-3 rounded-xl font-extrabold text-xs shadow-md transition flex items-center justify-center space-x-2 ${
+              className={`w-full py-3 sm:py-3.5 rounded-xl font-black text-xs sm:text-sm shadow-md transition flex items-center justify-center space-x-2 select-none ${
                 posCart.length === 0
                   ? 'bg-stone-300 text-stone-500 cursor-not-allowed'
-                  : 'bg-spicy-ember hover:bg-spicy-hover text-white active:scale-98'
+                  : 'bg-spicy-ember hover:bg-spicy-hover active:scale-98 text-white'
               }`}
             >
-              <CheckCircle2 className="w-4 h-4" />
+              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
               <span>Simpan & Terbitkan Nomor OT</span>
             </button>
 
