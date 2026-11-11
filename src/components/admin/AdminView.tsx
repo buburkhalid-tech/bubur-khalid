@@ -48,6 +48,8 @@ import {
   Calculator,
   ChefHat,
   LogOut,
+  Smartphone,
+  ExternalLink,
 } from 'lucide-react';
 
 export function AdminView() {
@@ -3084,6 +3086,60 @@ export function AdminView() {
             {settingsSubTab === 'security' && (
               <div className="space-y-5">
                 
+                {/* PREVIEW SIMULASI MOBILE PELANGGAN (DIPINDAHKAN KE SINI SESUAI INSTRUKSI) */}
+                <div className="bg-gradient-to-r from-matcha-deep via-matcha-leaf to-[#012213] text-tofu-silkblaze p-5 rounded-2xl border border-matcha-surface shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="flex items-start sm:items-center space-x-3.5">
+                    <div className="w-12 h-12 rounded-2xl bg-spicy-ember text-white flex items-center justify-center flex-shrink-0 shadow-md border border-white/20">
+                      <Smartphone className="w-6 h-6 text-yolk-blaze animate-bounce" />
+                    </div>
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <h4 className="font-black text-sm text-white">
+                          Simulasi Mobile Pelanggan (Customer Web App)
+                        </h4>
+                        <span className="bg-yolk-blaze text-stone-950 text-[9px] font-black px-2 py-0.5 rounded-full uppercase">
+                          Live Preview
+                        </span>
+                      </div>
+                      <p className="text-xs text-noodle-cream/90 mt-1 max-w-xl leading-relaxed">
+                        Lihat dan uji coba langsung pengalaman pemesanan bubur dari sudut pandang pelanggan di meja makan atau bungkus (takeaway).
+                      </p>
+                      <div className="flex items-center space-x-2 mt-1.5 text-[11px] font-mono text-noodle-cream/80">
+                        <span>Link Web Pelanggan:</span>
+                        <a
+                          href="https://bubur-khalid.vercel.app"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-yolk-blaze hover:underline flex items-center space-x-1 font-bold"
+                        >
+                          <span>https://bubur-khalid.vercel.app</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2 flex-shrink-0 w-full sm:w-auto">
+                    <button
+                      type="button"
+                      onClick={() => setActiveView('customer')}
+                      className="w-full sm:w-auto px-4 py-2.5 bg-spicy-ember hover:bg-spicy-hover text-white rounded-xl text-xs font-black flex items-center justify-center space-x-2 shadow-md transition active:scale-95"
+                    >
+                      <Smartphone className="w-4 h-4" />
+                      <span>Buka Simulasi Sekarang</span>
+                    </button>
+                    <a
+                      href="https://bubur-khalid.vercel.app"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl border border-white/20 transition flex items-center justify-center"
+                      title="Buka Web Pelanggan di Tab Baru"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
+                  </div>
+                </div>
+
                 {/* Header Action Card */}
                 <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-stone-200 shadow-soft">
                   <div>

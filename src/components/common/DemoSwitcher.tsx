@@ -25,7 +25,6 @@ export function DemoSwitcher() {
     { id: 'pos', label: 'POS Kasir Tablet', icon: Calculator, tag: 'Kasir' },
     { id: 'kds', label: 'Kitchen Display', icon: ChefHat, tag: 'Dapur FIFO' },
     { id: 'owner-financial', label: 'Owner Finansial', icon: ShieldAlert, tag: isFinancialUnlocked ? 'Unlocked' : 'Protected' },
-    { id: 'customer', label: 'Simulasi Mobile Pelanggan', icon: Smartphone, tag: 'Preview' },
   ] as const;
 
   const currentView = views.find((v) => v.id === activeView) || views[0];
