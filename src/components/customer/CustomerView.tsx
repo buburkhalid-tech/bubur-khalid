@@ -66,25 +66,31 @@ export function CustomerView() {
 
   const [currentPromoIdx, setCurrentPromoIdx] = useState<number>(0);
   const [isPromoPaused, setIsPromoPaused] = useState<boolean>(false);
-  const [promoTouchStartX, setPromoTouchStartX] = useState<number | null>(null);
+  const [promoTouchStart, setPromoTouchStart] = useState<{ x: number; y: number } | null>(null);
 
   const handlePromoTouchStart = (e: React.TouchEvent) => {
     setIsPromoPaused(true);
-    setPromoTouchStartX(e.touches[0].clientX);
+    setPromoTouchStart({
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+    });
   };
 
   const handlePromoTouchEnd = (e: React.TouchEvent) => {
     setIsPromoPaused(false);
-    if (promoTouchStartX === null) return;
-    const diff = promoTouchStartX - e.changedTouches[0].clientX;
-    if (diff > 35 && activePromoBanners.length > 1) {
-      // Geser jari ke kiri -> banner berikutnya
-      setCurrentPromoIdx((prev) => (prev + 1) % activePromoBanners.length);
-    } else if (diff < -35 && activePromoBanners.length > 1) {
-      // Geser jari ke kanan -> banner sebelumnya
-      setCurrentPromoIdx((prev) => (prev - 1 + activePromoBanners.length) % activePromoBanners.length);
+    if (!promoTouchStart) return;
+    const diffX = promoTouchStart.x - e.changedTouches[0].clientX;
+    const diffY = promoTouchStart.y - e.changedTouches[0].clientY;
+
+    // Hanya ganti slide jika gestur murni horizontal (bukan sedang scroll vertikal halaman)
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40 && activePromoBanners.length > 1) {
+      if (diffX > 0) {
+        setCurrentPromoIdx((prev) => (prev + 1) % activePromoBanners.length);
+      } else {
+        setCurrentPromoIdx((prev) => (prev - 1 + activePromoBanners.length) % activePromoBanners.length);
+      }
     }
-    setPromoTouchStartX(null);
+    setPromoTouchStart(null);
   };
 
   // Auto-play Looping Carousel every 3.8 seconds
@@ -534,7 +540,7 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
               {/* Smooth Slide Left & Right Carousel Container */}
               <div
                 ref={featuredCarouselRef}
-                className="flex space-x-3 overflow-x-auto pb-2.5 -mx-3 px-3 hide-scrollbar snap-x snap-mandatory scroll-smooth touch-pan-x"
+                className="flex space-x-3 overflow-x-auto pb-2.5 -mx-3 px-3 hide-scrollbar scroll-smooth"
                 style={{ WebkitOverflowScrolling: 'touch' }}
               >
                 {featuredProducts.map((p) => {
@@ -623,7 +629,7 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
             {/* Promo Banner Carousel Looping (Tepat di Bawah Menu Unggulan) */}
             {activePromoBanners.length > 0 && (
               <div 
-                className="relative my-2 select-none touch-pan-y"
+                className="relative my-2"
                 onMouseEnter={() => setIsPromoPaused(true)}
                 onMouseLeave={() => setIsPromoPaused(false)}
                 onTouchStart={handlePromoTouchStart}
@@ -732,7 +738,7 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
               
               {/* Category Pills Bar (Horizontal Swipeable / Geser Samping Sesuai UX Mobile) */}
               <div>
-                <div className="flex items-center space-x-2 overflow-x-auto pb-1.5 -mx-3 px-3 hide-scrollbar select-none">
+                <div className="flex items-center space-x-2 overflow-x-auto pb-1.5 -mx-3 px-3 hide-scrollbar">
                   {[
                     { id: 'Semua', label: 'Semua Menu', icon: '✨' },
                     { id: 'Bubur', label: 'Bubur', icon: '🥣' },
