@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useApp } from '@/lib/store/AppContext';
 import { Product, Order, PromoBanner } from '@/lib/types';
 import { parseImageUrl } from '@/lib/utils/image';
+import { supabase } from '@/lib/supabase/client';
 import {
   Search,
   ShoppingBag,
@@ -18,6 +19,8 @@ import {
   ChevronRight,
   ChevronLeft,
   ArrowLeft,
+  ArrowRight,
+  Receipt,
   UtensilsCrossed,
   Sparkles,
   MessageCircle,
@@ -133,6 +136,68 @@ export function CustomerView() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [transferConfirmationOrder, setTransferConfirmationOrder] = useState<Order | null>(null);
   const [brokenImages, setBrokenImages] = useState<Record<string, boolean>>({});
+
+  // Live Tracking Modal & Code Input States
+  const [isTrackingModalOpen, setIsTrackingModalOpen] = useState<boolean>(false);
+  const [trackingCodeInput, setTrackingCodeInput] = useState<string>('');
+  const [isSearchingTracking, setIsSearchingTracking] = useState<boolean>(false);
+  const [trackingError, setTrackingError] = useState<string | null>(null);
+
+  const handleTrackByCode = async (codeToSearch?: string) => {
+    const raw = (codeToSearch || trackingCodeInput).trim().toUpperCase();
+    if (!raw) {
+      setTrackingError('Harap masukkan nomor antrean atau kode unik dari struk Anda');
+      return;
+    }
+    setTrackingError(null);
+    setIsSearchingTracking(true);
+
+    // 1. Cek di state lokal (case-insensitive)
+    const localFound = (orders || []).find(
+      (o) =>
+        o.queue_number.toUpperCase() === raw ||
+        o.id.toUpperCase() === raw ||
+        o.id.toUpperCase().endsWith(raw)
+    );
+
+    if (localFound) {
+      setActiveTrackingOrder(localFound);
+      setIsTrackingModalOpen(false);
+      setIsSearchingTracking(false);
+      triggerToast(`Pesanan ${localFound.queue_number} berhasil ditemukan! 🔍`);
+      return;
+    }
+
+    // 2. Query Supabase Cloud langsung (misal pesanan kasir POS atau device lain)
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .or(`queue_number.ilike.${raw},id.ilike.${raw}`)
+        .limit(1)
+        .maybeSingle();
+
+      if (!error && data) {
+        const mappedOrder: Order = {
+          ...data,
+          subtotal: Number(data.subtotal),
+          total_amount: Number(data.total_amount),
+          cup_fee: Number(data.cup_fee || 0),
+          discount: Number(data.discount || 0),
+        };
+        setActiveTrackingOrder(mappedOrder);
+        setIsTrackingModalOpen(false);
+        setIsSearchingTracking(false);
+        triggerToast(`Pesanan ${mappedOrder.queue_number} berhasil ditemukan! 🔍`);
+        return;
+      }
+    } catch (e) {
+      console.warn('Track order cloud query error:', e);
+    }
+
+    setIsSearchingTracking(false);
+    setTrackingError(`Pesanan dengan kode "${raw}" tidak ditemukan. Pastikan kode sesuai struk (contoh: OT-001 atau WB-002).`);
+  };
 
   const getProductImage = (img?: string, id?: string) => {
     if (id && brokenImages[id]) return '/images/menu/bubur-kampiun.png';
@@ -338,24 +403,29 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
                   )}
                 </button>
 
-                {/* Active Order Tracker / Store Status */}
+                {/* Active Order Tracker / Track Receipt Button */}
                 {activeTrackingOrder ? (
                   <button
                     onClick={() => setActiveTrackingOrder(activeTrackingOrder)}
-                    className="bg-spicy-ember hover:bg-spicy-hover text-white text-[11px] px-2.5 py-1.5 rounded-full font-bold flex items-center space-x-1 shadow-md transition animate-pulse border border-white/30"
-                    title="Lacak Antrean"
+                    className="bg-spicy-ember hover:bg-spicy-hover text-white text-[11px] px-3 py-1.5 rounded-full font-bold flex items-center space-x-1.5 shadow-md transition animate-pulse border border-white/30 cursor-pointer"
+                    title="Lacak Antrean Aktif"
                   >
                     <Clock className="w-3.5 h-3.5" />
-                    <span>{activeTrackingOrder.queue_number}</span>
+                    <span>Antrean {activeTrackingOrder.queue_number}</span>
                   </button>
                 ) : (
                   <button
                     type="button"
-                    onClick={() => triggerToast('Belum ada pesanan aktif. Silakan pilih menu untuk memesan!')}
-                    className="w-8 h-8 rounded-full bg-white/95 text-stone-800 shadow-md flex items-center justify-center border border-white/40 active:scale-90 transition"
-                    title="Status Pesanan"
+                    onClick={() => {
+                      setTrackingError(null);
+                      setIsTrackingModalOpen(true);
+                    }}
+                    className="bg-white/95 hover:bg-white text-matcha-leaf font-extrabold text-[11px] px-3 py-1.5 rounded-full shadow-md transition flex items-center space-x-1.5 border border-white/50 active:scale-95 cursor-pointer"
+                    title="Lacak Antrean dari Struk"
                   >
-                    <Clock className="w-4 h-4 text-stone-700" />
+                    <Receipt className="w-3.5 h-3.5 text-spicy-ember" />
+                    <span className="hidden xs:inline">Lacak Pesanan</span>
+                    <span className="xs:hidden">Lacak</span>
                   </button>
                 )}
               </div>
@@ -418,20 +488,64 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
           </div>
 
           <div className="px-3 space-y-4">
-            {/* Search Bar (Domino's / GoFood Style floating over bottom of Hero Banner with comfortable breathing space) */}
+            {/* Search Bar with Receipt Live Tracking Option */}
             <div className="relative -mt-4 z-30">
               <Search className="w-4 h-4 text-stone-400 absolute left-4 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Mau makan bubur apa hari ini?"
+                placeholder="Cari bubur lezat atau ketik kode struk (OT-001)..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white pl-11 pr-11 py-3 rounded-full border border-stone-200 text-xs text-matcha-leaf placeholder:text-stone-400 focus:outline-none focus:border-spicy-ember shadow-lg font-medium"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && /^(OT|WB|BK|#|\d)/i.test(searchQuery.trim())) {
+                    e.preventDefault();
+                    handleTrackByCode(searchQuery.trim());
+                  }
+                }}
+                className="w-full bg-white pl-11 pr-28 py-3 rounded-full border border-stone-200 text-xs text-matcha-leaf placeholder:text-stone-400 focus:outline-none focus:border-spicy-ember shadow-lg font-medium"
               />
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-spicy-ember select-none text-base">
-                🍴
+              <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center space-x-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (searchQuery.trim()) {
+                      handleTrackByCode(searchQuery.trim());
+                    } else {
+                      setTrackingError(null);
+                      setIsTrackingModalOpen(true);
+                    }
+                  }}
+                  className="bg-spicy-light hover:bg-spicy-ember hover:text-white text-spicy-ember px-2.5 py-1.5 rounded-full text-[10px] font-black transition flex items-center space-x-1 border border-spicy-ember/30 active:scale-95 cursor-pointer shadow-xs"
+                  title="Lacak Kode Struk"
+                >
+                  <Receipt className="w-3.5 h-3.5" />
+                  <span>Lacak Struk</span>
+                </button>
               </div>
             </div>
+
+            {/* Smart Detection Banner: jika user mengetik kode yang mirip nomor antrean / struk */}
+            {searchQuery.trim() && /^(OT|WB|BK|#|\d{2,})/i.test(searchQuery.trim()) && (
+              <div
+                onClick={() => handleTrackByCode(searchQuery.trim())}
+                className="p-3 bg-gradient-to-r from-amber-50 to-orange-50 border border-spicy-ember/30 rounded-2xl flex items-center justify-between cursor-pointer hover:shadow-md transition active:scale-[0.99] animate-fadeIn"
+              >
+                <div className="flex items-center space-x-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-spicy-ember text-white flex items-center justify-center text-sm shadow-xs">
+                    <Receipt className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-matcha-leaf">
+                      Lacak Nomor Struk: <span className="font-mono text-spicy-ember font-black uppercase text-sm">{searchQuery.trim()}</span>
+                    </div>
+                    <div className="text-[10px] text-stone-500">Klik untuk melihat posisi antrean & status masak di dapur</div>
+                  </div>
+                </div>
+                <div className="bg-spicy-ember text-white p-1.5 rounded-xl shadow-xs">
+                  <ArrowRight className="w-4 h-4" />
+                </div>
+              </div>
+            )}
 
             {/* Quick Action Category Pills (Like GoFood Restos Nearby, Ongkir Murah, Group Order, Promo) */}
             <div className="grid grid-cols-4 gap-2 text-center">
@@ -1941,6 +2055,124 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
                 </div>
               </div>
 
+            </div>
+          </div>
+        )}
+
+        {/* Modal Lacak Pesanan / Input Kode Struk */}
+        {isTrackingModalOpen && (
+          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+            <div className="bg-white w-full max-w-sm rounded-3xl p-5 relative shadow-floating border border-stone-200 animate-scaleUp">
+              <button
+                onClick={() => {
+                  setIsTrackingModalOpen(false);
+                  setTrackingError(null);
+                }}
+                className="absolute top-4 right-4 w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center text-stone-500 hover:bg-stone-200 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              {/* Modal Header */}
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="w-12 h-12 rounded-2xl bg-spicy-light text-spicy-ember flex items-center justify-center text-xl shadow-xs border border-spicy-ember/20">
+                  <Receipt className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-matcha-leaf">Live Tracking Pesanan</h3>
+                  <p className="text-[11px] text-stone-500">Pantau status antrean dari dapur secara realtime</p>
+                </div>
+              </div>
+
+              {/* Form Input */}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleTrackByCode();
+                }}
+                className="space-y-3"
+              >
+                <div>
+                  <label className="block text-xs font-bold text-matcha-leaf mb-1">
+                    Nomor Antrean / Kode Struk:
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      autoFocus
+                      required
+                      placeholder="Contoh: OT-001 atau WB-002"
+                      value={trackingCodeInput}
+                      onChange={(e) => {
+                        setTrackingCodeInput(e.target.value.toUpperCase());
+                        setTrackingError(null);
+                      }}
+                      className="w-full bg-stone-50 border-2 border-stone-300 focus:border-spicy-ember rounded-2xl px-4 py-3 text-sm font-mono font-black text-matcha-leaf tracking-wider uppercase focus:outline-none placeholder:font-sans placeholder:font-normal placeholder:tracking-normal"
+                    />
+                    {trackingCodeInput && (
+                      <button
+                        type="button"
+                        onClick={() => setTrackingCodeInput('')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 text-xs font-bold cursor-pointer"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Quick Examples */}
+                <div className="flex items-center space-x-1.5 text-[10px] text-stone-500">
+                  <span>Contoh cepat:</span>
+                  <button
+                    type="button"
+                    onClick={() => setTrackingCodeInput('OT-001')}
+                    className="px-2 py-0.5 rounded-md bg-stone-100 hover:bg-stone-200 text-stone-700 font-mono font-bold cursor-pointer"
+                  >
+                    OT-001
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTrackingCodeInput('WB-001')}
+                    className="px-2 py-0.5 rounded-md bg-stone-100 hover:bg-stone-200 text-stone-700 font-mono font-bold cursor-pointer"
+                  >
+                    WB-001
+                  </button>
+                </div>
+
+                {/* Error Banner */}
+                {trackingError && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-start space-x-2 animate-shake">
+                    <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5 text-red-600" />
+                    <span>{trackingError}</span>
+                  </div>
+                )}
+
+                {/* Visual Tips Card */}
+                <div className="p-3 bg-noodle-cream/40 rounded-2xl border border-noodle-dark/50 text-[11px] text-stone-600 space-y-1">
+                  <div className="font-bold text-matcha-leaf flex items-center space-x-1">
+                    <span>💡</span>
+                    <span>Di mana letak kode unik struk?</span>
+                  </div>
+                  <p className="leading-relaxed">
+                    Lihat struk fisik kasir Anda pada tulisan <strong>&quot;NOMOR ANTREAN TOKO&quot;</strong> (misal <strong>OT-001</strong>), atau nomor antrean WhatsApp saat selesai checkout web.
+                  </p>
+                </div>
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  disabled={isSearchingTracking || !trackingCodeInput.trim()}
+                  className="w-full bg-spicy-ember hover:bg-spicy-hover text-white py-3 rounded-2xl font-black text-xs shadow-md transition flex items-center justify-center space-x-2 active:scale-95 disabled:opacity-60 cursor-pointer"
+                >
+                  {isSearchingTracking ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Search className="w-4 h-4" />
+                  )}
+                  <span>{isSearchingTracking ? 'Mencari di Dapur...' : 'Lacak Status Antrean Sekarang'}</span>
+                </button>
+              </form>
             </div>
           </div>
         )}
