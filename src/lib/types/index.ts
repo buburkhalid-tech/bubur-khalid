@@ -99,6 +99,7 @@ export interface SystemUser {
   phone?: string;
   role: UserRole;
   pin?: string;
+  password?: string;
   is_active: boolean;
   created_at: string;
   last_login?: string;

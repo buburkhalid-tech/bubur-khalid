@@ -8,9 +8,10 @@ import { AdminView } from '@/components/admin/AdminView';
 import { PosView } from '@/components/pos/PosView';
 import { KdsView } from '@/components/kitchen/KdsView';
 import { OwnerFinancialView } from '@/components/financial/OwnerFinancialView';
+import { AdminLogin } from '@/components/admin/AdminLogin';
 
 function PrototypeContent() {
-  const { activeView, setActiveView } = useApp();
+  const { activeView, setActiveView, isAuthenticated } = useApp();
   const [isAdminPortal, setIsAdminPortal] = useState<boolean>(false);
   const [isMounted, setIsMounted] = useState<boolean>(false);
 
@@ -65,7 +66,13 @@ function PrototypeContent() {
     );
   }
 
-  // JIKA DOMAIN ADMIN (bubur-khalid-admin.vercel.app):
+  // JIKA DOMAIN ADMIN (bubur-khalid-admin.vercel.app atau ?admin=1):
+  // Wajib Login terlebih dahulu jika belum terautentikasi
+  if (isAdminPortal && !isAuthenticated) {
+    return <AdminLogin />;
+  }
+
+  // JIKA SUDAH LOGIN:
   // Menampilkan SEMUA modul operasional: Admin Dashboard, POS Kasir Tablet, Dapur (KDS), dan Owner Finansial
   return (
     <div className="min-h-screen flex flex-col bg-tofu-silkblaze">

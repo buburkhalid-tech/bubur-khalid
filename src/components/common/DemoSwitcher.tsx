@@ -3,10 +3,10 @@
 import React from 'react';
 import Image from 'next/image';
 import { useApp } from '@/lib/store/AppContext';
-import { Smartphone, LayoutDashboard, Calculator, ChefHat, ShieldAlert } from 'lucide-react';
+import { Smartphone, LayoutDashboard, Calculator, ChefHat, ShieldAlert, LogOut } from 'lucide-react';
 
 export function DemoSwitcher() {
-  const { activeView, setActiveView, isFinancialUnlocked, storeSettings } = useApp();
+  const { activeView, setActiveView, isFinancialUnlocked, storeSettings, currentUser, logout } = useApp();
 
   const views = [
     { id: 'admin', label: 'Admin Dashboard', icon: LayoutDashboard, tag: 'Utama' },
@@ -18,7 +18,22 @@ export function DemoSwitcher() {
 
   return (
     <header className="bg-matcha-deep text-tofu-silkblaze border-b border-matcha-surface px-4 py-2 sticky top-0 z-50 shadow-md">
-      <div className="max-w-7xl mx-auto flex items-center justify-center">
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+        {/* Left: Store Logo & Name */}
+        <div className="flex items-center space-x-2 flex-shrink-0">
+          <div className="w-7 h-7 rounded-full bg-white overflow-hidden relative border border-white/40">
+            <Image
+              src={storeSettings.storeLogo || '/images/logo/bubur-khalid-logo.png'}
+              alt="Logo"
+              fill
+              className="object-cover"
+            />
+          </div>
+          <span className="font-extrabold text-xs text-white hidden lg:inline">
+            {storeSettings.storeName}
+          </span>
+        </div>
+
         {/* View Switcher Pills */}
         <nav aria-label="Modul Protipe" className="flex items-center flex-wrap justify-center gap-1.5 bg-matcha-leaf p-1 rounded-xl border border-matcha-surface">
           {views.map((v) => {
@@ -47,6 +62,25 @@ export function DemoSwitcher() {
             );
           })}
         </nav>
+
+        {/* Right: User Profile & Logout */}
+        <div className="flex items-center space-x-2 flex-shrink-0">
+          {currentUser && (
+            <div className="text-right hidden sm:block">
+              <div className="text-xs font-black text-white leading-tight">{currentUser.name}</div>
+              <div className="text-[9px] text-yolk-blaze font-bold uppercase">{currentUser.role}</div>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={logout}
+            className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-red-600/80 hover:bg-red-600 text-white text-xs font-bold transition shadow-sm active:scale-95"
+            title="Keluar dari Akun"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Keluar</span>
+          </button>
+        </div>
       </div>
     </header>
   );

@@ -79,6 +79,12 @@ interface AppContextType {
   deleteUser: (id: string) => void;
   toggleUserStatus: (id: string) => void;
 
+  // Authentication & Session
+  currentUser: SystemUser | null;
+  isAuthenticated: boolean;
+  login: (identifier: string, passOrPin: string) => { success: boolean; message?: string };
+  logout: () => void;
+
   // Financial & Security Gate
   financialSummary: FinancialSummary;
   isFinancialUnlocked: boolean;
@@ -677,6 +683,91 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
+  // User Authentication & Session Management
+  const [currentUser, setCurrentUser] = useState<SystemUser | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const savedSession = localStorage.getItem('bubur_khalid_admin_session');
+        if (savedSession) {
+          const parsed = JSON.parse(savedSession);
+          setCurrentUser(parsed);
+        }
+      } catch (err) {
+        console.error('Failed to restore session:', err);
+      }
+    }
+  }, []);
+
+  const login = (identifier: string, passOrPin: string): { success: boolean; message?: string } => {
+    const cleanId = identifier.trim().toLowerCase();
+    const cleanPass = passOrPin.trim();
+
+    if (!cleanId || !cleanPass) {
+      return { success: false, message: 'Harap masukkan ID/Email dan kata sandi' };
+    }
+
+    const target = users.find((u) => {
+      const uName = u.username.toLowerCase();
+      const uEmail = (u.email || '').toLowerCase();
+      const uRole = u.role.toLowerCase();
+      return (
+        uName === cleanId ||
+        uEmail === cleanId ||
+        (cleanId === 'admin' && uRole === 'admin') ||
+        (cleanId === 'owner' && uRole === 'owner') ||
+        (cleanId === 'kasir' && uRole === 'cashier') ||
+        (cleanId === 'dapur' && uRole === 'kitchen_staff')
+      );
+    });
+
+    if (!target) {
+      return { success: false, message: 'ID Pengguna atau Email tidak ditemukan' };
+    }
+
+    if (!target.is_active) {
+      return { success: false, message: 'Akun Anda sedang dinonaktifkan oleh Owner' };
+    }
+
+    const isValidPassword =
+      (target.pin && cleanPass === target.pin) ||
+      (target.password && cleanPass === target.password) ||
+      (target.role === 'ADMIN' && (cleanPass === 'admin123' || cleanPass === '112233' || cleanPass === 'admin')) ||
+      (target.role === 'OWNER' && (cleanPass === 'owner123' || cleanPass === '123456' || cleanPass === 'owner')) ||
+      (target.role === 'CASHIER' && (cleanPass === 'kasir123' || cleanPass === '889900' || cleanPass === 'kasir')) ||
+      (target.role === 'KITCHEN_STAFF' && (cleanPass === 'dapur123' || cleanPass === '445566' || cleanPass === 'dapur'));
+
+    if (!isValidPassword) {
+      return { success: false, message: 'Kata sandi atau PIN salah' };
+    }
+
+    const updatedUser: SystemUser = {
+      ...target,
+      last_login: 'Baru saja',
+    };
+
+    setCurrentUser(updatedUser);
+    try {
+      localStorage.setItem('bubur_khalid_admin_session', JSON.stringify(updatedUser));
+    } catch (e) {}
+
+    addAuditLog('LOGIN', 'Auth', updatedUser.id, `Pengguna ${updatedUser.name} (${updatedUser.role}) berhasil masuk ke portal`);
+    showToast(`Selamat datang, ${updatedUser.name}!`);
+    return { success: true };
+  };
+
+  const logout = () => {
+    if (currentUser) {
+      addAuditLog('LOGOUT', 'Auth', currentUser.id, `Pengguna ${currentUser.name} keluar sesi`);
+    }
+    setCurrentUser(null);
+    try {
+      localStorage.removeItem('bubur_khalid_admin_session');
+    } catch (e) {}
+    showToast('Anda telah keluar dari sesi admin');
+  };
+
   // Table Management Handlers
   const addTable = (tableData: Omit<TableInfo, 'id'>) => {
     const newId = `tbl-${Date.now()}`;
@@ -775,6 +866,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         updateUser,
         deleteUser,
         toggleUserStatus,
+        currentUser,
+        isAuthenticated: Boolean(currentUser),
+        login,
+        logout,
         financialSummary: MOCK_FINANCIAL_SUMMARY,
         isFinancialUnlocked,
         unlockFinancialGate,
