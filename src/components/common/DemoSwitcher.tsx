@@ -9,11 +9,11 @@ export function DemoSwitcher() {
   const { activeView, setActiveView, isFinancialUnlocked, storeSettings } = useApp();
 
   const views = [
-    { id: 'customer', label: 'Customer Web App', icon: Smartphone, tag: 'Mobile-First' },
-    { id: 'admin', label: 'Admin Dashboard', icon: LayoutDashboard, tag: 'Responsive' },
-    { id: 'pos', label: 'POS Kasir Tablet', icon: Calculator, tag: 'Touch' },
-    { id: 'kds', label: 'Kitchen Display', icon: ChefHat, tag: 'Global FIFO' },
+    { id: 'admin', label: 'Admin Dashboard', icon: LayoutDashboard, tag: 'Utama' },
+    { id: 'pos', label: 'POS Kasir Tablet', icon: Calculator, tag: 'Kasir' },
+    { id: 'kds', label: 'Kitchen Display', icon: ChefHat, tag: 'Dapur FIFO' },
     { id: 'owner-financial', label: 'Owner Finansial', icon: ShieldAlert, tag: isFinancialUnlocked ? 'Unlocked' : 'Protected' },
+    { id: 'customer', label: 'Simulasi Mobile Pelanggan', icon: Smartphone, tag: 'Preview' },
   ] as const;
 
   return (
