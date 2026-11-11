@@ -45,6 +45,9 @@ import {
   ChevronDown,
   Pin,
   Menu,
+  Calculator,
+  ChefHat,
+  LogOut,
 } from 'lucide-react';
 
 export function AdminView() {
@@ -78,8 +81,11 @@ export function AdminView() {
     deletePromoBanner,
     togglePromoBannerStatus,
     showToast,
+    currentUser,
+    logout,
   } = useApp();
 
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'menu' | 'tables' | 'trash' | 'settings'>('dashboard');
   const [activeQueueTab, setActiveQueueTab] = useState<'ONLINE' | 'IN_STORE'>('ONLINE');
   const [settingsSubTab, setSettingsSubTab] = useState<'security' | 'promo' | 'banner' | 'payment'>('security');
@@ -910,13 +916,260 @@ export function AdminView() {
   return (
     <div className="min-h-screen bg-tofu-silkblaze flex flex-col md:flex-row text-matcha-leaf">
       
-      {/* LEFT SIDEBAR (Pop-Slide Collapsible Mini-Sidebar: Initially Icon-Only, Slides Open on Hover/Touch) */}
+      {/* MOBILE TOP BAR (With 🍔 Hamburger Menu Button) */}
+      <div className="flex md:hidden items-center justify-between bg-matcha-leaf text-tofu-silkblaze px-4 py-3 sticky top-0 z-40 border-b border-matcha-surface shadow-md">
+        <div className="flex items-center space-x-3">
+          {/* 🍔 Hamburger Button */}
+          <button
+            type="button"
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="w-10 h-10 rounded-xl bg-matcha-surface hover:bg-spicy-ember text-tofu-silkblaze flex items-center justify-center transition active:scale-95 shadow-sm"
+            title="Buka Menu Navigasi"
+          >
+            <Menu className="w-5 h-5 text-noodle-cream" />
+          </button>
+
+          {/* Logo & Current View Title */}
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 rounded-full overflow-hidden relative border border-white/40 bg-white flex-shrink-0">
+              <Image src={storeSettings.storeLogo || '/images/logo/bubur-khalid-logo.png'} alt="Logo" fill className="object-cover" />
+            </div>
+            <div>
+              <div className="font-black text-xs text-white leading-tight">{storeSettings.storeName}</div>
+              <div className="text-[10px] text-yolk-blaze font-bold">
+                {activeTab === 'dashboard'
+                  ? 'Dashboard Operasional'
+                  : activeTab === 'menu'
+                  ? 'Manajemen Menu'
+                  : activeTab === 'tables'
+                  ? 'Manajemen Meja'
+                  : activeTab === 'settings'
+                  ? 'Security & Toko'
+                  : 'Tong Sampah'}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Status Indicator */}
+        <div className="flex items-center space-x-1.5 bg-black/20 px-2.5 py-1 rounded-full text-[10px] font-bold">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span>Admin</span>
+        </div>
+      </div>
+
+      {/* MOBILE SLIDE-OUT DRAWER OVERLAY */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-50 md:hidden animate-fadeIn">
+          {/* Backdrop (tap to close) */}
+          <div
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="absolute inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+          />
+
+          {/* Drawer Body */}
+          <div className="relative w-72 max-w-[85vw] h-full bg-matcha-leaf text-tofu-silkblaze flex flex-col justify-between p-5 shadow-2xl border-r border-matcha-surface animate-slideRight">
+            <div>
+              {/* Drawer Header */}
+              <div className="flex items-center justify-between pb-4 border-b border-matcha-surface">
+                <div className="flex items-center space-x-2.5">
+                  <div className="w-9 h-9 rounded-full overflow-hidden relative border border-white/40 bg-white flex-shrink-0">
+                    <Image src={storeSettings.storeLogo || '/images/logo/bubur-khalid-logo.png'} alt="Logo" fill className="object-cover" />
+                  </div>
+                  <div>
+                    <div className="font-black text-sm text-white">{storeSettings.storeName}</div>
+                    <div className="text-[10px] text-noodle-cream">Menu Navigasi Admin</div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="w-8 h-8 rounded-full bg-matcha-surface text-stone-300 hover:text-white flex items-center justify-center transition active:scale-90"
+                  title="Tutup Menu"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Navigation Items in Mobile Drawer */}
+              <nav className="mt-5 space-y-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('dashboard');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold transition ${
+                    activeTab === 'dashboard'
+                      ? 'bg-spicy-ember text-white shadow-md'
+                      : 'text-noodle-cream hover:bg-matcha-surface'
+                  }`}
+                >
+                  <div className="flex items-center space-x-3">
+                    <LayoutDashboard className="w-4 h-4" />
+                    <span>Dashboard Operasional</span>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('menu');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold transition ${
+                    activeTab === 'menu'
+                      ? 'bg-spicy-ember text-white shadow-md'
+                      : 'text-noodle-cream hover:bg-matcha-surface'
+                  }`}
+                >
+                  <div className="flex items-center space-x-3">
+                    <UtensilsCrossed className="w-4 h-4" />
+                    <span>Menu & Harga</span>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('tables');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold transition ${
+                    activeTab === 'tables'
+                      ? 'bg-spicy-ember text-white shadow-md'
+                      : 'text-noodle-cream hover:bg-matcha-surface'
+                  }`}
+                >
+                  <div className="flex items-center space-x-3">
+                    <QrCode className="w-4 h-4" />
+                    <span>Meja & QR Code</span>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStoreForm(storeSettings);
+                    setActiveTab('settings');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold transition ${
+                    activeTab === 'settings'
+                      ? 'bg-spicy-ember text-white shadow-md'
+                      : 'text-noodle-cream hover:bg-matcha-surface'
+                  }`}
+                >
+                  <div className="flex items-center space-x-3">
+                    <Shield className="w-4 h-4 text-yolk-blaze" />
+                    <span>Security & Pengaturan</span>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveView('owner-financial');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold text-noodle-cream hover:bg-matcha-surface transition"
+                >
+                  <div className="flex items-center space-x-3">
+                    <FileText className="w-4 h-4 text-yolk-blaze" />
+                    <span>Laporan Keuangan (Owner)</span>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveView('pos');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold text-noodle-cream hover:bg-matcha-surface transition"
+                >
+                  <div className="flex items-center space-x-3">
+                    <Calculator className="w-4 h-4 text-yolk-blaze" />
+                    <span>Buka POS Kasir Tablet</span>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveView('kds');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold text-noodle-cream hover:bg-matcha-surface transition"
+                >
+                  <div className="flex items-center space-x-3">
+                    <ChefHat className="w-4 h-4 text-yolk-blaze" />
+                    <span>Buka Kitchen Display (Dapur)</span>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('trash');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold transition ${
+                    activeTab === 'trash'
+                      ? 'bg-spicy-ember text-white shadow-md'
+                      : 'text-noodle-cream hover:bg-matcha-surface'
+                  }`}
+                >
+                  <div className="flex items-center space-x-3">
+                    <Trash2 className="w-4 h-4" />
+                    <span>Tong Sampah</span>
+                  </div>
+                  {trashProducts.length > 0 && (
+                    <span className="bg-spicy-ember text-white text-[10px] font-black px-2 py-0.5 rounded-full">
+                      {trashProducts.length}
+                    </span>
+                  )}
+                </button>
+              </nav>
+            </div>
+
+            {/* Mobile Drawer Footer: User & Logout */}
+            <div className="pt-4 border-t border-matcha-surface flex items-center justify-between">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-8 h-8 rounded-full bg-noodle-cream text-matcha-leaf flex items-center justify-center font-black text-xs">
+                  {currentUser ? currentUser.name.slice(0, 2).toUpperCase() : 'AP'}
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-white truncate max-w-[130px]">
+                    {currentUser ? currentUser.name : 'Admin Pemilik'}
+                  </div>
+                  <div className="text-[10px] text-yolk-blaze font-bold uppercase">
+                    {currentUser ? currentUser.role : 'OWNER'}
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={logout}
+                className="p-2 rounded-xl bg-red-600/80 hover:bg-red-600 text-white transition text-xs flex items-center space-x-1"
+                title="Keluar"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* LEFT SIDEBAR (Desktop Only: hidden on mobile, md:flex on desktop) */}
       <aside
         onMouseEnter={() => setIsSidebarHovered(true)}
         onMouseLeave={() => setIsSidebarHovered(false)}
-        className={`w-full ${
+        className={`hidden md:flex ${
           isSidebarOpen ? 'md:w-64' : 'md:w-20'
-        } bg-matcha-leaf text-tofu-silkblaze p-3 md:p-4 flex flex-col justify-between border-r border-matcha-surface flex-shrink-0 transition-all duration-300 ease-in-out z-40 relative group shadow-xl`}
+        } bg-matcha-leaf text-tofu-silkblaze p-3 md:p-4 flex-col justify-between border-r border-matcha-surface flex-shrink-0 transition-all duration-300 ease-in-out z-40 relative group shadow-xl`}
       >
         <div>
           {/* Brand Logo & Header with Pin Toggle */}
