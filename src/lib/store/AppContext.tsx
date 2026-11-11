@@ -796,6 +796,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           ...(newSettings.paymentMethods || {}),
         },
       };
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('bubur_khalid_settings', JSON.stringify(updated));
+        } catch (e) {}
+      }
       addAuditLog('UPDATE_STORE_SETTINGS', 'Settings', 'store-config', 'Pengaturan banner dan metode pembayaran diperbarui oleh Admin');
       return updated;
     });

@@ -420,7 +420,15 @@ export function AdminView() {
 
   // Store & Banner Settings State
   const [storeForm, setStoreForm] = useState(storeSettings);
+  const [isSavingStore, setIsSavingStore] = useState<boolean>(false);
   const [previewProofUrl, setPreviewProofUrl] = useState<string | null>(null);
+
+  // Sync storeForm if storeSettings is hydrated from localStorage
+  useEffect(() => {
+    if (storeSettings) {
+      setStoreForm(storeSettings);
+    }
+  }, [storeSettings]);
 
   // User & Security Management State
   const [isUserModalOpen, setIsUserModalOpen] = useState<boolean>(false);
@@ -910,9 +918,13 @@ export function AdminView() {
     }
   };
 
-  const handleSaveStoreForm = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveStoreForm = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setIsSavingStore(true);
     updateStoreSettings(storeForm);
+    setTimeout(() => {
+      setIsSavingStore(false);
+    }, 350);
   };
 
   return (
@@ -2944,11 +2956,11 @@ export function AdminView() {
                   </div>
 
                   {/* Cancel & Save Buttons */}
-                  <div className="flex items-center justify-end space-x-2 pt-3 border-t border-stone-200">
+                  <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-3 border-t border-stone-200">
                     <button
                       type="button"
                       onClick={handleCancelEditCup}
-                      className="bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold text-xs px-4 py-2.5 rounded-xl transition flex items-center space-x-1.5 cursor-pointer"
+                      className="bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold text-xs px-4 py-2.5 rounded-xl transition flex items-center justify-center space-x-1.5 cursor-pointer"
                     >
                       <X className="w-3.5 h-3.5" />
                       <span>Cancel (Batal)</span>
@@ -2956,7 +2968,7 @@ export function AdminView() {
                     <button
                       type="button"
                       onClick={handleSaveCup}
-                      className="bg-spicy-ember hover:bg-spicy-hover text-white font-extrabold text-xs px-5 py-2.5 rounded-xl shadow-md transition flex items-center space-x-1.5 cursor-pointer"
+                      className="bg-spicy-ember hover:bg-spicy-hover text-white font-extrabold text-xs px-5 py-2.5 rounded-xl shadow-md transition flex items-center justify-center space-x-1.5 cursor-pointer"
                     >
                       <CheckCircle className="w-4 h-4" />
                       <span>Save (Simpan Perubahan)</span>
@@ -3942,13 +3954,22 @@ export function AdminView() {
               </div>
             </div>
 
-            <div className="flex justify-end pt-2">
+            <div className="flex justify-center sm:justify-end pt-3 pb-6">
               <button
-                type="submit"
-                className="bg-spicy-ember hover:bg-spicy-hover text-white px-6 py-3 rounded-xl font-extrabold text-xs shadow-md transition flex items-center space-x-2"
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleSaveStoreForm();
+                }}
+                disabled={isSavingStore}
+                className="w-full sm:w-auto bg-spicy-ember hover:bg-spicy-hover active:scale-95 text-white px-8 py-3.5 rounded-2xl font-extrabold text-xs sm:text-sm shadow-md transition flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-75"
               >
-                <CheckCircle className="w-4 h-4" />
-                <span>Simpan Pengaturan Banner Toko</span>
+                {isSavingStore ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <CheckCircle className="w-4 h-4" />
+                )}
+                <span>{isSavingStore ? 'Menyimpan Pengaturan...' : 'Simpan Pengaturan Banner Toko'}</span>
               </button>
             </div>
           </div>
@@ -4427,14 +4448,23 @@ export function AdminView() {
               </div>
             </div>
 
-                    {/* Save Button for Payment */}
-                    <div className="flex justify-end pt-2">
+                    {/* Save Button for Payment - Centered on Mobile, right-aligned on Desktop */}
+                    <div className="flex justify-center sm:justify-end pt-3 pb-8">
                       <button
-                        type="submit"
-                        className="bg-spicy-ember hover:bg-spicy-hover text-white px-6 py-3 rounded-xl font-extrabold text-xs shadow-md transition flex items-center space-x-2"
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleSaveStoreForm();
+                        }}
+                        disabled={isSavingStore}
+                        className="w-full sm:w-auto bg-spicy-ember hover:bg-spicy-hover active:scale-95 text-white px-8 py-3.5 rounded-2xl font-extrabold text-xs sm:text-sm shadow-md transition flex items-center justify-center space-x-2.5 cursor-pointer disabled:opacity-75"
                       >
-                        <CheckCircle className="w-4 h-4" />
-                        <span>Simpan Pengaturan Pembayaran</span>
+                        {isSavingStore ? (
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <CheckCircle className="w-5 h-5" />
+                        )}
+                        <span>{isSavingStore ? 'Menyimpan Pengaturan...' : 'Simpan Pengaturan Pembayaran'}</span>
                       </button>
                     </div>
                   </div>
