@@ -1,12 +1,24 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import { useApp } from '@/lib/store/AppContext';
-import { Smartphone, LayoutDashboard, Calculator, ChefHat, ShieldAlert, LogOut } from 'lucide-react';
+import {
+  Smartphone,
+  LayoutDashboard,
+  Calculator,
+  ChefHat,
+  ShieldAlert,
+  LogOut,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react';
 
 export function DemoSwitcher() {
   const { activeView, setActiveView, isFinancialUnlocked, storeSettings, currentUser, logout } = useApp();
+  
+  // Sembunyikan secara default saat tidak digunakan agar layar kerja 100% penuh & bersih
+  const [isCollapsed, setIsCollapsed] = useState<boolean>(true);
 
   const views = [
     { id: 'admin', label: 'Admin Dashboard', icon: LayoutDashboard, tag: 'Utama' },
@@ -16,8 +28,33 @@ export function DemoSwitcher() {
     { id: 'customer', label: 'Simulasi Mobile Pelanggan', icon: Smartphone, tag: 'Preview' },
   ] as const;
 
+  const currentView = views.find((v) => v.id === activeView) || views[0];
+  const CurrentIcon = currentView.icon;
+
+  // JIKA SEDANG DISEMBUNYIKAN: Tampilkan hanya tombol mini mengambang yang ringkas & tidak mengganggu
+  if (isCollapsed) {
+    return (
+      <div className="fixed top-2.5 left-1/2 -translate-x-1/2 z-50 pointer-events-auto animate-fadeIn">
+        <button
+          type="button"
+          onClick={() => setIsCollapsed(false)}
+          className="bg-matcha-deep/90 hover:bg-matcha-deep text-noodle-cream text-xs font-bold px-3.5 py-1.5 rounded-full shadow-lg border border-matcha-surface/80 flex items-center space-x-2 backdrop-blur-md transition-all hover:scale-105 active:scale-95 group"
+          title="Klik untuk membuka menu ganti modul (Admin, Kasir, Dapur, Owner)"
+        >
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <CurrentIcon className="w-3.5 h-3.5 text-yolk-blaze" />
+          <span className="text-[11px] text-white/90">
+            Modul: <strong className="text-white">{currentView.label}</strong>
+          </span>
+          <ChevronDown className="w-3.5 h-3.5 text-yolk-blaze group-hover:translate-y-0.5 transition-transform" />
+        </button>
+      </div>
+    );
+  }
+
+  // JIKA SEDANG DIBUKA: Tampilkan bar navigasi lengkap
   return (
-    <header className="bg-matcha-deep text-tofu-silkblaze border-b border-matcha-surface px-4 py-2 sticky top-0 z-50 shadow-md">
+    <header className="bg-matcha-deep text-tofu-silkblaze border-b border-matcha-surface px-4 py-2 sticky top-0 z-50 shadow-xl animate-slideDown">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
         {/* Left: Store Logo & Name */}
         <div className="flex items-center space-x-2 flex-shrink-0">
@@ -34,15 +71,18 @@ export function DemoSwitcher() {
           </span>
         </div>
 
-        {/* View Switcher Pills */}
-        <nav aria-label="Modul Protipe" className="flex items-center flex-wrap justify-center gap-1.5 bg-matcha-leaf p-1 rounded-xl border border-matcha-surface">
+        {/* View Switcher Navigation Pills */}
+        <nav aria-label="Modul Prototipe" className="flex items-center flex-wrap justify-center gap-1.5 bg-matcha-leaf p-1 rounded-xl border border-matcha-surface">
           {views.map((v) => {
             const Icon = v.icon;
             const isActive = activeView === v.id;
             return (
               <button
                 key={v.id}
-                onClick={() => setActiveView(v.id)}
+                onClick={() => {
+                  setActiveView(v.id);
+                  setIsCollapsed(true); // Otomatis sembunyikan kembali setelah memilih modul agar layar kerja langsung bersih
+                }}
                 className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                   isActive
                     ? 'bg-spicy-ember text-white shadow-sm font-bold'
@@ -63,7 +103,7 @@ export function DemoSwitcher() {
           })}
         </nav>
 
-        {/* Right: User Profile & Logout */}
+        {/* Right: User Profile, Minimize & Logout Actions */}
         <div className="flex items-center space-x-2 flex-shrink-0">
           {currentUser && (
             <div className="text-right hidden sm:block">
@@ -71,6 +111,19 @@ export function DemoSwitcher() {
               <div className="text-[9px] text-yolk-blaze font-bold uppercase">{currentUser.role}</div>
             </div>
           )}
+
+          {/* Sembunyikan Bar Button */}
+          <button
+            type="button"
+            onClick={() => setIsCollapsed(true)}
+            className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-noodle-cream hover:text-white text-xs font-bold transition border border-white/15 active:scale-95"
+            title="Sembunyikan Bar Navigasi"
+          >
+            <ChevronUp className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Sembunyikan</span>
+          </button>
+
+          {/* Logout Button */}
           <button
             type="button"
             onClick={logout}
