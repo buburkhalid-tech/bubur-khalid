@@ -998,32 +998,6 @@ export function AdminView() {
                 </button>
               </nav>
             </div>
-
-            {/* Mobile Drawer Footer: User & Logout */}
-            <div className="pt-4 border-t border-matcha-surface flex items-center justify-between">
-              <div className="flex items-center space-x-2.5">
-                <div className="w-8 h-8 rounded-full bg-noodle-cream text-matcha-leaf flex items-center justify-center font-black text-xs">
-                  {currentUser ? currentUser.name.slice(0, 2).toUpperCase() : 'AP'}
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-white truncate max-w-[130px]">
-                    {currentUser ? currentUser.name : 'Admin Pemilik'}
-                  </div>
-                  <div className="text-[10px] text-yolk-blaze font-bold uppercase">
-                    {currentUser ? currentUser.role : 'OWNER'}
-                  </div>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={logout}
-                className="p-2 rounded-xl bg-red-600/80 hover:bg-red-600 text-white transition text-xs flex items-center space-x-1"
-                title="Keluar"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-              </button>
-            </div>
           </div>
         </div>
       )}
@@ -1255,37 +1229,6 @@ export function AdminView() {
               )}
             </button>
           </nav>
-        </div>
-
-        {/* User Info / Logout in Sidebar */}
-        <div className="pt-4 border-t border-matcha-surface flex items-center justify-between overflow-hidden">
-          <div className="flex items-center space-x-2.5 overflow-hidden">
-            <div className="w-9 h-9 rounded-full bg-noodle-cream text-matcha-leaf font-bold flex items-center justify-center text-xs shadow-sm flex-shrink-0">
-              {currentUser ? currentUser.name.slice(0, 2).toUpperCase() : 'AF'}
-            </div>
-            <div
-              className={`transition-all duration-200 whitespace-nowrap overflow-hidden ${
-                isSidebarOpen ? 'opacity-100 max-w-[140px]' : 'opacity-0 max-w-0 hidden'
-              }`}
-            >
-              <div className="text-xs font-bold text-noodle-cream truncate">
-                {currentUser ? currentUser.name : 'Ahmad Fauzi'}
-              </div>
-              <div className="text-[10px] text-yolk-blaze font-bold uppercase">
-                {currentUser ? currentUser.role : 'ADMIN'}
-              </div>
-            </div>
-          </div>
-          {isSidebarOpen && (
-            <button
-              type="button"
-              onClick={logout}
-              className="text-[11px] text-red-300 hover:text-white hover:bg-red-600/60 px-2 py-1 rounded transition font-bold"
-              title="Keluar dari Akun"
-            >
-              Keluar
-            </button>
-          )}
         </div>
       </aside>
 
