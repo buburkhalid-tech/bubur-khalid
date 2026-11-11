@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '@/lib/store/AppContext';
 import {
   ShieldAlert,
@@ -44,6 +44,59 @@ export function OwnerFinancialView() {
   const [otpExpiry, setOtpExpiry] = useState<number | null>(null);
   const [otpSent, setOtpSent] = useState<boolean>(false);
   const [countdown, setCountdown] = useState<number>(0);
+
+  // Dynamic Real Financial Data derived from orders
+  const validOrders = useMemo(() => orders.filter((o) => o.order_status !== 'CANCELLED'), [orders]);
+  const cancelledOrders = useMemo(() => orders.filter((o) => o.order_status === 'CANCELLED'), [orders]);
+
+  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const currentMonthStr = useMemo(() => todayStr.substring(0, 7), [todayStr]);
+
+  const todayOrders = useMemo(
+    () => validOrders.filter((o) => o.created_at?.startsWith(todayStr)),
+    [validOrders, todayStr]
+  );
+  const todayRevenue = useMemo(
+    () => todayOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0),
+    [todayOrders]
+  );
+  const todayTransactions = todayOrders.length;
+  const todayAov = todayTransactions > 0 ? Math.round(todayRevenue / todayTransactions) : 0;
+
+  const monthOrders = useMemo(
+    () => validOrders.filter((o) => o.created_at?.startsWith(currentMonthStr)),
+    [validOrders, currentMonthStr]
+  );
+  const monthRevenue = useMemo(
+    () => monthOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0),
+    [monthOrders]
+  );
+  const monthTransactions = monthOrders.length;
+
+  // Channel breakdown
+  const todayOnlineOrders = useMemo(() => todayOrders.filter((o) => o.queue_channel === 'ONLINE'), [todayOrders]);
+  const todayOnlineRev = useMemo(
+    () => todayOnlineOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0),
+    [todayOnlineOrders]
+  );
+  const todayInStoreOrders = useMemo(() => todayOrders.filter((o) => o.queue_channel === 'IN_STORE'), [todayOrders]);
+  const todayInStoreRev = useMemo(
+    () => todayInStoreOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0),
+    [todayInStoreOrders]
+  );
+
+  const onlinePct = todayRevenue > 0 ? Math.round((todayOnlineRev / todayRevenue) * 100) : 0;
+  const inStorePct = todayRevenue > 0 ? (100 - onlinePct) : 0;
+
+  // Payment method breakdown
+  const qrisOrders = useMemo(
+    () => todayOrders.filter((o) => o.payment_method === 'QRIS' || o.payment_method === 'TRANSFER'),
+    [todayOrders]
+  );
+  const qrisRev = useMemo(() => qrisOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0), [qrisOrders]);
+
+  const cashOrders = useMemo(() => todayOrders.filter((o) => o.payment_method === 'CASH'), [todayOrders]);
+  const cashRev = useMemo(() => cashOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0), [cashOrders]);
 
   // Timer cooldown 60 detik untuk kirim ulang OTP
   useEffect(() => {
@@ -94,8 +147,59 @@ export function OwnerFinancialView() {
     }
   };
 
+  // EKSPOR CSV AKTIF: Mengunduh file CSV laporan riil terperinci
   const handleExportCSV = () => {
-    alert('Simulasi ekspor CSV data keuangan Bubur Khalid terenkripsi berhasil diunduh.');
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0];
+    const timeStr = now.toTimeString().split(' ')[0];
+
+    let csvContent = '\uFEFF'; // BOM UTF-8 agar karakter Excel tidak rusak
+    csvContent += 'LAPORAN KEUANGAN DAN TRANSAKSI RESMI BUBUR KHALID\n';
+    csvContent += `Tanggal Ekspor,${dateStr} ${timeStr} WIB\n`;
+    csvContent += `Otorisasi Akun,Owner (ami_khalid)\n\n`;
+
+    csvContent += '=== RINGKASAN KEUANGAN HARI INI ===\n';
+    csvContent += 'Indikator,Nilai\n';
+    csvContent += `Pendapatan Bersih Hari Ini,"Rp ${todayRevenue.toLocaleString('id-ID')}"\n`;
+    csvContent += `Total Transaksi Hari Ini,${todayTransactions} Pesanan\n`;
+    csvContent += `Rata-rata Nilai Transaksi (AOV),"Rp ${todayAov.toLocaleString('id-ID')}"\n`;
+    csvContent += `Total Omzet Bulan Ini,"Rp ${monthRevenue.toLocaleString('id-ID')}"\n`;
+    csvContent += `Total Transaksi Bulan Ini,${monthTransactions} Pesanan\n`;
+    csvContent += `Pendapatan Kasir (In-Store),"Rp ${todayInStoreRev.toLocaleString('id-ID')} (${inStorePct}%)"\n`;
+    csvContent += `Pendapatan Online (Web & QR),"Rp ${todayOnlineRev.toLocaleString('id-ID')} (${onlinePct}%)"\n`;
+    csvContent += `Total Pembayaran Tunai (Cash),"Rp ${cashRev.toLocaleString('id-ID')} (${cashOrders.length} Transaksi)"\n`;
+    csvContent += `Total Pembayaran QRIS/Digital,"Rp ${qrisRev.toLocaleString('id-ID')} (${qrisOrders.length} Transaksi)"\n`;
+    csvContent += `Total Pesanan Dibatalkan,${cancelledOrders.length} Pesanan\n\n`;
+
+    csvContent += '=== RINCIAN TRANSAKSI PESANAN RIIL ===\n';
+    csvContent += 'No,ID Pesanan,Nomor Antrean,Waktu,Nama Pelanggan,Layanan,Channel,Metode Bayar,Status Bayar,Status Pesanan,Rincian Menu,Biaya Cup,Total Nominal\n';
+
+    if (orders.length === 0) {
+      csvContent += '-,Belum ada transaksi,-,-,-,-,-,-,-,-,-,-\n';
+    } else {
+      orders.forEach((o, idx) => {
+        const itemsText = (o.items || [])
+          .map((it) => `${it.product_name_snapshot || 'Menu'} (${it.quantity}x)`)
+          .join('; ');
+        const serviceText = o.service_type === 'DINE_IN' ? `Makan di Tempat (${o.table_number || 'Meja'})` : 'Bungkus / Takeaway';
+        const channelText = o.queue_channel === 'ONLINE' ? 'Online Web' : 'Kasir POS';
+        const formattedTime = o.created_at ? new Date(o.created_at).toLocaleString('id-ID') : '-';
+        
+        csvContent += `${idx + 1},"${o.id}","${o.queue_number}","${formattedTime}","${(o.customer_name || '-').replace(/"/g, '""')}","${serviceText}","${channelText}","${o.payment_method}","${o.payment_status}","${o.order_status}","${itemsText.replace(/"/g, '""')}","Rp ${(o.cup_fee || 0).toLocaleString('id-ID')}","Rp ${(o.total_amount || 0).toLocaleString('id-ID')}"\n`;
+      });
+    }
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `laporan_keuangan_bubur_khalid_${dateStr}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    showToast('Laporan Keuangan CSV berhasil diunduh ke perangkat Anda!');
   };
 
   // IF LOCKED: Show Security Gate Modal (Enforcing Section 27 PRD)
@@ -302,42 +406,46 @@ export function OwnerFinancialView() {
           <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-soft">
             <div className="text-xs text-stone-500 font-semibold">Pendapatan Bersih Hari Ini</div>
             <div className="text-2xl font-black text-matcha-leaf mt-1">
-              Rp{financialSummary.today_revenue.toLocaleString('id-ID')}
+              Rp{todayRevenue.toLocaleString('id-ID')}
             </div>
             <div className="text-[11px] text-stone-500 mt-2 flex items-center justify-between pt-2 border-t border-stone-100">
-              <span>Transaksi: {financialSummary.today_transactions}</span>
-              <span className="font-bold text-emerald-600">+12% vs Kemarin</span>
+              <span>Transaksi: {todayTransactions} Pesanan</span>
+              <span className="font-bold text-emerald-600">
+                {todayRevenue > 0 ? '✓ Riil Terverifikasi' : 'Belum Ada Transaksi'}
+              </span>
             </div>
           </div>
 
           <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-soft">
             <div className="text-xs text-stone-500 font-semibold">Total Omzet Bulan Berjalan</div>
             <div className="text-2xl font-black text-matcha-leaf mt-1">
-              Rp{financialSummary.month_revenue.toLocaleString('id-ID')}
+              Rp{monthRevenue.toLocaleString('id-ID')}
             </div>
             <div className="text-[11px] text-stone-500 mt-2 flex items-center justify-between pt-2 border-t border-stone-100">
-              <span>{financialSummary.month_transactions} Transaksi</span>
-              <span className="font-bold text-emerald-600">+8% MoM</span>
+              <span>{monthTransactions} Transaksi Bulan Ini</span>
+              <span className="font-bold text-emerald-600">✓ Akumulasi Riil</span>
             </div>
           </div>
 
           <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-soft">
             <div className="text-xs text-stone-500 font-semibold">Rata-rata Nilai Transaksi (AOV)</div>
             <div className="text-2xl font-black text-spicy-ember mt-1">
-              Rp{financialSummary.today_aov.toLocaleString('id-ID')}
+              Rp{todayAov.toLocaleString('id-ID')}
             </div>
             <div className="text-[11px] text-stone-400 mt-2 pt-2 border-t border-stone-100">
-              Perhitungan dari transaksi terverifikasi
+              {todayTransactions > 0
+                ? `Perhitungan dari ${todayTransactions} transaksi terverifikasi`
+                : 'Belum ada transaksi hari ini'}
             </div>
           </div>
 
           <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-soft">
-            <div className="text-xs text-stone-500 font-semibold">Total Pengembalian (Refund)</div>
-            <div className="text-2xl font-black text-emerald-700 mt-1">
-              Rp{financialSummary.refunds_total.toLocaleString('id-ID')}
+            <div className="text-xs text-stone-500 font-semibold">Pesanan Dibatalkan / Refund</div>
+            <div className="text-2xl font-black text-stone-700 mt-1">
+              Rp{cancelledOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0).toLocaleString('id-ID')}
             </div>
             <div className="text-[11px] text-stone-400 mt-2 pt-2 border-t border-stone-100">
-              0 sengketa atau pembatalan lunas
+              {cancelledOrders.length} transaksi dibatalkan
             </div>
           </div>
 
@@ -355,13 +463,13 @@ export function OwnerFinancialView() {
             <div className="space-y-3">
               <div>
                 <div className="flex justify-between text-xs font-bold mb-1">
-                  <span>Online Order (QR Meja & Web Takeaway)</span>
+                  <span>Online Order (QR Meja &amp; Web Takeaway)</span>
                   <span className="text-spicy-ember">
-                    Rp{financialSummary.today_online_revenue.toLocaleString('id-ID')} (71%)
+                    Rp{todayOnlineRev.toLocaleString('id-ID')} ({onlinePct}%)
                   </span>
                 </div>
                 <div className="w-full bg-stone-100 h-2.5 rounded-full overflow-hidden">
-                  <div className="bg-spicy-ember h-full rounded-full" style={{ width: '71%' }} />
+                  <div className="bg-spicy-ember h-full rounded-full transition-all duration-500" style={{ width: `${onlinePct}%` }} />
                 </div>
               </div>
 
@@ -369,17 +477,22 @@ export function OwnerFinancialView() {
                 <div className="flex justify-between text-xs font-bold mb-1">
                   <span>Order di Tempat (POS Kasir Langsung)</span>
                   <span className="text-matcha-leaf">
-                    Rp{financialSummary.today_instore_revenue.toLocaleString('id-ID')} (29%)
+                    Rp{todayInStoreRev.toLocaleString('id-ID')} ({inStorePct}%)
                   </span>
                 </div>
                 <div className="w-full bg-stone-100 h-2.5 rounded-full overflow-hidden">
-                  <div className="bg-matcha-leaf h-full rounded-full" style={{ width: '29%' }} />
+                  <div className="bg-matcha-leaf h-full rounded-full transition-all duration-500" style={{ width: `${inStorePct}%` }} />
                 </div>
               </div>
             </div>
 
             <div className="p-3 bg-tofu-silkblaze rounded-xl text-[11px] text-stone-600 border border-noodle-dark/50">
-              💡 <strong>Insight Owner:</strong> Penggunaan QR Code meja dan website takeaway menyumbang lebih dari 70% transaksi hari ini, mengurangi antrean fisik di kasir toko secara signifikan.
+              💡 <strong>Insight Owner:</strong>{' '}
+              {todayRevenue === 0
+                ? 'Belum ada transaksi penjualan yang tercatat pada hari ini.'
+                : onlinePct > 0
+                ? `Penggunaan pemesanan online menyumbang ${onlinePct}% dari omzet hari ini, dan ${inStorePct}% diproses melalui kasir langsung.`
+                : `Seluruh ${todayTransactions} transaksi hari ini (${inStorePct}%) tercatat dari pemesanan kasir langsung (In-Store POS).`}
             </div>
           </div>
 
@@ -390,10 +503,14 @@ export function OwnerFinancialView() {
               <div className="p-4 bg-stone-50 rounded-xl border border-stone-200">
                 <div className="flex items-center space-x-2 text-xs font-bold text-matcha-leaf">
                   <CreditCard className="w-4 h-4 text-spicy-ember" />
-                  <span>QRIS & Digital</span>
+                  <span>QRIS &amp; Digital</span>
                 </div>
-                <div className="text-xl font-black text-spicy-ember mt-2">Rp890.000</div>
-                <div className="text-[10px] text-stone-500 mt-1">56 transaksi terverifikasi</div>
+                <div className="text-xl font-black text-spicy-ember mt-2">
+                  Rp{qrisRev.toLocaleString('id-ID')}
+                </div>
+                <div className="text-[10px] text-stone-500 mt-1">
+                  {qrisOrders.length} transaksi terverifikasi
+                </div>
               </div>
 
               <div className="p-4 bg-stone-50 rounded-xl border border-stone-200">
@@ -401,12 +518,93 @@ export function OwnerFinancialView() {
                   <Banknote className="w-4 h-4 text-emerald-700" />
                   <span>Tunai di Kasir</span>
                 </div>
-                <div className="text-xl font-black text-emerald-700 mt-2">Rp360.000</div>
-                <div className="text-[10px] text-stone-500 mt-1">22 transaksi lunas</div>
+                <div className="text-xl font-black text-emerald-700 mt-2">
+                  Rp{cashRev.toLocaleString('id-ID')}
+                </div>
+                <div className="text-[10px] text-stone-500 mt-1">
+                  {cashOrders.length} transaksi lunas
+                </div>
               </div>
             </div>
           </div>
 
+        </div>
+
+        {/* Real Transactions Breakdown Table */}
+        <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-soft space-y-3">
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="font-extrabold text-sm text-matcha-leaf">
+                Rincian Transaksi Riil Hari Ini ({todayOrders.length})
+              </h3>
+              <p className="text-[11px] text-stone-500">
+                Data transaksi aktual yang terekam pada sistem database toko.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleExportCSV}
+              className="text-xs bg-emerald-50 text-emerald-800 font-bold px-3 py-1.5 rounded-xl border border-emerald-200 hover:bg-emerald-100 transition inline-flex items-center space-x-1"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Unduh CSV Lengkap</span>
+            </button>
+          </div>
+
+          {todayOrders.length === 0 ? (
+            <div className="p-8 text-center text-stone-400 bg-stone-50/60 rounded-xl border border-dashed border-stone-200 text-xs">
+              Belum ada transaksi yang tercatat hari ini.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs min-w-[600px]">
+                <thead className="bg-stone-50 border-b border-stone-200 text-stone-600 font-bold">
+                  <tr>
+                    <th className="p-2.5">No. Antrean</th>
+                    <th className="p-2.5">Waktu</th>
+                    <th className="p-2.5">Pelanggan</th>
+                    <th className="p-2.5">Layanan</th>
+                    <th className="p-2.5">Rincian Menu</th>
+                    <th className="p-2.5">Metode Bayar</th>
+                    <th className="p-2.5 text-right">Total</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-100">
+                  {todayOrders.map((o) => (
+                    <tr key={o.id} className="hover:bg-stone-50/60 transition">
+                      <td className="p-2.5">
+                        <span className="font-mono font-black bg-stone-100 text-stone-800 px-2 py-0.5 rounded text-xs">
+                          {o.queue_number}
+                        </span>
+                      </td>
+                      <td className="p-2.5 text-stone-500 font-mono text-[11px]">
+                        {o.created_at ? new Date(o.created_at).toLocaleTimeString('id-ID') : '-'} WIB
+                      </td>
+                      <td className="p-2.5 font-bold text-matcha-leaf">{o.customer_name}</td>
+                      <td className="p-2.5 text-stone-500">
+                        {o.service_type === 'DINE_IN' ? `Meja ${o.table_number || '-'}` : 'Takeaway'}
+                      </td>
+                      <td className="p-2.5 text-stone-600 text-[11px] max-w-xs truncate">
+                        {(o.items || []).map((it) => `${it.product_name_snapshot || 'Menu'} (${it.quantity}x)`).join(', ')}
+                      </td>
+                      <td className="p-2.5">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          o.payment_method === 'CASH'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-amber-100 text-amber-800'
+                        }`}>
+                          {o.payment_method}
+                        </span>
+                      </td>
+                      <td className="p-2.5 text-right font-mono font-black text-matcha-leaf">
+                        Rp{(o.total_amount || 0).toLocaleString('id-ID')}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         {/* Security & Financial Access Audit Log Table */}
