@@ -312,6 +312,18 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
     }
   };
 
+  // Store Availability Check (Toko Libur / Tutup Sementara)
+  const isStoreUnavailable = useMemo(() => {
+    return !storeSettings.isStoreOpen || Boolean(storeSettings.isStoreHoliday);
+  }, [storeSettings.isStoreOpen, storeSettings.isStoreHoliday]);
+
+  const storeUnavailableMsg = useMemo(() => {
+    if (storeSettings.isStoreHoliday) {
+      return storeSettings.holidayReason || 'Toko sedang libur hari ini. Pembeli belum dapat melakukan checkout atau pembayaran.';
+    }
+    return `Toko sedang tutup. Jam operasional: ${storeSettings.operatingHours}. Pembeli belum dapat melakukan checkout atau pembayaran.`;
+  }, [storeSettings.isStoreHoliday, storeSettings.holidayReason, storeSettings.operatingHours]);
+
   const handleOpenProductModal = (product: Product) => {
     setSelectedProduct(product);
     setModalQty(1);
@@ -320,6 +332,14 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
   };
 
   const handleConfirmAddToCart = () => {
+    if (isStoreUnavailable) {
+      triggerToast(
+        storeSettings.isStoreHoliday
+          ? '🏖️ Toko sedang libur. Pembeli tidak dapat memesan saat ini.'
+          : '🔒 Toko sedang tutup. Pembeli tidak dapat memesan saat ini.'
+      );
+      return;
+    }
     if (selectedProduct) {
       addToCustomerCart(selectedProduct, modalQty, modalUseCup, modalNotes);
       setSelectedProduct(null);
@@ -328,18 +348,30 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
 
   const handleCheckoutSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isStoreUnavailable) {
+      triggerToast(
+        storeSettings.isStoreHoliday
+          ? '🏖️ Toko sedang libur. Pembeli tidak dapat melakukan checkout atau pembayaran saat ini.'
+          : '🔒 Toko sedang tutup sementara. Pembeli tidak dapat melakukan checkout atau pembayaran saat ini.'
+      );
+      return;
+    }
     if (customerCart.length === 0) return;
-    const newOrder = createCustomerOrder(customerName, customerPhone, paymentMethod, transferProof || undefined);
-    setIsCheckoutOpen(false);
+    try {
+      const newOrder = createCustomerOrder(customerName, customerPhone, paymentMethod, transferProof || undefined);
+      setIsCheckoutOpen(false);
 
-    if (paymentMethod === 'TRANSFER') {
-      const waUrl = generateWhatsAppLink(newOrder);
-      if (typeof window !== 'undefined') {
-        window.open(waUrl, '_blank');
+      if (paymentMethod === 'TRANSFER') {
+        const waUrl = generateWhatsAppLink(newOrder);
+        if (typeof window !== 'undefined') {
+          window.open(waUrl, '_blank');
+        }
+        setTransferConfirmationOrder(newOrder);
+      } else {
+        setActiveTrackingOrder(newOrder);
       }
-      setTransferConfirmationOrder(newOrder);
-    } else {
-      setActiveTrackingOrder(newOrder);
+    } catch (err: any) {
+      triggerToast(`Gagal memproses pesanan: ${err.message || 'Toko tidak tersedia'}`);
     }
   };
 
@@ -689,6 +721,21 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
                         <div className="mt-2 w-full py-1 bg-stone-200 text-stone-500 rounded-lg text-[10px] font-bold text-center select-none">
                           Habis Terjual
                         </div>
+                      ) : isStoreUnavailable ? (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            triggerToast(
+                              storeSettings.isStoreHoliday
+                                ? '🏖️ Toko sedang libur. Pembeli tidak dapat checkout atau memesan saat ini.'
+                                : '🔒 Toko sedang tutup. Pembeli tidak dapat checkout atau memesan saat ini.'
+                            );
+                          }}
+                          className="mt-2 w-full py-1 bg-stone-100 hover:bg-stone-200 text-stone-600 rounded-lg text-[10px] font-bold text-center border border-stone-200"
+                        >
+                          {storeSettings.isStoreHoliday ? '🏖️ Libur' : '🔒 Tutup'}
+                        </button>
                       ) : inCartQty > 0 ? (
                         <div
                           onClick={(e) => e.stopPropagation()}
@@ -980,6 +1027,21 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
                               <span className="px-2 py-1 bg-stone-100 border border-stone-200 text-stone-400 rounded-lg text-[10px] font-bold select-none">
                                 Habis
                               </span>
+                            ) : isStoreUnavailable ? (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  triggerToast(
+                                    storeSettings.isStoreHoliday
+                                      ? '🏖️ Toko sedang libur. Pembeli tidak dapat memesan saat ini.'
+                                      : '🔒 Toko sedang tutup. Pembeli tidak dapat memesan saat ini.'
+                                  );
+                                }}
+                                className="px-2.5 py-1 bg-stone-100 hover:bg-stone-200 text-stone-600 rounded-xl text-[10px] font-bold border border-stone-200"
+                              >
+                                {storeSettings.isStoreHoliday ? '🏖️ Libur' : '🔒 Tutup'}
+                              </button>
                             ) : inCartQty > 0 ? (
                               /* In-Cart Quick Stepper */
                               <div
@@ -1076,6 +1138,21 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
                           
                           {isSoldOut ? (
                             <span className="text-[9px] text-stone-400 font-bold">Habis</span>
+                          ) : isStoreUnavailable ? (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                triggerToast(
+                                  storeSettings.isStoreHoliday
+                                    ? '🏖️ Toko sedang libur. Pembeli tidak dapat memesan saat ini.'
+                                    : '🔒 Toko sedang tutup. Pembeli tidak dapat memesan saat ini.'
+                                );
+                              }}
+                              className="px-2 py-0.5 bg-stone-100 hover:bg-stone-200 text-stone-600 rounded-lg text-[9px] font-bold border border-stone-200"
+                            >
+                              {storeSettings.isStoreHoliday ? 'Libur' : 'Tutup'}
+                            </button>
                           ) : inCartQty > 0 ? (
                             <div
                               onClick={(e) => e.stopPropagation()}
@@ -1126,25 +1203,54 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
         {customerCart.length > 0 && (
           <div className="fixed bottom-4 left-0 right-0 px-4 max-w-md mx-auto z-30 pointer-events-none">
             <button
-              onClick={() => setIsCheckoutOpen(true)}
-              className="pointer-events-auto w-full bg-spicy-ember hover:bg-spicy-hover text-white px-4 py-3 rounded-2xl shadow-floating flex items-center justify-between transition-all transform active:scale-[0.98]"
+              type="button"
+              onClick={() => {
+                if (isStoreUnavailable) {
+                  triggerToast(
+                    storeSettings.isStoreHoliday
+                      ? '🏖️ Toko sedang libur. Pembeli tidak dapat checkout atau membayar saat ini.'
+                      : '🔒 Toko sedang tutup sementara. Pembeli tidak dapat checkout atau membayar saat ini.'
+                  );
+                  return;
+                }
+                setIsCheckoutOpen(true);
+              }}
+              className={`pointer-events-auto w-full px-4 py-3 rounded-2xl shadow-floating flex items-center justify-between transition-all transform active:scale-[0.98] ${
+                isStoreUnavailable
+                  ? 'bg-stone-800 text-stone-200 border border-stone-700'
+                  : 'bg-spicy-ember hover:bg-spicy-hover text-white'
+              }`}
             >
               <div className="flex items-center space-x-3 text-left">
-                <div className="w-9 h-9 rounded-xl bg-black/20 flex items-center justify-center font-bold text-sm">
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm ${
+                  isStoreUnavailable ? 'bg-white/10 text-stone-300' : 'bg-black/20 text-white'
+                }`}>
                   {customerCartTotal.itemCount}
                 </div>
                 <div>
-                  <div className="text-[11px] text-white/80 leading-none">
-                    {customerServiceType === 'DINE_IN' ? `Makan di ${selectedTable}` : 'Bungkus / Takeaway'}
+                  <div className="text-[11px] opacity-80 leading-none">
+                    {isStoreUnavailable
+                      ? storeSettings.isStoreHoliday ? '🏖️ Toko Sedang Libur' : '🔒 Toko Tutup Sementara'
+                      : customerServiceType === 'DINE_IN' ? `Makan di ${selectedTable}` : 'Bungkus / Takeaway'}
                   </div>
                   <div className="text-sm font-extrabold mt-0.5">
                     Rp{customerCartTotal.total.toLocaleString('id-ID')}
                   </div>
                 </div>
               </div>
-              <div className="flex items-center space-x-1 font-bold text-xs bg-white text-spicy-ember px-3 py-1.5 rounded-xl shadow-sm">
-                <ShoppingBag className="w-3.5 h-3.5" />
-                <span>Lihat Keranjang</span>
+              <div className={`flex items-center space-x-1 font-bold text-xs px-3 py-1.5 rounded-xl shadow-sm ${
+                isStoreUnavailable
+                  ? 'bg-red-500/20 text-red-300 border border-red-500/30'
+                  : 'bg-white text-spicy-ember'
+              }`}>
+                {isStoreUnavailable ? (
+                  <span>Tidak Bisa Checkout</span>
+                ) : (
+                  <>
+                    <ShoppingBag className="w-3.5 h-3.5" />
+                    <span>Lihat Keranjang</span>
+                  </>
+                )}
               </div>
             </button>
           </div>
@@ -1333,7 +1439,25 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
 
               {/* Quantity Stepper & Add to Cart (Image 2 & Image 1) */}
               <div className="mt-5 flex items-center space-x-3 pt-3 border-t border-stone-100">
-                {!selectedProduct.is_available ? (
+                {isStoreUnavailable ? (
+                  <div className="w-full text-center">
+                    <button
+                      disabled
+                      className={`w-full py-3 rounded-xl text-xs font-black cursor-not-allowed select-none border ${
+                        storeSettings.isStoreHoliday
+                          ? 'bg-amber-100 border-amber-300 text-amber-900'
+                          : 'bg-stone-200 border-stone-300 text-stone-600'
+                      }`}
+                    >
+                      {storeSettings.isStoreHoliday
+                        ? '🏖️ Toko Sedang Libur — Hanya Lihat Menu'
+                        : '🔒 Toko Sedang Tutup — Hanya Lihat Menu'}
+                    </button>
+                    <p className="text-[10px] text-stone-500 mt-1.5 font-medium leading-tight">
+                      {storeUnavailableMsg}
+                    </p>
+                  </div>
+                ) : !selectedProduct.is_available ? (
                   <button
                     disabled
                     className="w-full bg-stone-200 text-stone-500 py-3 rounded-xl text-xs font-bold cursor-not-allowed text-center select-none"
@@ -1541,6 +1665,21 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
                   {customerServiceType === 'DINE_IN' ? selectedTable : 'Takeaway'}
                 </span>
               </div>
+
+              {/* Alert jika Toko Libur / Tutup */}
+              {isStoreUnavailable && (
+                <div className="mt-3 p-3 bg-red-50 border-2 border-red-300 rounded-2xl text-xs text-red-900 font-bold flex items-start space-x-2.5">
+                  <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-extrabold text-sm text-red-800">
+                      {storeSettings.isStoreHoliday ? '🏖️ Toko Sedang Libur' : '🔒 Toko Tutup Sementara'}
+                    </div>
+                    <div className="text-[11px] font-medium text-red-700 mt-0.5 leading-relaxed">
+                      {storeUnavailableMsg} Pembeli tidak dapat melakukan checkout atau pembayaran saat ini.
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <form onSubmit={handleCheckoutSubmit} className="mt-4 space-y-4">
                 {/* Customer Contact Details */}
@@ -1766,18 +1905,18 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
 
                 <button
                   type="submit"
-                  disabled={!storeSettings.isStoreOpen || Boolean(storeSettings.isStoreHoliday)}
+                  disabled={isStoreUnavailable}
                   className={`w-full py-3 rounded-xl font-extrabold text-xs shadow-md transition ${
-                    storeSettings.isStoreOpen && !storeSettings.isStoreHoliday
+                    !isStoreUnavailable
                       ? 'bg-spicy-ember hover:bg-spicy-hover text-white cursor-pointer active:scale-[0.99]'
-                      : 'bg-stone-300 text-stone-500 cursor-not-allowed'
+                      : 'bg-stone-300 text-stone-500 cursor-not-allowed border border-stone-400/50'
                   }`}
                 >
                   {storeSettings.isStoreHoliday
-                    ? '🏖️ Toko Sedang Libur — Belum Menerima Pesanan'
-                    : storeSettings.isStoreOpen
-                    ? `Bayar Sekarang • Rp${customerCartTotal.total.toLocaleString('id-ID')}`
-                    : 'Toko Sedang Tutup — Belum Menerima Pesanan'}
+                    ? '🏖️ Toko Sedang Libur — Pembayaran & Checkout Dinonaktifkan'
+                    : !storeSettings.isStoreOpen
+                    ? '🔒 Toko Sedang Tutup — Pembayaran & Checkout Dinonaktifkan'
+                    : `Bayar Sekarang • Rp${customerCartTotal.total.toLocaleString('id-ID')}`}
                 </button>
               </form>
             </div>

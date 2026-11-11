@@ -676,6 +676,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Customer Cart Operations
   const addToCustomerCart = (product: Product, quantity = 1, useCup = customerServiceType === 'TAKEAWAY', notes = '') => {
+    if (storeSettings.isStoreHoliday || !storeSettings.isStoreOpen) {
+      showToast(
+        storeSettings.isStoreHoliday
+          ? '🏖️ Toko sedang libur. Belum menerima pesanan saat ini.'
+          : '🔒 Toko sedang tutup. Belum menerima pesanan saat ini.'
+      );
+      return;
+    }
     setCustomerCart((prev) => {
       const existing = prev.find((i) => i.product.id === product.id);
       if (existing) {
@@ -752,6 +760,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     paymentMethod: PaymentMethod,
     transferProof?: string
   ): Order => {
+    // Security check: block order creation if store is closed or holiday
+    if (storeSettings.isStoreHoliday || !storeSettings.isStoreOpen) {
+      const msg = storeSettings.isStoreHoliday
+        ? 'Toko sedang libur hari ini. Tidak dapat melakukan checkout atau pembayaran pesanan.'
+        : 'Toko sedang tutup sementara. Tidak dapat melakukan checkout atau pembayaran pesanan.';
+      showToast(`❌ ${msg}`);
+      throw new Error(msg);
+    }
     const onlineSeq = orders.filter((o) => o.queue_channel === 'ONLINE').length + 28;
     const globalSeq = orders.length + 51;
     const queueNum = `ON-${String(onlineSeq).padStart(3, '0')}`;
