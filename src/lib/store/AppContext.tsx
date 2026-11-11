@@ -31,6 +31,8 @@ interface AppContextType {
   addProduct: (product: Omit<Product, 'id'>) => void;
   softDeleteProduct: (id: string) => void;
   restoreProduct: (id: string) => void;
+  hardDeleteProduct: (id: string) => void;
+  emptyProductTrash: () => void;
 
   // Tables
   tables: TableInfo[];
@@ -1070,6 +1072,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     showToast(`Produk "${target.name}" berhasil dipulihkan.`);
   };
 
+  const hardDeleteProduct = (id: string) => {
+    const target = trashProducts.find((p) => p.id === id);
+    setTrashProducts((prev) => prev.filter((p) => p.id !== id));
+    supabase
+      .from('products')
+      .delete()
+      .eq('id', id)
+      .then(({ error }) => {
+        if (error) console.warn('Supabase hard delete product error:', error.message);
+      });
+    addAuditLog('HARD_DELETE', 'Product', id, `Produk ${target?.name || id} dihapus permanen`);
+    showToast(`Produk "${target?.name || id}" telah dihapus permanen.`);
+  };
+
+  const emptyProductTrash = () => {
+    if (trashProducts.length === 0) return;
+    const ids = trashProducts.map((p) => p.id);
+    const count = trashProducts.length;
+    setTrashProducts([]);
+    supabase
+      .from('products')
+      .delete()
+      .in('id', ids)
+      .then(({ error }) => {
+        if (error) console.warn('Supabase empty trash error:', error.message);
+      });
+    addAuditLog('EMPTY_TRASH', 'Product', 'all', `Seluruh tong sampah (${count} menu) dikosongkan permanen`);
+    showToast(`Seluruh item (${count} menu) di Tong Sampah telah dihapus permanen.`);
+  };
+
   // Financial Gate Operations
   const unlockFinancialGate = (passcode: string, dynamicOtp?: string): boolean => {
     const trimmedInput = passcode.trim();
@@ -1604,6 +1636,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         addProduct,
         softDeleteProduct,
         restoreProduct,
+        hardDeleteProduct,
+        emptyProductTrash,
         tables,
         addTable,
         updateTable,

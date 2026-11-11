@@ -52,6 +52,10 @@ import {
   LogOut,
   Smartphone,
   ExternalLink,
+  ShieldCheck,
+  FileSpreadsheet,
+  AlertCircle,
+  AlertOctagon,
 } from 'lucide-react';
 
 export function AdminView() {
@@ -65,6 +69,8 @@ export function AdminView() {
     addProduct,
     softDeleteProduct,
     restoreProduct,
+    hardDeleteProduct,
+    emptyProductTrash,
     tables,
     addTable,
     updateTable,
@@ -231,6 +237,7 @@ export function AdminView() {
   // Derived financial & channel calculations for donut & KPIs
   const onlineOrders = orders.filter((o) => o.queue_channel === 'ONLINE');
   const inStoreOrders = orders.filter((o) => o.queue_channel === 'IN_STORE');
+  const cancelledOrders = orders.filter((o) => o.order_status === 'CANCELLED');
   const totalOrdersCount = orders.length;
   const channelOnlinePct = totalOrdersCount > 0 ? Math.round((onlineOrders.length / totalOrdersCount) * 100) : 0;
   const channelCashierPct = totalOrdersCount > 0 ? (100 - channelOnlinePct) : 0;
@@ -270,6 +277,12 @@ export function AdminView() {
   const [userPassword, setUserPassword] = useState<string>('');
   const [showUserPassword, setShowUserPassword] = useState<boolean>(false);
   const [userActive, setUserActive] = useState<boolean>(true);
+
+  // Tong Sampah & Soft Delete States
+  const [trashSubTab, setTrashSubTab] = useState<'products' | 'cancelled_orders'>('products');
+  const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
+  const [permanentDeletingProduct, setPermanentDeletingProduct] = useState<Product | null>(null);
+  const [isConfirmEmptyTrashOpen, setIsConfirmEmptyTrashOpen] = useState<boolean>(false);
 
   // Table Management States (Tambah, Edit, Hapus, Preview QR, Cancel, Close)
   const [isTableModalOpen, setIsTableModalOpen] = useState<boolean>(false);
@@ -2330,9 +2343,9 @@ export function AdminView() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => softDeleteProduct(p.id)}
+                          onClick={() => setDeletingProduct(p)}
                           className="w-8 h-8 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 flex items-center justify-center transition border border-red-200 active:scale-95"
-                          title="Hapus ke Tong Sampah"
+                          title="Hapus / Pindahkan ke Tong Sampah"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -2423,7 +2436,7 @@ export function AdminView() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => softDeleteProduct(p.id)}
+                              onClick={() => setDeletingProduct(p)}
                               title="Pindahkan ke Tong Sampah"
                               className="w-8 h-8 rounded-xl bg-stone-100 hover:bg-red-50 text-stone-500 hover:text-red-600 flex items-center justify-center transition shadow-sm border border-stone-200/80 active:scale-95"
                             >
@@ -2975,50 +2988,311 @@ export function AdminView() {
 
         {/* TAB 4: TONG SAMPAH (Soft Delete & Restore Engine) */}
         {activeTab === 'trash' && (
-          <div className="mt-6 space-y-4">
-            <div className="bg-stone-50 border border-stone-200 p-4 rounded-xl text-xs text-stone-600">
-              <span className="font-bold text-matcha-leaf">Prinsip Tong Sampah PRD v1.1:</span> Data produk yang dihapus dipindahkan ke Tong Sampah dan tidak langsung musnah. Anda dapat memulihkan (*Restore*) data kapan saja tanpa merusak riwayat transaksi terdahulu.
+          <div className="mt-6 space-y-5">
+            {/* PRD v1.1 Principle Info Banner */}
+            <div className="bg-emerald-50/80 border border-emerald-200/80 p-4 rounded-2xl text-xs text-stone-700 space-y-1">
+              <div className="flex items-center space-x-2 font-black text-matcha-leaf">
+                <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <span>Prinsip Keamanan Data & Soft Delete PRD v1.1:</span>
+              </div>
+              <p className="text-[11px] text-stone-600 leading-relaxed pl-6">
+                Data menu yang dihapus dipindahkan ke <strong>Tong Sampah</strong> dan tidak langsung musnah. Anda dapat memulihkan (<strong>Restore</strong>) data kapan saja tanpa merusak riwayat laporan penjualan terdahulu.
+              </p>
             </div>
 
-            {trashProducts.length === 0 ? (
-              <div className="p-12 text-center text-stone-400 bg-white rounded-2xl border border-stone-200">
-                <Trash2 className="w-10 h-10 mx-auto stroke-1 text-stone-300 mb-2" />
-                <p className="font-semibold text-xs">Tong Sampah Kosong</p>
-                <p className="text-[11px] text-stone-400">Tidak ada menu atau data yang dihapus saat ini.</p>
-              </div>
-            ) : (
-              <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-soft">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-stone-50 border-b border-stone-200 font-bold text-stone-600">
-                    <tr>
-                      <th className="p-3">Nama Menu</th>
-                      <th className="p-3">Kategori</th>
-                      <th className="p-3">Harga Terakhir</th>
-                      <th className="p-3">Waktu Dihapus</th>
-                      <th className="p-3 text-right">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-stone-100">
-                    {trashProducts.map((tp) => (
-                      <tr key={tp.id} className="hover:bg-stone-50/60">
-                        <td className="p-3 font-bold text-matcha-leaf">{tp.name}</td>
-                        <td className="p-3">{tp.category}</td>
-                        <td className="p-3 font-mono">Rp{tp.price.toLocaleString('id-ID')}</td>
-                        <td className="p-3 text-stone-400 text-[10px]">Baru saja</td>
-                        <td className="p-3 text-right space-x-2">
-                          <button
-                            onClick={() => restoreProduct(tp.id)}
-                            className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-xs"
-                          >
-                            Pulihkan (Restore)
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            {/* Sub-Navigation Tabs: Menu Terhapus vs Pesanan Dibatalkan */}
+            <div className="flex flex-wrap gap-2 p-1.5 bg-stone-200/80 rounded-2xl border border-stone-300">
+              <button
+                type="button"
+                onClick={() => setTrashSubTab('products')}
+                className={`flex-1 min-w-[180px] py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-center space-x-2 ${
+                  trashSubTab === 'products'
+                    ? 'bg-spicy-ember text-white shadow-md'
+                    : 'bg-transparent text-stone-700 hover:bg-stone-300/50'
+                }`}
+              >
+                <UtensilsCrossed className="w-4 h-4" />
+                <span>Menu Produk Terhapus</span>
+                {trashProducts.length > 0 && (
+                  <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-white/20 text-white">
+                    {trashProducts.length}
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTrashSubTab('cancelled_orders')}
+                className={`flex-1 min-w-[180px] py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-center space-x-2 ${
+                  trashSubTab === 'cancelled_orders'
+                    ? 'bg-spicy-ember text-white shadow-md'
+                    : 'bg-transparent text-stone-700 hover:bg-stone-300/50'
+                }`}
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                <span>Pesanan Dibatalkan (Cancel)</span>
+                {cancelledOrders.length > 0 && (
+                  <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-white/20 text-white">
+                    {cancelledOrders.length}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {/* SUB-TAB 1: MENU PRODUK TERHAPUS */}
+            {trashSubTab === 'products' && (
+              <div className="space-y-4">
+                {trashProducts.length === 0 ? (
+                  <div className="p-10 md:p-14 text-center bg-white rounded-3xl border border-stone-200 shadow-soft space-y-4">
+                    <div className="w-16 h-16 rounded-2xl bg-stone-100 text-stone-400 mx-auto flex items-center justify-center shadow-inner">
+                      <Trash2 className="w-8 h-8 stroke-1 text-stone-400" />
+                    </div>
+                    <div className="max-w-md mx-auto space-y-1.5">
+                      <h3 className="font-black text-sm text-matcha-leaf">Tong Sampah Menu Masih Kosong</h3>
+                      <p className="text-xs text-stone-500 leading-relaxed">
+                        Saat ini seluruh menu Bubur Khalid aktif dan aman. Belum ada produk yang dipindahkan ke Tong Sampah.
+                      </p>
+                    </div>
+                    
+                    <div className="max-w-lg mx-auto bg-stone-50 border border-stone-200 rounded-2xl p-4 text-left text-xs text-stone-600 space-y-2">
+                      <div className="font-bold text-matcha-leaf flex items-center space-x-1.5">
+                        <AlertCircle className="w-4 h-4 text-yolk-blaze flex-shrink-0" />
+                        <span>Cara Kerja Fitur Hapus / Soft Delete:</span>
+                      </div>
+                      <p className="text-[11px] text-stone-500 leading-relaxed">
+                        Untuk menghapus menu, buka tab <strong>Manajemen Menu &amp; Harga</strong> lalu klik tombol ikon tempat sampah (🗑) pada kartu menu yang ingin dihapus. Menu akan otomatis dipindahkan ke sini dan disembunyikan dari pembeli tanpa merusak data penjualan.
+                      </p>
+                    </div>
+
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('menu')}
+                        className="px-5 py-2.5 rounded-xl bg-matcha-leaf hover:bg-matcha-surface text-white text-xs font-bold transition shadow-sm inline-flex items-center space-x-2"
+                      >
+                        <UtensilsCrossed className="w-4 h-4" />
+                        <span>Buka Manajemen Menu &amp; Harga</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {/* Header Action Bar */}
+                    <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-stone-200 shadow-xs">
+                      <div>
+                        <h3 className="font-black text-sm text-matcha-leaf">
+                          Menu di Tong Sampah ({trashProducts.length})
+                        </h3>
+                        <p className="text-[11px] text-stone-500">
+                          Menu di bawah ini tidak tampil di web pelanggan atau kasir, tetapi riwayat transaksi tetap aman.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsConfirmEmptyTrashOpen(true)}
+                        className="px-3.5 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold border border-red-200 transition flex items-center space-x-1.5"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Kosongkan Semua Tong Sampah</span>
+                      </button>
+                    </div>
+
+                    {/* Mobile Card List (hidden md:block table) */}
+                    <div className="grid grid-cols-1 gap-3 md:hidden">
+                      {trashProducts.map((tp) => (
+                        <div
+                          key={tp.id}
+                          className="bg-white rounded-2xl border border-stone-200 p-4 shadow-xs space-y-3"
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div className="w-14 h-14 rounded-xl overflow-hidden relative flex-shrink-0 bg-stone-100 border border-stone-200">
+                              {tp.image ? (
+                                <Image src={tp.image} alt={tp.name} fill className="object-cover opacity-60 grayscale" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-stone-400">
+                                  <UtensilsCrossed className="w-6 h-6" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-stone-100 text-stone-600">
+                                {tp.category}
+                              </span>
+                              <h4 className="font-black text-xs text-stone-700 truncate mt-1 line-through decoration-red-400">
+                                {tp.name}
+                              </h4>
+                              <p className="text-xs font-mono font-bold text-stone-500 mt-0.5">
+                                Rp{tp.price.toLocaleString('id-ID')}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="text-[10px] text-stone-400 bg-stone-50 p-2 rounded-lg">
+                            Dihapus pada: {tp.deleted_at ? new Date(tp.deleted_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : 'Baru saja'}
+                          </div>
+
+                          <div className="flex space-x-2 pt-1 border-t border-stone-100">
+                            <button
+                              type="button"
+                              onClick={() => restoreProduct(tp.id)}
+                              className="flex-1 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs flex items-center justify-center space-x-1 shadow-xs transition"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                              <span>Pulihkan</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setPermanentDeletingProduct(tp)}
+                              className="py-2 px-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl font-bold text-xs border border-red-200 transition"
+                              title="Hapus Permanen"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Desktop Table View */}
+                    <div className="hidden md:block bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-soft">
+                      <table className="w-full text-left text-xs min-w-[650px]">
+                        <thead className="bg-stone-50 border-b border-stone-200 font-bold text-stone-600">
+                          <tr>
+                            <th className="p-3">Foto &amp; Nama Menu</th>
+                            <th className="p-3">Kategori</th>
+                            <th className="p-3">Harga Terakhir</th>
+                            <th className="p-3">Waktu Dihapus</th>
+                            <th className="p-3 text-right">Aksi</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-stone-100">
+                          {trashProducts.map((tp) => (
+                            <tr key={tp.id} className="hover:bg-stone-50/60 transition">
+                              <td className="p-3">
+                                <div className="flex items-center space-x-3">
+                                  <div className="w-10 h-10 rounded-lg overflow-hidden relative flex-shrink-0 bg-stone-100 border border-stone-200">
+                                    {tp.image ? (
+                                      <Image src={tp.image} alt={tp.name} fill className="object-cover opacity-60 grayscale" />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center text-stone-400">
+                                        <UtensilsCrossed className="w-4 h-4" />
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div>
+                                    <div className="font-bold text-stone-700 line-through decoration-red-400">{tp.name}</div>
+                                    <div className="text-[10px] text-stone-400 font-mono">{tp.id}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                <span className="bg-stone-100 text-stone-700 px-2 py-0.5 rounded-full text-[10px] font-bold">
+                                  {tp.category}
+                                </span>
+                              </td>
+                              <td className="p-3 font-mono font-bold text-stone-600">
+                                Rp{tp.price.toLocaleString('id-ID')}
+                              </td>
+                              <td className="p-3 text-stone-500 text-[11px]">
+                                {tp.deleted_at
+                                  ? new Date(tp.deleted_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })
+                                  : 'Baru saja'}
+                              </td>
+                              <td className="p-3 text-right space-x-2">
+                                <button
+                                  type="button"
+                                  onClick={() => restoreProduct(tp.id)}
+                                  className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs inline-flex items-center space-x-1.5 shadow-xs transition"
+                                >
+                                  <RotateCcw className="w-3.5 h-3.5" />
+                                  <span>Pulihkan</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setPermanentDeletingProduct(tp)}
+                                  className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-xl font-bold text-xs inline-flex items-center space-x-1 transition"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <span>Hapus Permanen</span>
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
+
+            {/* SUB-TAB 2: PESANAN DIBATALKAN (CANCEL) */}
+            {trashSubTab === 'cancelled_orders' && (
+              <div className="space-y-4">
+                {cancelledOrders.length === 0 ? (
+                  <div className="p-10 md:p-14 text-center bg-white rounded-3xl border border-stone-200 shadow-soft space-y-3">
+                    <div className="w-14 h-14 rounded-2xl bg-stone-100 text-stone-400 mx-auto flex items-center justify-center">
+                      <FileSpreadsheet className="w-7 h-7 stroke-1 text-stone-400" />
+                    </div>
+                    <h3 className="font-black text-sm text-matcha-leaf">Tidak Ada Pesanan yang Dibatalkan</h3>
+                    <p className="text-xs text-stone-500 max-w-sm mx-auto">
+                      Seluruh antrean pesanan pelanggan dan kasir saat ini berstatus aktif atau telah selesai disajikan.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-soft">
+                    <div className="p-4 bg-stone-50 border-b border-stone-200 flex items-center justify-between">
+                      <div>
+                        <h3 className="font-black text-sm text-matcha-leaf">
+                          Riwayat Pesanan Dibatalkan ({cancelledOrders.length})
+                        </h3>
+                        <p className="text-[11px] text-stone-500">
+                          Pesanan yang dibatalkan kasir atau pelanggan dapat dipulihkan kembali ke antrean aktif.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="divide-y divide-stone-100">
+                      {cancelledOrders.map((co) => (
+                        <div key={co.id} className="p-4 hover:bg-stone-50/60 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                          <div className="space-y-1">
+                            <div className="flex items-center space-x-2">
+                              <span className="font-mono font-black bg-red-100 text-red-700 px-2.5 py-0.5 rounded-lg text-xs">
+                                {co.queue_number}
+                              </span>
+                              <span className="font-bold text-matcha-leaf">{co.customer_name}</span>
+                              <span className="text-[10px] text-stone-400 font-mono">
+                                ({co.service_type === 'DINE_IN' ? `Meja ${co.table_number || '-'}` : 'Bungkus / Takeaway'})
+                              </span>
+                            </div>
+                            <div className="text-[11px] text-stone-500">
+                              {co.items.map((it) => `${it.product_name_snapshot || 'Menu'} (${it.quantity}x)`).join(', ')}
+                            </div>
+                            <div className="text-[10px] text-stone-400">
+                              Nominal: <strong className="text-stone-700 font-mono">Rp{co.total_amount.toLocaleString('id-ID')}</strong> • {co.payment_method}
+                            </div>
+                          </div>
+
+                          <div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                updateOrderStatus(co.id, 'CONFIRMED');
+                                showToast(`Pesanan ${co.queue_number} berhasil dipulihkan ke antrean aktif.`);
+                              }}
+                              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs inline-flex items-center space-x-1.5 shadow-xs transition"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                              <span>Pulihkan ke Antrean</span>
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
           </div>
         )}
 
@@ -5029,6 +5303,168 @@ export function AdminView() {
               <button
                 type="button"
                 onClick={() => setDeletingPromo(null)}
+                className="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl font-bold text-xs transition cursor-pointer"
+              >
+                Batal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: KONFIRMASI PINDAHKAN MENU KE TONG SAMPAH (SOFT DELETE) */}
+      {deletingProduct && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white w-full max-w-sm rounded-3xl p-6 relative shadow-floating animate-slideUp text-center space-y-4">
+            <button
+              type="button"
+              onClick={() => setDeletingProduct(null)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-500 flex items-center justify-center transition"
+              title="Tutup"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto shadow-sm">
+              <Trash2 className="w-7 h-7" />
+            </div>
+
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 bg-amber-100 px-2.5 py-0.5 rounded-full">
+                Soft Delete Menu
+              </span>
+              <h3 className="font-black text-base text-matcha-leaf">
+                Pindahkan ke Tong Sampah?
+              </h3>
+              <p className="text-xs text-stone-600 font-semibold">
+                &quot;{deletingProduct.name}&quot;
+              </p>
+              <p className="text-[11px] text-stone-500 leading-relaxed">
+                Menu ini akan disembunyikan dari kasir dan pembeli. Data tidak langsung musnah dan dapat dipulihkan kapan saja di tab <strong>Tong Sampah</strong>.
+              </p>
+            </div>
+
+            <div className="flex space-x-2 pt-2 border-t border-stone-100">
+              <button
+                type="button"
+                onClick={() => {
+                  softDeleteProduct(deletingProduct.id);
+                  setDeletingProduct(null);
+                }}
+                className="flex-1 bg-spicy-ember hover:bg-spicy-hover text-white py-2.5 rounded-xl font-extrabold text-xs shadow-md transition cursor-pointer"
+              >
+                Pindahkan ke Tong Sampah
+              </button>
+              <button
+                type="button"
+                onClick={() => setDeletingProduct(null)}
+                className="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl font-bold text-xs transition cursor-pointer"
+              >
+                Batal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: KONFIRMASI HAPUS MENU PERMANEN */}
+      {permanentDeletingProduct && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white w-full max-w-sm rounded-3xl p-6 relative shadow-floating animate-slideUp text-center space-y-4">
+            <button
+              type="button"
+              onClick={() => setPermanentDeletingProduct(null)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-500 flex items-center justify-center transition"
+              title="Tutup"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="w-14 h-14 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mx-auto shadow-sm">
+              <AlertOctagon className="w-7 h-7" />
+            </div>
+
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-black uppercase tracking-wider text-red-700 bg-red-100 px-2.5 py-0.5 rounded-full">
+                Peringatan: Tindakan Permanen
+              </span>
+              <h3 className="font-black text-base text-red-700">
+                Hapus Menu Permanen?
+              </h3>
+              <p className="text-xs text-stone-600 font-semibold">
+                &quot;{permanentDeletingProduct.name}&quot;
+              </p>
+              <p className="text-[11px] text-red-600 bg-red-50 p-2.5 rounded-xl leading-relaxed">
+                Data menu akan dihapus selamanya dari database server dan tidak dapat dipulihkan kembali.
+              </p>
+            </div>
+
+            <div className="flex space-x-2 pt-2 border-t border-stone-100">
+              <button
+                type="button"
+                onClick={() => {
+                  hardDeleteProduct(permanentDeletingProduct.id);
+                  setPermanentDeletingProduct(null);
+                }}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-xl font-extrabold text-xs shadow-md transition cursor-pointer"
+              >
+                Ya, Hapus Permanen
+              </button>
+              <button
+                type="button"
+                onClick={() => setPermanentDeletingProduct(null)}
+                className="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl font-bold text-xs transition cursor-pointer"
+              >
+                Batal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: KONFIRMASI KOSONGKAN SEMUA TONG SAMPAH */}
+      {isConfirmEmptyTrashOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white w-full max-w-sm rounded-3xl p-6 relative shadow-floating animate-slideUp text-center space-y-4">
+            <button
+              type="button"
+              onClick={() => setIsConfirmEmptyTrashOpen(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-500 flex items-center justify-center transition"
+              title="Tutup"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="w-14 h-14 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mx-auto shadow-sm">
+              <Trash2 className="w-7 h-7" />
+            </div>
+
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-black uppercase tracking-wider text-red-700 bg-red-100 px-2.5 py-0.5 rounded-full">
+                Tindakan Tidak Dapat Dibatalkan
+              </span>
+              <h3 className="font-black text-base text-red-700">
+                Kosongkan Semua Tong Sampah?
+              </h3>
+              <p className="text-[11px] text-stone-500 leading-relaxed">
+                Seluruh {trashProducts.length} menu yang ada di dalam Tong Sampah akan dihapus permanen dari database.
+              </p>
+            </div>
+
+            <div className="flex space-x-2 pt-2 border-t border-stone-100">
+              <button
+                type="button"
+                onClick={() => {
+                  emptyProductTrash();
+                  setIsConfirmEmptyTrashOpen(false);
+                }}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-xl font-extrabold text-xs shadow-md transition cursor-pointer"
+              >
+                Ya, Kosongkan Semua
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsConfirmEmptyTrashOpen(false)}
                 className="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl font-bold text-xs transition cursor-pointer"
               >
                 Batal
