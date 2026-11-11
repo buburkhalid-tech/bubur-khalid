@@ -30,10 +30,10 @@ export function DemoSwitcher() {
   const currentView = views.find((v) => v.id === activeView) || views[0];
   const CurrentIcon = currentView.icon;
 
-  // JIKA SEDANG DISEMBUNYIKAN: Tampilkan hanya tombol mini mengambang yang ringkas & tidak mengganggu
+  // JIKA SEDANG DISEMBUNYIKAN: Tampilkan hanya tombol mini mengambang di layar Desktop/Tablet (Di HP/Mobile tersembunyi total)
   if (isCollapsed) {
     return (
-      <div className="fixed top-2.5 left-1/2 -translate-x-1/2 z-50 pointer-events-auto animate-fadeIn">
+      <div className="hidden md:block fixed top-2.5 left-1/2 -translate-x-1/2 z-50 pointer-events-auto animate-fadeIn">
         <button
           type="button"
           onClick={() => setIsCollapsed(false)}
@@ -51,9 +51,9 @@ export function DemoSwitcher() {
     );
   }
 
-  // JIKA SEDANG DIBUKA: Tampilkan bar navigasi lengkap
+  // JIKA SEDANG DIBUKA: Tampilkan bar navigasi lengkap (Hanya di Desktop/Tablet)
   return (
-    <header className="bg-matcha-deep text-tofu-silkblaze border-b border-matcha-surface px-4 py-2 sticky top-0 z-50 shadow-xl animate-slideDown">
+    <header className="hidden md:block bg-matcha-deep text-tofu-silkblaze border-b border-matcha-surface px-4 py-2 sticky top-0 z-50 shadow-xl animate-slideDown">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
         {/* Left: Store Logo & Name */}
         <div className="flex items-center space-x-2 flex-shrink-0">

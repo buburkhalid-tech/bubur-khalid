@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 
 export function KdsView() {
-  const { orders, updateOrderStatus } = useApp();
+  const { orders, updateOrderStatus, setActiveView } = useApp();
   const [filterStatus, setFilterStatus] = useState<'ALL_ACTIVE' | 'NEW' | 'PREPARING' | 'READY'>('ALL_ACTIVE');
 
   // Kitchen queue strictly requires paid orders that are not yet completed/cancelled
@@ -37,6 +37,15 @@ export function KdsView() {
       {/* KDS Header Bar */}
       <div className="flex flex-wrap items-center justify-between gap-4 bg-stone-800/90 p-4 rounded-2xl border border-stone-700 shadow-floating mb-6">
         <div className="flex items-center space-x-3">
+          <button
+            type="button"
+            onClick={() => setActiveView('admin')}
+            className="md:hidden flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-stone-700 text-stone-200 hover:text-white text-xs font-bold active:scale-95 transition"
+            title="Kembali ke Dashboard Admin"
+          >
+            <span>← Admin</span>
+          </button>
+
           <div className="w-11 h-11 rounded-xl bg-spicy-ember flex items-center justify-center text-xl shadow-md">
             👨‍🍳
           </div>

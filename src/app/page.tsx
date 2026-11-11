@@ -76,8 +76,10 @@ function PrototypeContent() {
   // Menampilkan SEMUA modul operasional: Admin Dashboard, POS Kasir Tablet, Dapur (KDS), dan Owner Finansial
   return (
     <div className="min-h-screen flex flex-col bg-tofu-silkblaze">
-      {/* Top Operational Bar Switcher */}
-      <DemoSwitcher />
+      {/* Top Operational Bar Switcher - Khusus Desktop & Tablet (Di HP disembunyikan karena sudah ada Burger Menu Drawer) */}
+      <div className="hidden md:block">
+        <DemoSwitcher />
+      </div>
 
       {/* Active Sub-module Container */}
       <div className="flex-1">

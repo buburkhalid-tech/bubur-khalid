@@ -34,6 +34,7 @@ export function PosView() {
     createPosOrder,
     storeSettings,
     showToast,
+    setActiveView,
   } = useApp();
 
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua');
@@ -103,6 +104,15 @@ export function PosView() {
           {/* Top Bar POS */}
           <div className="bg-white p-4 rounded-2xl shadow-soft border border-stone-200 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center space-x-3">
+              <button
+                type="button"
+                onClick={() => setActiveView('admin')}
+                className="md:hidden flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-matcha-leaf text-tofu-silkblaze text-xs font-bold active:scale-95 transition"
+                title="Kembali ke Dashboard Admin"
+              >
+                <span>← Admin</span>
+              </button>
+
               <div className="w-11 h-11 rounded-xl bg-white border border-stone-200 overflow-hidden relative shadow-sm flex-shrink-0 p-0.5">
                 <Image
                   src={storeSettings.storeLogo || '/images/logo/bubur-khalid-logo.png'}

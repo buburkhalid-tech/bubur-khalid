@@ -28,6 +28,7 @@ export function OwnerFinancialView() {
     financialLockRemainingSeconds,
     orders,
     auditLogs,
+    setActiveView,
   } = useApp();
 
   const [passcodeInput, setPasscodeInput] = useState<string>('');
@@ -103,6 +104,14 @@ export function OwnerFinancialView() {
             >
               Buka Laporan Keuangan
             </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveView('admin')}
+              className="w-full py-2.5 rounded-xl border border-stone-300 text-stone-600 hover:text-stone-800 text-xs font-bold transition md:hidden"
+            >
+              ← Kembali ke Dashboard Admin
+            </button>
           </form>
 
           <div className="pt-2 border-t border-stone-100 text-[11px] text-stone-400">
@@ -128,6 +137,15 @@ export function OwnerFinancialView() {
         {/* Security Lease Active Banner */}
         <div className="bg-matcha-deep text-noodle-cream p-4 rounded-2xl border border-matcha-surface shadow-floating flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center space-x-3">
+            <button
+              type="button"
+              onClick={() => setActiveView('admin')}
+              className="md:hidden flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-matcha-surface text-white text-xs font-bold active:scale-95 transition"
+              title="Kembali ke Dashboard Admin"
+            >
+              <span>← Admin</span>
+            </button>
+
             <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center">
               <Unlock className="w-5 h-5" />
             </div>
