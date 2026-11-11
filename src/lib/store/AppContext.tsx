@@ -175,21 +175,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
-  // Cart States
-  const [customerCart, setCustomerCart] = useState<CartItem[]>([
-    {
-      product: INITIAL_PRODUCTS[0], // Bubur Kampiun
-      quantity: 1,
-      useCup: true,
-      notes: 'Santan dipisah ya, jangan terlalu manis',
-    },
-    {
-      product: INITIAL_PRODUCTS[7], // Lopis
-      quantity: 1,
-      useCup: false,
-      notes: 'Kelapa parut dibanyakin',
-    },
-  ]);
+  // Cart States (Kosong secara default saat pelanggan pertama kali masuk web)
+  const [customerCart, setCustomerCart] = useState<CartItem[]>([]);
   const [posCart, setPosCart] = useState<CartItem[]>([]);
 
   // Financial Gate

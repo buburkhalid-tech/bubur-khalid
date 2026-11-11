@@ -123,9 +123,8 @@ export function CustomerView() {
   const [paymentMethod, setPaymentMethod] = useState<'QRIS' | 'CASH' | 'TRANSFER'>('TRANSFER');
   const [transferProof, setTransferProof] = useState<string>('');
 
-  const [activeTrackingOrder, setActiveTrackingOrder] = useState<Order | null>(
-    orders.find((o) => o.queue_channel === 'ONLINE') || null
-  );
+  // Active order live tracking (Hanya aktif setelah pelanggan selesai memesan)
+  const [activeTrackingOrder, setActiveTrackingOrder] = useState<Order | null>(null);
 
   // User interactions: Save / Favorites, Share, and Order Feedback
   const [savedProducts, setSavedProducts] = useState<string[]>([]);
@@ -338,9 +337,14 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
                     <span>{activeTrackingOrder.queue_number}</span>
                   </button>
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-white/95 text-stone-800 shadow-md flex items-center justify-center border border-white/40" title="Riwayat Pesanan">
+                  <button
+                    type="button"
+                    onClick={() => triggerToast('Belum ada pesanan aktif. Silakan pilih menu untuk memesan!')}
+                    className="w-8 h-8 rounded-full bg-white/95 text-stone-800 shadow-md flex items-center justify-center border border-white/40 active:scale-90 transition"
+                    title="Status Pesanan"
+                  >
                     <Clock className="w-4 h-4 text-stone-700" />
-                  </div>
+                  </button>
                 )}
               </div>
             </div>
