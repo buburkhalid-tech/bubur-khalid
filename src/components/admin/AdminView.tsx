@@ -2336,7 +2336,7 @@ export function AdminView() {
           <div className="mt-6 space-y-4">
             
             {/* Header info & Add Button */}
-            <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
               <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl text-xs text-amber-900 flex items-start space-x-2 flex-1">
                 <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
                 <div>
@@ -2344,15 +2344,112 @@ export function AdminView() {
                 </div>
               </div>
               <button
+                type="button"
                 onClick={handleOpenAddModal}
-                className="bg-spicy-ember hover:bg-spicy-hover text-white px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center shadow-sm transition cursor-pointer"
+                className="bg-spicy-ember hover:bg-spicy-hover active:scale-95 text-white px-4 py-2.5 rounded-xl text-xs font-black flex items-center justify-center space-x-1.5 shadow-sm transition cursor-pointer flex-shrink-0"
               >
+                <Plus className="w-4 h-4" />
                 <span>Tambah Menu Baru</span>
               </button>
             </div>
 
-            <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-soft">
-              <table className="w-full text-left text-xs">
+            {/* MOBILE CARD VIEW (md:hidden): Khusus HP agar tidak terpotong dan tombol Edit sangat mudah disentuh */}
+            <div className="md:hidden space-y-3">
+              {products.map((p) => {
+                const isSoldOut = !p.is_available;
+                return (
+                  <div
+                    key={p.id}
+                    className={`bg-white rounded-2xl p-3.5 border-2 shadow-soft transition flex flex-col justify-between space-y-3 ${
+                      isSoldOut ? 'border-red-200 bg-red-50/25' : 'border-stone-200'
+                    }`}
+                  >
+                    {/* Top Row: Photo, Info, and Price */}
+                    <div className="flex items-start space-x-3">
+                      <div className="w-16 h-16 rounded-xl overflow-hidden relative flex-shrink-0 bg-stone-100 border border-stone-200">
+                        <Image
+                          src={p.image}
+                          alt={p.name}
+                          fill
+                          className={`object-cover ${isSoldOut ? 'grayscale contrast-75' : ''}`}
+                        />
+                        {isSoldOut && (
+                          <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                            <span className="bg-red-600 text-white font-black text-[9px] px-1.5 py-0.5 rounded uppercase">
+                              Habis
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-1">
+                          <h4 className="font-extrabold text-xs text-matcha-leaf leading-tight">
+                            {p.name}
+                          </h4>
+                          <span className="font-black text-xs text-spicy-ember flex-shrink-0">
+                            Rp{p.price.toLocaleString('id-ID')}
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-1.5 mt-1">
+                          <span className="bg-noodle-cream text-matcha-leaf px-2 py-0.5 rounded font-bold text-[10px]">
+                            {p.category}
+                          </span>
+                          {isSoldOut && (
+                            <span className="text-[9px] font-black bg-red-100 text-red-700 px-1.5 py-0.2 rounded border border-red-200">
+                              HABIS
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-stone-400 line-clamp-1 mt-1">{p.description}</p>
+                      </div>
+                    </div>
+
+                    {/* Bottom Action Bar: Availability Toggle, Edit Button, Delete Button */}
+                    <div className="flex items-center justify-between pt-2.5 border-t border-stone-100 gap-2">
+                      {/* Availability Toggle */}
+                      <button
+                        type="button"
+                        onClick={() => toggleProductAvailability(p.id)}
+                        className={`px-3 py-1.5 rounded-xl text-[10px] font-black transition flex items-center space-x-1.5 shadow-xs border ${
+                          p.is_available
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-300 active:bg-emerald-100'
+                            : 'bg-red-50 text-red-700 border-red-300 active:bg-red-100'
+                        }`}
+                      >
+                        <span className={`w-2 h-2 rounded-full ${p.is_available ? 'bg-emerald-600 animate-pulse' : 'bg-red-600'}`} />
+                        <span>{p.is_available ? 'Tersedia' : 'Habis'}</span>
+                      </button>
+
+                      {/* Edit & Delete Action Buttons */}
+                      <div className="flex items-center space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditModal(p)}
+                          className="px-3.5 py-1.5 rounded-xl bg-matcha-leaf hover:bg-matcha-surface active:scale-95 text-white text-xs font-bold flex items-center space-x-1.5 shadow-sm transition"
+                          title="Edit Menu"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                          <span>Edit Menu</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => softDeleteProduct(p.id)}
+                          className="w-8 h-8 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 flex items-center justify-center transition border border-red-200 active:scale-95"
+                          title="Hapus ke Tong Sampah"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* DESKTOP/TABLET TABLE VIEW (hidden md:block): Dengan overflow-x-auto agar tidak pernah terpotong */}
+            <div className="hidden md:block bg-white rounded-2xl border border-stone-200 overflow-x-auto shadow-soft">
+              <table className="w-full text-left text-xs min-w-[650px]">
                 <thead className="bg-stone-50 border-b border-stone-200 text-stone-600 font-bold">
                   <tr>
                     <th className="p-3">Foto & Nama Menu</th>
@@ -2447,13 +2544,13 @@ export function AdminView() {
 
             {/* Comprehensive Edit / Add Menu Modal */}
             {(editingProduct || isAddMode) && (
-              <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-                <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 shadow-floating border border-stone-200 text-matcha-leaf relative animate-slideUp">
+              <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+                <div className="bg-white rounded-2xl max-w-lg w-full max-h-[92vh] overflow-y-auto p-4 sm:p-6 shadow-floating border border-stone-200 text-matcha-leaf relative animate-slideUp">
                   
                   {/* Modal Header */}
                   <div className="flex items-center justify-between pb-3 border-b border-stone-200">
                     <div className="flex items-center space-x-2">
-                      <div className="w-8 h-8 rounded-lg bg-spicy-ember text-white flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-lg bg-spicy-ember text-white flex items-center justify-center flex-shrink-0">
                         <UtensilsCrossed className="w-4 h-4" />
                       </div>
                       <div>
@@ -2485,7 +2582,7 @@ export function AdminView() {
                         <span className="text-[10px] text-stone-500 font-normal">PNG / JPG resolusi tinggi</span>
                       </div>
                       
-                      <div className="flex items-center space-x-4">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                         <div className="w-20 h-20 rounded-xl overflow-hidden relative flex-shrink-0 bg-white border-2 border-spicy-ember/30 shadow-sm">
                           {formImage ? (
                             <Image src={formImage} alt="Preview Foto" fill className="object-cover" />
@@ -2496,7 +2593,7 @@ export function AdminView() {
                           )}
                         </div>
 
-                        <div className="flex-1 space-y-2">
+                        <div className="flex-1 w-full space-y-2">
                           <label className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white border border-stone-300 rounded-lg font-bold text-stone-700 cursor-pointer hover:bg-noodle-cream transition shadow-sm text-xs">
                             <Upload className="w-3.5 h-3.5 text-spicy-ember" />
                             <span>Unggah Foto dari Komputer</span>
