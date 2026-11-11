@@ -57,6 +57,7 @@ export function CustomerView() {
     orders,
     storeSettings,
     promoBanners,
+    users,
   } = useApp();
 
   // Active Promo Banners & Looping Carousel State
@@ -169,7 +170,11 @@ export function CustomerView() {
   };
 
   const generateWhatsAppLink = (order: Order) => {
-    const rawNumber = storeSettings.adminWhatsapp || '6281234567890';
+    let rawNumber = storeSettings.adminWhatsapp;
+    if (!rawNumber || rawNumber === '6281234567890') {
+      const ownerUser = (users || []).find((u) => u.role === 'OWNER' && u.phone);
+      rawNumber = ownerUser?.phone || '6285274281819';
+    }
     const cleanNumber = rawNumber.replace(/[^0-9]/g, '');
     const phone = cleanNumber.startsWith('0') ? '62' + cleanNumber.slice(1) : cleanNumber;
 
@@ -1392,7 +1397,7 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
                   className="w-full bg-[#25D366] hover:bg-[#1ebd59] text-white py-3 rounded-xl font-black text-xs shadow-md flex items-center justify-center space-x-2 transition active:scale-98"
                 >
                   <MessageCircle className="w-4 h-4" />
-                  <span>Buka WhatsApp Owner ({storeSettings.adminWhatsapp || '628...'})</span>
+                  <span>Buka WhatsApp Owner ({storeSettings.adminWhatsapp && storeSettings.adminWhatsapp !== '6281234567890' ? storeSettings.adminWhatsapp : '0852-7428-1819'})</span>
                 </a>
 
                 <button
@@ -1831,7 +1836,7 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
                 </a>
 
                 <div className="text-[10px] text-emerald-800 text-center leading-relaxed">
-                  Tombol di atas otomatis membuka WhatsApp ke nomor <strong>Admin Bubur Khalid ({storeSettings.adminWhatsapp || '0812-3456-7890'})</strong> dengan pesan berisi <strong>No. Antrean {activeTrackingOrder.queue_number}</strong> dan rincian pesanan. Cukup kirimkan pesan & lampirkan foto struk di WhatsApp.
+                  Tombol di atas otomatis membuka WhatsApp ke nomor <strong>Admin Bubur Khalid ({storeSettings.adminWhatsapp && storeSettings.adminWhatsapp !== '6281234567890' ? storeSettings.adminWhatsapp : '0852-7428-1819'})</strong> dengan pesan berisi <strong>No. Antrean {activeTrackingOrder.queue_number}</strong> dan rincian pesanan. Cukup kirimkan pesan & lampirkan foto struk di WhatsApp.
                 </div>
               </div>
 

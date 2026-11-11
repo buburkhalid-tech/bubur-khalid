@@ -70,7 +70,7 @@ CREATE TABLE IF NOT EXISTS public.store_settings (
   banner_subtitle TEXT DEFAULT 'Nikmati bubur tradisional khas kami, hangat, lezat, dan selalu segar setiap hari.',
   banner_image TEXT DEFAULT '/images/hero-banner-wide.jpg',
   operating_hours TEXT DEFAULT 'Buka: Senin–Sabtu 16.00–22.00 WIB',
-  admin_whatsapp TEXT DEFAULT '6281234567890',
+  admin_whatsapp TEXT DEFAULT '6285274281819',
   is_store_open BOOLEAN DEFAULT true,
   cup_fee NUMERIC DEFAULT 1000,
   cup_name TEXT DEFAULT 'Kemasan Cup Bawa Pulang',

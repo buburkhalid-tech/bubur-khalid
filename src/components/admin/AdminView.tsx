@@ -3942,6 +3942,22 @@ export function AdminView() {
 
                 <div>
                   <label className="block font-bold text-matcha-leaf mb-1">
+                    Nomor WhatsApp Admin / Toko:
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: 085274281819 atau +6285274281819"
+                    value={storeForm.adminWhatsapp || ''}
+                    onChange={(e) => setStoreForm({ ...storeForm, adminWhatsapp: e.target.value })}
+                    className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-matcha-leaf font-mono font-bold focus:outline-none focus:border-spicy-ember"
+                  />
+                  <p className="text-[10px] text-stone-500 mt-1">
+                    *Digunakan untuk menerima konfirmasi bukti bayar dan pengiriman struk pesanan.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-matcha-leaf mb-1">
                     Status Toko:
                   </label>
                   <div className="flex items-center space-x-3 pt-1">
@@ -4304,7 +4320,7 @@ export function AdminView() {
                       </label>
                       <input
                         type="text"
-                        placeholder="Contoh: 6281234567890 atau 08123456789"
+                        placeholder="Contoh: 085274281819 atau +6285274281819"
                         value={storeForm.adminWhatsapp || ''}
                         onChange={(e) => setStoreForm({ ...storeForm, adminWhatsapp: e.target.value })}
                         className="w-full bg-white border border-stone-300 rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold text-emerald-800 focus:outline-none focus:border-emerald-600"

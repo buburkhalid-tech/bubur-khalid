@@ -85,7 +85,7 @@ export function PosView() {
         : `Metode: QRIS Lunas\nRef: ${lastCompletedOrder.qris_reference || '-'}`;
 
     const text = `🧾 *STRUK PEMBELIAN - ${storeSettings.storeName || 'BUBUR KHALID'}*
-${storeSettings.storeAddress || 'Jl. Zaini No. 1c'} • Telp: ${storeSettings.adminWhatsapp || '0812-3456-7890'}
+${storeSettings.storeAddress || 'Jl. Zaini No. 1c'} • Telp: ${storeSettings.adminWhatsapp && storeSettings.adminWhatsapp !== '6281234567890' ? storeSettings.adminWhatsapp : '0852-7428-1819'}
 ------------------------------------------
 *Nomor Antrean: ${lastCompletedOrder.queue_number}*
 Urutan Dapur: #${lastCompletedOrder.global_queue_sequence} (FIFO)
@@ -627,7 +627,7 @@ Simpan struk ini untuk mengambil pesanan.`;
                 {storeSettings.storeName || 'BUBUR KHALID'}
               </div>
               <div className="text-[10px] text-stone-500">
-                {storeSettings.storeAddress || 'Jl. Zaini No. 1c'} • Telp: {storeSettings.adminWhatsapp || '0812-3456-7890'}
+                {storeSettings.storeAddress || 'Jl. Zaini No. 1c'} • Telp: {storeSettings.adminWhatsapp && storeSettings.adminWhatsapp !== '6281234567890' ? storeSettings.adminWhatsapp : '0852-7428-1819'}
               </div>
               <div className="text-[10px] text-stone-500">
                 {storeSettings.operatingHours || 'Buka Setiap Hari 16.00-22.00 WIB'}

@@ -181,7 +181,7 @@ export const INITIAL_STORE_SETTINGS: StoreSettings = {
   bannerSubtitle: 'Nikmati bubur tradisional khas kami, hangat, lezat, dan selalu segar setiap hari.',
   bannerImage: '/images/hero-banner-wide.jpg',
   operatingHours: 'Buka: Senin–Sabtu 16.00–22.00 WIB',
-  adminWhatsapp: '6281234567890',
+  adminWhatsapp: '6285274281819',
   isStoreOpen: true,
   cupFee: 1000,
   cupName: 'Kemasan Cup Bawa Pulang',

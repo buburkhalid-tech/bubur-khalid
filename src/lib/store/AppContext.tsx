@@ -183,7 +183,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (savedSettings) {
           const parsed = JSON.parse(savedSettings);
           if (parsed && typeof parsed === 'object') {
-            setStoreSettings(parsed);
+            const cleanWhatsapp =
+              parsed.adminWhatsapp && parsed.adminWhatsapp !== '6281234567890'
+                ? parsed.adminWhatsapp
+                : '6285274281819';
+            setStoreSettings({
+              ...parsed,
+              adminWhatsapp: cleanWhatsapp,
+            });
           }
         }
 
@@ -325,7 +332,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             bannerSubtitle: cloudSettings.banner_subtitle || prev.bannerSubtitle,
             bannerImage: cloudSettings.banner_image || prev.bannerImage,
             operatingHours: cloudSettings.operating_hours || prev.operatingHours,
-            adminWhatsapp: cloudSettings.admin_whatsapp || prev.adminWhatsapp,
+            adminWhatsapp:
+              cloudSettings.admin_whatsapp && cloudSettings.admin_whatsapp !== '6281234567890'
+                ? cloudSettings.admin_whatsapp
+                : prev.adminWhatsapp || '6285274281819',
             isStoreOpen: cloudSettings.is_store_open ?? prev.isStoreOpen,
             cupFee: Number(cloudSettings.cup_fee ?? prev.cupFee),
             cupName: cloudSettings.cup_name || prev.cupName,
@@ -985,6 +995,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               if (error) console.warn('Supabase user update error:', error.message);
             });
           addAuditLog('UPDATE_USER', 'User', id, `Data pengguna "${u.name}" diperbarui`);
+
+          // Jika role Owner dan ada nomor telepon/WA, sinkronkan juga ke adminWhatsapp toko
+          if (updatedUser.role === 'OWNER' && updatedUser.phone) {
+            setTimeout(() => {
+              updateStoreSettings({ adminWhatsapp: updatedUser.phone });
+            }, 100);
+          }
+
           return updatedUser;
         }
         return u;
