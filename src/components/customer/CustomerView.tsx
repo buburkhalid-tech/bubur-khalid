@@ -132,6 +132,13 @@ export function CustomerView() {
   const [showProductInfo, setShowProductInfo] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [transferConfirmationOrder, setTransferConfirmationOrder] = useState<Order | null>(null);
+  const [brokenImages, setBrokenImages] = useState<Record<string, boolean>>({});
+
+  const getProductImage = (img?: string, id?: string) => {
+    if (id && brokenImages[id]) return '/images/menu/bubur-kampiun.png';
+    if (!img) return '/images/menu/bubur-kampiun.png';
+    return img;
+  };
 
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
@@ -840,9 +847,10 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
                         {/* Food Image with Sold Out Badge */}
                         <div className="w-20 h-20 rounded-xl overflow-hidden relative flex-shrink-0 bg-tofu-silkblaze border border-stone-100 shadow-xs">
                           <Image
-                            src={product.image}
+                            src={getProductImage(product.image, product.id)}
                             alt={product.name}
                             fill
+                            onError={() => setBrokenImages((prev) => ({ ...prev, [product.id]: true }))}
                             className={`object-cover ${isSoldOut ? 'grayscale contrast-75' : ''}`}
                           />
                           {isSoldOut && (
@@ -945,9 +953,10 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
                           {/* Image */}
                           <div className="w-full h-28 rounded-xl overflow-hidden relative mb-2 bg-tofu-silkblaze border border-stone-100">
                             <Image
-                              src={product.image}
+                              src={getProductImage(product.image, product.id)}
                               alt={product.name}
                               fill
+                              onError={() => setBrokenImages((prev) => ({ ...prev, [product.id]: true }))}
                               className={`object-cover ${isSoldOut ? 'grayscale contrast-75' : ''}`}
                             />
                             {isSoldOut ? (
@@ -1073,9 +1082,10 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
               {/* Large Product Image (Image 1) */}
               <div className="w-full h-56 rounded-2xl overflow-hidden relative mb-4 bg-tofu-silkblaze border border-stone-100 shadow-xs">
                 <Image
-                  src={selectedProduct.image}
+                  src={getProductImage(selectedProduct.image, selectedProduct.id)}
                   alt={selectedProduct.name}
                   fill
+                  onError={() => setBrokenImages((prev) => ({ ...prev, [selectedProduct.id]: true }))}
                   className={`object-cover ${!selectedProduct.is_available ? 'grayscale contrast-75' : ''}`}
                 />
                 {!selectedProduct.is_available && (
