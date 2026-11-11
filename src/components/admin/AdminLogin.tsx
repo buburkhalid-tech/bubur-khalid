@@ -32,7 +32,7 @@ export function AdminLogin() {
   const [identifier, setIdentifier] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
-  const [rememberMe, setRememberMe] = useState<boolean>(true);
+  const [rememberMe, setRememberMe] = useState<boolean>(false);
 
   // Signup Form States
   const [signupName, setSignupName] = useState<string>('');
@@ -64,7 +64,7 @@ export function AdminLogin() {
     setIsLoading(true);
 
     setTimeout(() => {
-      const res = login(identifier, password);
+      const res = login(identifier, password, rememberMe);
       setIsLoading(false);
       if (!res.success) {
         setErrorMessage(res.message || 'ID Pengguna / Email atau Kata Sandi salah');

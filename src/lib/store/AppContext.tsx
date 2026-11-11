@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Product, Order, OrderStatus, PaymentMethod, TableInfo, AuditLog, FinancialSummary, StoreSettings, SystemUser, PromoBanner, UserRole } from '../types';
 import { INITIAL_PRODUCTS, INITIAL_TABLES, CUP_FEE, INITIAL_STORE_SETTINGS, INITIAL_USERS, INITIAL_PROMO_BANNERS } from '../constants';
 import { MOCK_ORDERS, MOCK_FINANCIAL_SUMMARY, MOCK_AUDIT_LOGS } from '../mock-data';
+import { supabase } from '../supabase/client';
 
 interface CartItem {
   product: Product;
@@ -82,7 +83,7 @@ interface AppContextType {
   // Authentication & Session
   currentUser: SystemUser | null;
   isAuthenticated: boolean;
-  login: (identifier: string, passOrPin: string) => { success: boolean; message?: string };
+  login: (identifier: string, passOrPin: string, rememberMe?: boolean) => { success: boolean; message?: string };
   signup: (userData: {
     name: string;
     email: string;
@@ -231,7 +232,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setUsers([]);
         }
 
-        const savedSession = localStorage.getItem('bubur_khalid_admin_session');
+        const savedSession =
+          sessionStorage.getItem('bubur_khalid_admin_session') ||
+          localStorage.getItem('bubur_khalid_admin_session');
         if (savedSession) {
           const parsed = JSON.parse(savedSession);
           if (
@@ -239,6 +242,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             ['khalid_owner', 'ahmad_admin', 'siska_kasir', 'budi_kitchen'].includes(parsed.username)
           ) {
             localStorage.removeItem('bubur_khalid_admin_session');
+            sessionStorage.removeItem('bubur_khalid_admin_session');
             setCurrentUser(null);
           } else {
             setCurrentUser(parsed);
@@ -253,6 +257,92 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     }
   }, []);
+
+  // Sync Master Data from Supabase Cloud on client hydration
+  useEffect(() => {
+    async function fetchCloudData() {
+      try {
+        // 1. Users
+        const { data: cloudUsers, error: uErr } = await supabase.from('users').select('*');
+        if (!uErr && cloudUsers && cloudUsers.length > 0) {
+          const cleanUsers = cloudUsers.filter(
+            (u: SystemUser) =>
+              !['usr-1', 'usr-2', 'usr-3', 'usr-4'].includes(u.id) &&
+              !['khalid_owner', 'ahmad_admin', 'siska_kasir', 'budi_kitchen'].includes(u.username)
+          );
+          setUsers(cleanUsers);
+          localStorage.setItem('bubur_khalid_users', JSON.stringify(cleanUsers));
+        }
+
+        // 2. Products
+        const { data: cloudProds, error: pErr } = await supabase.from('products').select('*');
+        if (!pErr && cloudProds && cloudProds.length > 0) {
+          const active = cloudProds.filter((p: any) => !p.deleted_at).map((p: any) => ({
+            ...p,
+            price: Number(p.price),
+          }));
+          const trashed = cloudProds.filter((p: any) => p.deleted_at).map((p: any) => ({
+            ...p,
+            price: Number(p.price),
+          }));
+          setProducts(active);
+          setTrashProducts(trashed);
+          localStorage.setItem('bubur_khalid_products', JSON.stringify(active));
+          localStorage.setItem('bubur_khalid_trash_products', JSON.stringify(trashed));
+        }
+
+        // 3. Orders
+        const { data: cloudOrders, error: oErr } = await supabase
+          .from('orders')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (!oErr && cloudOrders && cloudOrders.length > 0) {
+          const mappedOrders = cloudOrders.map((o: any) => ({
+            ...o,
+            subtotal: Number(o.subtotal),
+            total_amount: Number(o.total_amount),
+            cup_fee: Number(o.cup_fee || 0),
+            discount: Number(o.discount || 0),
+          }));
+          setOrders(mappedOrders);
+          localStorage.setItem('bubur_khalid_orders', JSON.stringify(mappedOrders));
+        }
+
+        // 4. Store Settings
+        const { data: cloudSettings, error: sErr } = await supabase
+          .from('store_settings')
+          .select('*')
+          .limit(1)
+          .maybeSingle();
+        if (!sErr && cloudSettings) {
+          setStoreSettings((prev) => ({
+            ...prev,
+            storeName: cloudSettings.store_name || prev.storeName,
+            storeTagline: cloudSettings.store_tagline || prev.storeTagline,
+            storeAddress: cloudSettings.store_address || prev.storeAddress,
+            storeLogo: cloudSettings.store_logo || prev.storeLogo,
+            bannerTitle: cloudSettings.banner_title || prev.bannerTitle,
+            bannerSubtitle: cloudSettings.banner_subtitle || prev.bannerSubtitle,
+            bannerImage: cloudSettings.banner_image || prev.bannerImage,
+            operatingHours: cloudSettings.operating_hours || prev.operatingHours,
+            adminWhatsapp: cloudSettings.admin_whatsapp || prev.adminWhatsapp,
+            isStoreOpen: cloudSettings.is_store_open ?? prev.isStoreOpen,
+            cupFee: Number(cloudSettings.cup_fee ?? prev.cupFee),
+            cupName: cloudSettings.cup_name || prev.cupName,
+            cupDescription: cloudSettings.cup_description || prev.cupDescription,
+            cupEnabled: cloudSettings.cup_enabled ?? prev.cupEnabled,
+            paymentMethods: cloudSettings.payment_methods || prev.paymentMethods,
+          }));
+        }
+      } catch (e) {
+        console.warn('Supabase offline or table pending initialization:', e);
+      }
+    }
+
+    if (isHydrated) {
+      fetchCloudData();
+    }
+  }, [isHydrated]);
 
   // Auto-sync Products ke LocalStorage saat ada perubahan
   useEffect(() => {
@@ -554,6 +644,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     setOrders((prev) => [newOrder, ...prev]);
     clearCustomerCart();
+
+    // Sync order to Supabase Cloud
+    supabase
+      .from('orders')
+      .upsert([newOrder])
+      .then(({ error }) => {
+        if (error) console.warn('Supabase online order sync error:', error.message);
+      });
+
     addAuditLog('CREATE_ONLINE_ORDER', 'Order', newOrder.id, `Pesanan Online ${queueNum} dibuat oleh ${newOrder.customer_name}`);
     showToast(`Pesanan berhasil! Nomor Antrean Anda: ${queueNum}`);
     return newOrder;
@@ -636,6 +735,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     setOrders((prev) => [newOrder, ...prev]);
     clearPosCart();
+
+    // Sync POS order to Supabase Cloud
+    supabase
+      .from('orders')
+      .upsert([newOrder])
+      .then(({ error }) => {
+        if (error) console.warn('Supabase POS order sync error:', error.message);
+      });
+
     addAuditLog(
       'CREATE_POS_ORDER',
       'Order',
@@ -677,6 +785,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return ord;
       })
     );
+
+    // Sync status change to Supabase Cloud
+    supabase
+      .from('orders')
+      .update({ order_status: newStatus })
+      .eq('id', orderId)
+      .then(({ error }) => {
+        if (error) console.warn('Supabase status update error:', error.message);
+      });
+
     addAuditLog('UPDATE_ORDER_STATUS', 'Order', orderId, `Status diperbarui menjadi ${newStatus} oleh ${actor}`);
     showToast(`Status pesanan diperbarui: ${newStatus}`);
   };
@@ -802,6 +920,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           localStorage.setItem('bubur_khalid_settings', JSON.stringify(updated));
         } catch (e) {}
       }
+
+      // Sync store settings to Supabase Cloud
+      supabase
+        .from('store_settings')
+        .upsert([
+          {
+            id: 'store-config',
+            store_name: updated.storeName,
+            store_tagline: updated.storeTagline,
+            store_address: updated.storeAddress,
+            store_logo: updated.storeLogo,
+            banner_title: updated.bannerTitle,
+            banner_subtitle: updated.bannerSubtitle,
+            banner_image: updated.bannerImage,
+            operating_hours: updated.operatingHours,
+            admin_whatsapp: updated.adminWhatsapp,
+            is_store_open: updated.isStoreOpen,
+            cup_fee: updated.cupFee,
+            cup_name: updated.cupName,
+            cup_description: updated.cupDescription,
+            cup_enabled: updated.cupEnabled,
+            payment_methods: updated.paymentMethods,
+          },
+        ])
+        .then(({ error }) => {
+          if (error) console.warn('Supabase store settings sync error:', error.message);
+        });
+
       addAuditLog('UPDATE_STORE_SETTINGS', 'Settings', 'store-config', 'Pengaturan banner dan metode pembayaran diperbarui oleh Admin');
       return updated;
     });
@@ -861,7 +1007,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   // User Authentication & Session Management
-  const login = (identifier: string, passOrPin: string): { success: boolean; message?: string } => {
+  const login = (
+    identifier: string,
+    passOrPin: string,
+    rememberMe: boolean = false
+  ): { success: boolean; message?: string } => {
     const cleanId = identifier.trim().toLowerCase();
     const cleanPass = passOrPin.trim();
 
@@ -897,9 +1047,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
 
     setCurrentUser(updatedUser);
-    try {
-      localStorage.setItem('bubur_khalid_admin_session', JSON.stringify(updatedUser));
-    } catch (e) {}
+    if (rememberMe) {
+      try {
+        localStorage.setItem('bubur_khalid_admin_session', JSON.stringify(updatedUser));
+      } catch (e) {}
+    } else {
+      try {
+        sessionStorage.setItem('bubur_khalid_admin_session', JSON.stringify(updatedUser));
+        localStorage.removeItem('bubur_khalid_admin_session');
+      } catch (e) {}
+    }
 
     addAuditLog('LOGIN', 'Auth', updatedUser.id, `Pengguna ${updatedUser.name} (${updatedUser.role}) berhasil masuk ke portal`);
     showToast(`Selamat datang, ${updatedUser.name}!`);
@@ -962,6 +1119,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('bubur_khalid_users', JSON.stringify(nextUsers));
     } catch (e) {}
 
+    // Sync to Supabase Cloud
+    supabase
+      .from('users')
+      .upsert([newUser])
+      .then(({ error }) => {
+        if (error) console.warn('Supabase user upsert error:', error.message);
+      });
+
     // Auto login after signup
     setCurrentUser(newUser);
     try {
@@ -1011,6 +1176,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('bubur_khalid_users', JSON.stringify(nextUsers));
     } catch (e) {}
 
+    // Sync to Supabase Cloud
+    supabase
+      .from('users')
+      .update({ password: cleanPassword, pin: updatedUser.pin })
+      .eq('id', updatedUser.id)
+      .then(({ error }) => {
+        if (error) console.warn('Supabase update password error:', error.message);
+      });
+
     addAuditLog('RESET_PASSWORD', 'Auth', updatedUser.id, `Kata sandi direset untuk ${updatedUser.name}`);
     showToast('Kata sandi berhasil diperbarui! Silakan masuk dengan kata sandi baru.');
     return { success: true };
@@ -1021,8 +1195,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       addAuditLog('LOGOUT', 'Auth', currentUser.id, `Pengguna ${currentUser.name} keluar sesi`);
     }
     setCurrentUser(null);
+    setIsFinancialUnlocked(false);
     try {
       localStorage.removeItem('bubur_khalid_admin_session');
+      sessionStorage.removeItem('bubur_khalid_admin_session');
     } catch (e) {}
     showToast('Anda telah keluar dari sesi admin');
   };
