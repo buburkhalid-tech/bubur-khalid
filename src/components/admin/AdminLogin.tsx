@@ -23,10 +23,10 @@ import {
 } from 'lucide-react';
 
 export function AdminLogin() {
-  const { login, signup, users, storeSettings, setActiveView } = useApp();
+  const { login, signup, resetPassword, users, storeSettings, setActiveView } = useApp();
 
-  // Mode: LOGIN atau SIGNUP
-  const [authMode, setAuthMode] = useState<'LOGIN' | 'SIGNUP'>('LOGIN');
+  // Mode: LOGIN, SIGNUP, atau FORGOT_PASSWORD
+  const [authMode, setAuthMode] = useState<'LOGIN' | 'SIGNUP' | 'FORGOT_PASSWORD'>('LOGIN');
 
   // Login Form States
   const [identifier, setIdentifier] = useState<string>('');
@@ -42,6 +42,15 @@ export function AdminLogin() {
   const [signupRole, setSignupRole] = useState<UserRole>('OWNER');
   const [signupPhone, setSignupPhone] = useState<string>('');
   const [showSignupPassword, setShowSignupPassword] = useState<boolean>(false);
+
+  // Forgot Password & OTP States
+  const [resetEmail, setResetEmail] = useState<string>('');
+  const [resetOtp, setResetOtp] = useState<string>('');
+  const [generatedOtp, setGeneratedOtp] = useState<string>('');
+  const [isOtpSent, setIsOtpSent] = useState<boolean>(false);
+  const [newPassword, setNewPassword] = useState<string>('');
+  const [showNewPassword, setShowNewPassword] = useState<boolean>(false);
+  const [otpNotice, setOtpNotice] = useState<string | null>(null);
 
   // Status & Feedback
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -84,6 +93,65 @@ export function AdminLogin() {
         setErrorMessage(res.message || 'Pendaftaran gagal');
       } else {
         setSuccessMessage('Pendaftaran berhasil! Mengalihkan ke dashboard...');
+      }
+    }, 400);
+  };
+
+  const handleSendOtp = (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    const cleanMail = resetEmail.trim().toLowerCase();
+    if (!cleanMail) {
+      setErrorMessage('Harap masukkan email atau username terdaftar');
+      return;
+    }
+    const found = users.find(
+      (u) => (u.email && u.email.toLowerCase() === cleanMail) || u.username.toLowerCase() === cleanMail
+    );
+    if (!found) {
+      setErrorMessage('Akun dengan email / username tersebut tidak ditemukan di perangkat ini.');
+      return;
+    }
+
+    setIsLoading(true);
+    setTimeout(() => {
+      const code = String(Math.floor(100000 + Math.random() * 900000));
+      setGeneratedOtp(code);
+      setIsOtpSent(true);
+      setIsLoading(false);
+      setOtpNotice(`Kode OTP Verifikasi dikirim ke ${found.email || found.username}: ${code}`);
+    }, 500);
+  };
+
+  const handleResetPasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    if (resetOtp.trim() !== generatedOtp.trim()) {
+      setErrorMessage('Kode OTP verifikasi salah');
+      return;
+    }
+
+    if (newPassword.length < 4) {
+      setErrorMessage('Kata sandi baru minimal 4 karakter');
+      return;
+    }
+
+    setIsLoading(true);
+    setTimeout(() => {
+      const res = resetPassword(resetEmail, newPassword);
+      setIsLoading(false);
+      if (res.success) {
+        setSuccessMessage('Kata sandi berhasil diperbarui! Silakan masuk dengan kata sandi baru.');
+        setAuthMode('LOGIN');
+        setPassword('');
+        setIsOtpSent(false);
+        setResetOtp('');
+        setOtpNotice(null);
+      } else {
+        setErrorMessage(res.message || 'Gagal memperbarui kata sandi');
       }
     }, 400);
   };
@@ -239,7 +307,7 @@ export function AdminLogin() {
                   </div>
                 </div>
 
-                {/* Remember Me */}
+                {/* Remember Me & Forgot Password */}
                 <div className="flex items-center justify-between text-xs pt-1">
                   <label className="flex items-center space-x-2 cursor-pointer select-none">
                     <input
@@ -250,6 +318,18 @@ export function AdminLogin() {
                     />
                     <span className="font-semibold text-stone-600">Ingat sesi di browser ini</span>
                   </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthMode('FORGOT_PASSWORD');
+                      setErrorMessage(null);
+                      setSuccessMessage(null);
+                      setResetEmail(identifier);
+                    }}
+                    className="font-bold text-spicy-ember hover:underline cursor-pointer"
+                  >
+                    Lupa Sandi?
+                  </button>
                 </div>
 
                 {/* Submit Button */}
@@ -414,6 +494,142 @@ export function AdminLogin() {
                   )}
                 </button>
               </form>
+            )}
+
+            {/* ================= MODE 3: FORGOT PASSWORD (OTP VERIFICATION) ================= */}
+            {authMode === 'FORGOT_PASSWORD' && (
+              <div className="space-y-4">
+                {/* OTP Dispatched Info Banner */}
+                {otpNotice && (
+                  <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs flex items-start space-x-2.5 animate-fadeIn">
+                    <Sparkles className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <strong className="block font-bold">Simulasi Email Terkirim:</strong>
+                      <span>{otpNotice}</span>
+                    </div>
+                  </div>
+                )}
+
+                {!isOtpSent ? (
+                  /* Step 1: Input Email & Request OTP */
+                  <form onSubmit={handleSendOtp} className="space-y-3.5">
+                    <div>
+                      <label className="block text-xs font-bold text-matcha-leaf mb-1">
+                        Masukkan Email atau Username Akun Anda
+                      </label>
+                      <div className="relative flex items-center bg-stone-50 border border-stone-200 rounded-2xl focus-within:border-spicy-ember focus-within:bg-white transition shadow-2xs">
+                        <div className="pl-4 pr-3 py-3 text-stone-400 border-r border-stone-200/80 flex items-center justify-center">
+                          <Mail className="w-4 h-4 text-spicy-ember" />
+                        </div>
+                        <input
+                          type="text"
+                          required
+                          value={resetEmail}
+                          onChange={(e) => setResetEmail(e.target.value)}
+                          placeholder="Contoh: ami_khalid atau email@anda.com"
+                          className="w-full bg-transparent py-3 px-3.5 text-xs sm:text-sm font-semibold text-stone-800 placeholder:text-stone-400 focus:outline-none"
+                        />
+                      </div>
+                      <p className="text-[11px] text-stone-500 mt-1">
+                        Sistem akan mengirimkan 6-digit kode OTP verifikasi untuk mengatur ulang kata sandi Anda.
+                      </p>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="w-full bg-spicy-ember hover:bg-spicy-hover text-white font-black text-sm py-3.5 rounded-2xl shadow-lg transition flex items-center justify-center space-x-2 active:scale-[0.98] disabled:opacity-75"
+                    >
+                      {isLoading ? (
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          <KeyRound className="w-4 h-4 text-yolk-blaze" />
+                          <span>KIRIM KODE OTP KE EMAIL</span>
+                        </>
+                      )}
+                    </button>
+                  </form>
+                ) : (
+                  /* Step 2: Input OTP & New Password */
+                  <form onSubmit={handleResetPasswordSubmit} className="space-y-3.5">
+                    <div>
+                      <label className="block text-xs font-bold text-matcha-leaf mb-1">
+                        Masukkan 6-Digit Kode OTP
+                      </label>
+                      <div className="relative flex items-center bg-stone-50 border border-stone-200 rounded-2xl focus-within:border-spicy-ember focus-within:bg-white transition shadow-2xs">
+                        <input
+                          type="text"
+                          required
+                          maxLength={6}
+                          value={resetOtp}
+                          onChange={(e) => setResetOtp(e.target.value.replace(/\D/g, ''))}
+                          placeholder="6 digit angka OTP"
+                          className="w-full bg-transparent py-3 px-4 text-base font-black text-center text-matcha-leaf tracking-widest placeholder:text-stone-400 focus:outline-none font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-matcha-leaf mb-1">
+                        Kata Sandi Baru
+                      </label>
+                      <div className="relative flex items-center bg-stone-50 border border-stone-200 rounded-2xl focus-within:border-spicy-ember focus-within:bg-white transition shadow-2xs">
+                        <div className="pl-4 pr-3 py-3 text-stone-400 border-r border-stone-200/80 flex items-center justify-center">
+                          <Lock className="w-4 h-4 text-spicy-ember" />
+                        </div>
+                        <input
+                          type={showNewPassword ? 'text' : 'password'}
+                          required
+                          minLength={4}
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="Minimal 4 karakter"
+                          className="w-full bg-transparent py-3 px-3.5 text-xs sm:text-sm font-semibold text-stone-800 placeholder:text-stone-400 focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                          className="pr-4 pl-2 text-stone-400 hover:text-spicy-ember transition"
+                        >
+                          {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="w-full bg-matcha-leaf hover:bg-matcha-surface text-white font-black text-sm py-3.5 rounded-2xl shadow-lg transition flex items-center justify-center space-x-2 active:scale-[0.98] disabled:opacity-75"
+                    >
+                      {isLoading ? (
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          <CheckCircle2 className="w-4 h-4 text-yolk-blaze" />
+                          <span>SIMPAN & RESET KATA SANDI</span>
+                        </>
+                      )}
+                    </button>
+                  </form>
+                )}
+
+                <div className="text-center pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthMode('LOGIN');
+                      setErrorMessage(null);
+                      setSuccessMessage(null);
+                      setIsOtpSent(false);
+                      setOtpNotice(null);
+                    }}
+                    className="text-xs font-bold text-stone-500 hover:text-matcha-leaf transition inline-flex items-center space-x-1"
+                  >
+                    <span>← Kembali ke Halaman Masuk</span>
+                  </button>
+                </div>
+              </div>
             )}
           </div>
 

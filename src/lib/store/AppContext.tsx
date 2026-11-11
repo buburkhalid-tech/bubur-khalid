@@ -91,6 +91,7 @@ interface AppContextType {
     role: UserRole;
     phone?: string;
   }) => { success: boolean; message?: string };
+  resetPassword: (emailOrUsername: string, newPass: string) => { success: boolean; message?: string };
   logout: () => void;
 
   // Financial & Security Gate
@@ -972,6 +973,49 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return { success: true };
   };
 
+  const resetPassword = (
+    emailOrUsername: string,
+    newPass: string
+  ): { success: boolean; message?: string } => {
+    const cleanIdentifier = emailOrUsername.trim().toLowerCase();
+    const cleanPassword = newPass.trim();
+
+    if (!cleanIdentifier || !cleanPassword) {
+      return { success: false, message: 'Harap masukkan email/username dan kata sandi baru' };
+    }
+
+    if (cleanPassword.length < 4) {
+      return { success: false, message: 'Kata sandi baru minimal 4 karakter' };
+    }
+
+    const targetIndex = users.findIndex(
+      (u) =>
+        (u.email && u.email.toLowerCase() === cleanIdentifier) ||
+        u.username.toLowerCase() === cleanIdentifier
+    );
+
+    if (targetIndex === -1) {
+      return { success: false, message: 'Akun dengan Email atau Username tersebut tidak ditemukan di perangkat ini' };
+    }
+
+    const updatedUser: SystemUser = {
+      ...users[targetIndex],
+      password: cleanPassword,
+      pin: cleanPassword.length === 6 && /^\d+$/.test(cleanPassword) ? cleanPassword : '123456',
+    };
+
+    const nextUsers = [...users];
+    nextUsers[targetIndex] = updatedUser;
+    setUsers(nextUsers);
+    try {
+      localStorage.setItem('bubur_khalid_users', JSON.stringify(nextUsers));
+    } catch (e) {}
+
+    addAuditLog('RESET_PASSWORD', 'Auth', updatedUser.id, `Kata sandi direset untuk ${updatedUser.name}`);
+    showToast('Kata sandi berhasil diperbarui! Silakan masuk dengan kata sandi baru.');
+    return { success: true };
+  };
+
   const logout = () => {
     if (currentUser) {
       addAuditLog('LOGOUT', 'Auth', currentUser.id, `Pengguna ${currentUser.name} keluar sesi`);
@@ -1085,6 +1129,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated: Boolean(currentUser),
         login,
         signup,
+        resetPassword,
         logout,
         financialSummary: MOCK_FINANCIAL_SUMMARY,
         isFinancialUnlocked,
