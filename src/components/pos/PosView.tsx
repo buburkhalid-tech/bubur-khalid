@@ -619,7 +619,7 @@ Simpan struk ini untuk mengambil pesanan.`;
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
           <div
             id="thermal-receipt-print"
-            className="bg-white rounded-2xl max-w-sm w-full p-5 sm:p-6 shadow-floating border border-stone-200 text-matcha-leaf text-center font-mono text-xs my-auto"
+            className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-floating border border-stone-200 text-matcha-leaf text-center font-mono text-xs my-auto"
           >
             {/* Receipt Header */}
             <div className="border-b-2 border-dashed border-stone-300 pb-3">
@@ -749,15 +749,15 @@ Simpan struk ini untuk mengambil pesanan.`;
             </div>
 
             {/* Action Buttons (no-print) */}
-            <div className="no-print flex flex-col sm:flex-row gap-2 mt-4 font-sans">
+            <div className="no-print flex flex-col sm:flex-row gap-2.5 mt-5 font-sans">
               <button
                 type="button"
                 onClick={handlePrintReceipt}
-                className="flex-1 bg-matcha-leaf hover:bg-matcha-surface text-white py-3 rounded-xl text-xs font-extrabold flex items-center justify-center space-x-1.5 shadow-md active:scale-95 transition cursor-pointer"
+                className="flex-1 bg-matcha-leaf hover:bg-matcha-surface text-white py-3 px-4 rounded-xl text-xs font-black flex items-center justify-center gap-2 shadow-md active:scale-95 transition cursor-pointer"
                 title="Cetak struk ke printer thermal Bluetooth / USB / WiFi"
               >
-                <Printer className="w-4 h-4 text-yolk-blaze" />
-                <span>Cetak Printer (Bluetooth/USB)</span>
+                <Printer className="w-4 h-4 text-yolk-blaze flex-shrink-0" />
+                <span className="whitespace-nowrap tracking-wide">Cetak Printer (Bluetooth/USB)</span>
               </button>
               <button
                 type="button"
@@ -765,7 +765,7 @@ Simpan struk ini untuk mengambil pesanan.`;
                   setIsReceiptOpen(false);
                   setCustomerWhatsapp('');
                 }}
-                className="bg-stone-200 hover:bg-stone-300 text-stone-800 py-3 px-5 rounded-xl text-xs font-extrabold transition cursor-pointer active:scale-95"
+                className="bg-stone-100 hover:bg-stone-200 text-stone-700 py-3 px-5 rounded-xl text-xs font-bold transition cursor-pointer active:scale-95 flex-shrink-0"
               >
                 Tutup / Selesai
               </button>
