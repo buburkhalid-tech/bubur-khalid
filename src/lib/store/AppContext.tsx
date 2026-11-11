@@ -871,15 +871,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const target = users.find((u) => {
       const uName = u.username.toLowerCase();
       const uEmail = (u.email || '').toLowerCase();
-      const uRole = u.role.toLowerCase();
-      return (
-        uName === cleanId ||
-        uEmail === cleanId ||
-        (cleanId === 'admin' && uRole === 'admin') ||
-        (cleanId === 'owner' && uRole === 'owner') ||
-        (cleanId === 'kasir' && uRole === 'cashier') ||
-        (cleanId === 'dapur' && uRole === 'kitchen_staff')
-      );
+      return uName === cleanId || uEmail === cleanId;
     });
 
     if (!target) {
@@ -892,11 +884,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const isValidPassword =
       (target.pin && cleanPass === target.pin) ||
-      (target.password && cleanPass === target.password) ||
-      (target.role === 'ADMIN' && (cleanPass === 'admin123' || cleanPass === '112233' || cleanPass === 'admin')) ||
-      (target.role === 'OWNER' && (cleanPass === 'owner123' || cleanPass === '123456' || cleanPass === 'owner')) ||
-      (target.role === 'CASHIER' && (cleanPass === 'kasir123' || cleanPass === '889900' || cleanPass === 'kasir')) ||
-      (target.role === 'KITCHEN_STAFF' && (cleanPass === 'dapur123' || cleanPass === '445566' || cleanPass === 'dapur'));
+      (target.password && cleanPass === target.password);
 
     if (!isValidPassword) {
       return { success: false, message: 'Kata sandi atau PIN salah' };
