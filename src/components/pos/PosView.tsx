@@ -96,14 +96,14 @@ export function PosView() {
   };
 
   return (
-    <div className="min-h-screen bg-tofu-warm p-2 sm:p-3 md:p-4 text-matcha-leaf max-w-full overflow-x-hidden">
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-3 md:gap-4 lg:gap-6 items-start w-full">
+    <div className="min-h-screen md:h-screen md:max-h-screen bg-tofu-warm p-2 sm:p-3 md:p-3.5 text-matcha-leaf max-w-full overflow-x-hidden md:overflow-hidden flex flex-col">
+      <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-3 md:gap-3.5 items-stretch w-full flex-1 md:min-h-0 md:overflow-hidden">
         
         {/* LEFT / CENTER: Touch Product Catalog Grid (Tablet/Desktop: scrollable, flexible width) */}
-        <div className="flex-1 min-w-0 w-full space-y-3">
+        <div className="flex-1 min-w-0 w-full md:h-full flex flex-col space-y-2.5 md:overflow-hidden">
           
-          {/* Top Bar POS */}
-          <div className="bg-white rounded-2xl shadow-soft border border-stone-200 overflow-hidden">
+          {/* Top Bar POS (Stationary) */}
+          <div className="flex-shrink-0 bg-white rounded-2xl shadow-soft border border-stone-200 overflow-hidden">
             {/* Brand Header Row */}
             <div className="p-3 sm:p-4 flex items-center justify-between gap-3">
               <div className="flex items-center space-x-3 min-w-0">
@@ -155,8 +155,8 @@ export function PosView() {
             </div>
           </div>
 
-          {/* Category Filter Horizontal Scroll */}
-          <div className="flex space-x-2 overflow-x-auto pb-1 hide-scrollbar">
+          {/* Category Filter Horizontal Scroll (Stationary) */}
+          <div className="flex-shrink-0 flex space-x-2 overflow-x-auto pb-1 hide-scrollbar">
             {CATEGORIES.map((cat) => (
               <button
                 key={cat}
@@ -172,85 +172,87 @@ export function PosView() {
             ))}
           </div>
 
-          {/* Product Cards Touch Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-3">
-            {filteredProducts.map((p) => {
-              const inCart = posCart.find((item) => item.product.id === p.id);
-              const isSoldOut = !p.is_available;
-              return (
-                <div
-                  key={p.id}
-                  onClick={() => {
-                    if (isSoldOut) {
-                      showToast(`Menu "${p.name}" sedang HABIS. Tidak dapat ditambahkan ke transaksi.`);
-                      return;
-                    }
-                    addToPosCart(p);
-                  }}
-                  className={`bg-white rounded-2xl p-2.5 sm:p-3 shadow-soft border-2 transition-all cursor-pointer select-none active:scale-95 relative flex flex-col justify-between ${
-                    isSoldOut
-                      ? 'opacity-65 bg-stone-50 border-stone-200 cursor-not-allowed'
-                      : inCart
-                      ? 'border-spicy-ember ring-2 ring-spicy-ember/20'
-                      : 'border-stone-100 hover:border-noodle-dark'
-                  }`}
-                >
-                  {inCart && (
-                    <span className="absolute top-2 right-2 z-10 w-6 h-6 rounded-full bg-spicy-ember text-white font-black text-xs flex items-center justify-center shadow-sm">
-                      {inCart.quantity}
-                    </span>
-                  )}
-                  <div>
-                    <div className="w-full h-24 sm:h-28 rounded-xl overflow-hidden relative mb-2 bg-tofu-silkblaze border border-stone-100">
-                      <Image
-                        src={p.image}
-                        alt={p.name}
-                        fill
-                        className={`object-cover ${isSoldOut ? 'grayscale contrast-75' : ''}`}
-                      />
-                      {isSoldOut && (
-                        <div className="absolute inset-0 bg-black/60 backdrop-blur-[0.5px] flex flex-col items-center justify-center p-1">
-                          <span className="bg-red-600 text-white font-black text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider shadow">
+          {/* Product Cards Touch Grid (Independently scrollable on tablet: Hanya katalog yang scroll, keranjang tetap diam) */}
+          <div className="flex-1 md:min-h-0 md:overflow-y-auto pr-0.5 md:pr-1 pb-4 hide-scrollbar">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-3">
+              {filteredProducts.map((p) => {
+                const inCart = posCart.find((item) => item.product.id === p.id);
+                const isSoldOut = !p.is_available;
+                return (
+                  <div
+                    key={p.id}
+                    onClick={() => {
+                      if (isSoldOut) {
+                        showToast(`Menu "${p.name}" sedang HABIS. Tidak dapat ditambahkan ke transaksi.`);
+                        return;
+                      }
+                      addToPosCart(p);
+                    }}
+                    className={`bg-white rounded-2xl p-2.5 sm:p-3 shadow-soft border-2 transition-all cursor-pointer select-none active:scale-95 relative flex flex-col justify-between ${
+                      isSoldOut
+                        ? 'opacity-65 bg-stone-50 border-stone-200 cursor-not-allowed'
+                        : inCart
+                        ? 'border-spicy-ember ring-2 ring-spicy-ember/20'
+                        : 'border-stone-100 hover:border-noodle-dark'
+                    }`}
+                  >
+                    {inCart && (
+                      <span className="absolute top-2 right-2 z-10 w-6 h-6 rounded-full bg-spicy-ember text-white font-black text-xs flex items-center justify-center shadow-sm">
+                        {inCart.quantity}
+                      </span>
+                    )}
+                    <div>
+                      <div className="w-full h-24 sm:h-28 rounded-xl overflow-hidden relative mb-2 bg-tofu-silkblaze border border-stone-100">
+                        <Image
+                          src={p.image}
+                          alt={p.name}
+                          fill
+                          className={`object-cover ${isSoldOut ? 'grayscale contrast-75' : ''}`}
+                        />
+                        {isSoldOut && (
+                          <div className="absolute inset-0 bg-black/60 backdrop-blur-[0.5px] flex flex-col items-center justify-center p-1">
+                            <span className="bg-red-600 text-white font-black text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider shadow">
+                              Habis
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <span className="text-[10px] bg-noodle-cream text-matcha-leaf font-bold px-1.5 py-0.5 rounded">
+                          {p.category}
+                        </span>
+                        {isSoldOut && (
+                          <span className="text-[9px] bg-red-100 text-red-700 font-bold px-1.5 py-0.5 rounded border border-red-200">
                             Habis
                           </span>
-                        </div>
-                      )}
+                        )}
+                      </div>
+                      <h3 className="font-extrabold text-xs sm:text-sm text-matcha-leaf mt-1 line-clamp-1">{p.name}</h3>
                     </div>
-                    <div className="flex items-center space-x-1">
-                      <span className="text-[10px] bg-noodle-cream text-matcha-leaf font-bold px-1.5 py-0.5 rounded">
-                        {p.category}
+                    <div className="mt-2 pt-2 border-t border-stone-100 flex items-center justify-between">
+                      <span className={`font-black text-xs sm:text-sm ${isSoldOut ? 'text-stone-400' : 'text-spicy-ember'}`}>
+                        Rp{p.price.toLocaleString('id-ID')}
                       </span>
-                      {isSoldOut && (
-                        <span className="text-[9px] bg-red-100 text-red-700 font-bold px-1.5 py-0.5 rounded border border-red-200">
+                      {isSoldOut ? (
+                        <span className="text-[10px] bg-stone-200 text-stone-500 px-2 py-0.5 rounded font-bold">
                           Habis
+                        </span>
+                      ) : (
+                        <span className="text-[11px] bg-stone-100 text-stone-700 px-2 py-0.5 rounded font-bold">
+                          + Tambah
                         </span>
                       )}
                     </div>
-                    <h3 className="font-extrabold text-xs sm:text-sm text-matcha-leaf mt-1 line-clamp-1">{p.name}</h3>
                   </div>
-                  <div className="mt-2 pt-2 border-t border-stone-100 flex items-center justify-between">
-                    <span className={`font-black text-xs sm:text-sm ${isSoldOut ? 'text-stone-400' : 'text-spicy-ember'}`}>
-                      Rp{p.price.toLocaleString('id-ID')}
-                    </span>
-                    {isSoldOut ? (
-                      <span className="text-[10px] bg-stone-200 text-stone-500 px-2 py-0.5 rounded font-bold">
-                        Habis
-                      </span>
-                    ) : (
-                      <span className="text-[11px] bg-stone-100 text-stone-700 px-2 py-0.5 rounded font-bold">
-                        + Tambah
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
 
         </div>
 
-        {/* RIGHT: Persistent Side Cart & Touch Checkout (Tablet Optimized, fits on screen) */}
-        <div className="w-full md:w-[350px] lg:w-[400px] flex-shrink-0 bg-white rounded-2xl shadow-card border-2 border-stone-200 flex flex-col md:sticky md:top-2 md:h-[calc(100vh-1rem)] max-w-full overflow-hidden">
+        {/* RIGHT: Persistent Side Cart & Touch Checkout (100% Pinned / Stationary, tidak ikut bergeser saat katalog discroll) */}
+        <div className="w-full md:w-[350px] lg:w-[400px] flex-shrink-0 md:h-full bg-white rounded-2xl shadow-card border-2 border-stone-200 flex flex-col max-w-full overflow-hidden">
           
           {/* Cart Header */}
           <div className="p-3.5 border-b border-stone-200 flex items-center justify-between bg-matcha-leaf text-tofu-silkblaze rounded-t-2xl flex-shrink-0">
@@ -292,7 +294,7 @@ export function PosView() {
           </div>
 
           {/* Cart Items List (Scrollable, touch-friendly, high contrast) */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-2.5 min-h-[140px] max-h-[40vh] md:max-h-none hide-scrollbar">
+          <div className="flex-1 min-h-0 overflow-y-auto p-2.5 sm:p-3 space-y-2.5 hide-scrollbar">
             {posCart.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-stone-400 text-center py-8">
                 <Receipt className="w-12 h-12 stroke-[1.5] mb-2 text-stone-300" />
