@@ -18,14 +18,13 @@ import {
 
 export function KdsView() {
   const { orders, updateOrderStatus, setActiveView } = useApp();
-  const [filterStatus, setFilterStatus] = useState<'ALL_ACTIVE' | 'NEW' | 'PREPARING' | 'READY'>('ALL_ACTIVE');
+  const [filterStatus, setFilterStatus] = useState<'NEW' | 'PREPARING' | 'READY'>('NEW');
 
   // Kitchen queue strictly requires paid orders that are not yet completed/cancelled
   const activeKitchenOrders = orders
     .filter((o) => o.payment_status === 'PAID')
     .filter((o) => ['NEW', 'CONFIRMED', 'PREPARING', 'READY'].includes(o.order_status))
     .filter((o) => {
-      if (filterStatus === 'ALL_ACTIVE') return true;
       if (filterStatus === 'NEW') return o.order_status === 'NEW' || o.order_status === 'CONFIRMED';
       return o.order_status === filterStatus;
     })
@@ -58,52 +57,60 @@ export function KdsView() {
               </span>
             </div>
             <p className="text-xs text-stone-400">
-              Antrean Dapur Terpadu • Urutan Global FIFO ({activeKitchenOrders.length} Pesanan Aktif)
+              Antrean Dapur Terpadu • Urutan Global FIFO ({activeKitchenOrders.length} Pesanan)
             </p>
           </div>
         </div>
 
-        {/* Filter Pills */}
-        <div className="flex items-center space-x-2 bg-stone-900/80 p-1.5 rounded-xl border border-stone-700">
+        {/* Filter Pills: Hanya 3 Menu (Menunggu, Diproses, Siap Disajikan) */}
+        <div className="flex items-center space-x-1 sm:space-x-2 bg-stone-900/80 p-1.5 rounded-xl border border-stone-700">
           <button
-            onClick={() => setFilterStatus('ALL_ACTIVE')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-              filterStatus === 'ALL_ACTIVE'
-                ? 'bg-spicy-ember text-white shadow-sm'
-                : 'text-stone-400 hover:text-white'
-            }`}
-          >
-            Semua Aktif ({orders.filter((o) => ['NEW', 'CONFIRMED', 'PREPARING', 'READY'].includes(o.order_status)).length})
-          </button>
-          <button
+            type="button"
             onClick={() => setFilterStatus('NEW')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-black transition flex items-center space-x-1.5 ${
               filterStatus === 'NEW'
                 ? 'bg-spicy-ember text-white shadow-sm'
                 : 'text-stone-400 hover:text-white'
             }`}
           >
-            Menunggu
+            <span>Menunggu</span>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+              filterStatus === 'NEW' ? 'bg-black/25 text-white' : 'bg-stone-800 text-stone-300'
+            }`}>
+              {orders.filter((o) => o.payment_status === 'PAID' && (o.order_status === 'NEW' || o.order_status === 'CONFIRMED')).length}
+            </span>
           </button>
           <button
+            type="button"
             onClick={() => setFilterStatus('PREPARING')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-black transition flex items-center space-x-1.5 ${
               filterStatus === 'PREPARING'
                 ? 'bg-spicy-ember text-white shadow-sm'
                 : 'text-stone-400 hover:text-white'
             }`}
           >
-            Diproses
+            <span>Diproses</span>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+              filterStatus === 'PREPARING' ? 'bg-black/25 text-white' : 'bg-stone-800 text-stone-300'
+            }`}>
+              {orders.filter((o) => o.payment_status === 'PAID' && o.order_status === 'PREPARING').length}
+            </span>
           </button>
           <button
+            type="button"
             onClick={() => setFilterStatus('READY')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-black transition flex items-center space-x-1.5 ${
               filterStatus === 'READY'
                 ? 'bg-spicy-ember text-white shadow-sm'
                 : 'text-stone-400 hover:text-white'
             }`}
           >
-            Siap Disajikan
+            <span>Siap Disajikan</span>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+              filterStatus === 'READY' ? 'bg-black/25 text-white' : 'bg-stone-800 text-stone-300'
+            }`}>
+              {orders.filter((o) => o.payment_status === 'PAID' && o.order_status === 'READY').length}
+            </span>
           </button>
         </div>
       </div>
