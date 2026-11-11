@@ -11,7 +11,6 @@ import {
   EyeOff,
   LogIn,
   UserPlus,
-  ShieldCheck,
   AlertCircle,
   User,
   Phone,
@@ -648,7 +647,7 @@ export function AdminLogin() {
         </div>
 
         {/* ================= RIGHT COLUMN: BRAND BANNER ================= */}
-        <div className="md:col-span-5 bg-gradient-to-br from-matcha-leaf via-[#02311c] to-[#011c10] text-tofu-silkblaze p-6 sm:p-8 lg:p-10 flex flex-col justify-between relative overflow-hidden">
+        <div className="md:col-span-5 bg-gradient-to-br from-matcha-leaf via-[#02311c] to-[#011c10] text-tofu-silkblaze p-6 sm:p-8 lg:p-10 flex flex-col justify-center items-center relative overflow-hidden text-center">
           {/* Decorative Waves Overlay */}
           <div className="absolute inset-0 pointer-events-none opacity-20">
             <svg className="w-full h-full object-cover" viewBox="0 0 500 500" preserveAspectRatio="none">
@@ -661,8 +660,8 @@ export function AdminLogin() {
           <div className="absolute -bottom-12 -left-12 w-48 h-48 rounded-full bg-spicy-ember/20 blur-2xl pointer-events-none" />
 
           {/* Top Logo Badge */}
-          <div className="relative z-10 text-center">
-            <div className="w-20 h-20 rounded-full bg-white p-1.5 shadow-2xl border-4 border-white/20 mx-auto relative overflow-hidden">
+          <div className="relative z-10 text-center mb-6">
+            <div className="w-24 h-24 rounded-full bg-white p-2 shadow-2xl border-4 border-white/20 mx-auto relative overflow-hidden">
               <Image
                 src={storeSettings.storeLogo || '/images/logo/bubur-khalid-logo.png'}
                 alt="Logo Bubur Khalid"
@@ -671,60 +670,24 @@ export function AdminLogin() {
                 priority
               />
             </div>
-            <h3 className="text-base font-black text-white mt-2.5 tracking-wide">
+            <h3 className="text-xl font-black text-white mt-3.5 tracking-wide">
               {storeSettings.storeName}
             </h3>
-            <span className="text-[10px] text-noodle-cream/90 font-medium tracking-wider uppercase">
+            <span className="text-xs text-noodle-cream/90 font-medium tracking-wider uppercase">
               Asli Minang • Sejak 2026
             </span>
           </div>
 
-          {/* Middle: Info & Mode Switch Suggestion */}
-          <div className="relative z-10 text-center my-6 space-y-3">
+          {/* Middle: Info */}
+          <div className="relative z-10 text-center space-y-2 max-w-xs">
             <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight uppercase leading-tight">
               {authMode === 'LOGIN' ? 'SELAMAT DATANG!' : 'GABUNG TIM KAMI!'}
             </h1>
-            <p className="text-xs text-noodle-cream/90 font-normal leading-relaxed">
+            <p className="text-xs text-noodle-cream/80 font-normal leading-relaxed">
               {authMode === 'LOGIN'
                 ? 'Portal Terpadu Bubur Khalid: POS Kasir Touchscreen, Kitchen Display Antrean FIFO, Manajemen Menu, dan Finansial.'
-                : 'Buat akun dengan email pribadi untuk mengelola restoran, pantau keuangan, dan kelola operasional kasir serta dapur.'}
+                : 'Kelola operasional kasir, dapur, menu, dan pemantauan keuangan restoran.'}
             </p>
-
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setAuthMode(authMode === 'LOGIN' ? 'SIGNUP' : 'LOGIN');
-                  setErrorMessage(null);
-                  setSuccessMessage(null);
-                }}
-                className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-full bg-white/15 hover:bg-white/25 text-white text-xs font-black transition border border-white/20 active:scale-95"
-              >
-                {authMode === 'LOGIN' ? (
-                  <>
-                    <span>Belum punya akun? Buat Baru</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </>
-                ) : (
-                  <>
-                    <span>Sudah punya akun? Masuk Disini</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* Bottom Security Highlights */}
-          <div className="relative z-10 space-y-2 bg-white/10 backdrop-blur-md p-3.5 rounded-2xl border border-white/15 text-[11px]">
-            <div className="flex items-center space-x-2">
-              <ShieldCheck className="w-4 h-4 text-yolk-blaze flex-shrink-0" />
-              <span>Multi-level Role (Owner, Admin, Kasir, Dapur)</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Lock className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-              <span>Penyimpanan Aman & Audit Log Operasional</span>
-            </div>
           </div>
         </div>
 
