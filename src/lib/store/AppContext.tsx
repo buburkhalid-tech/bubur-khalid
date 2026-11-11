@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { Product, Order, OrderStatus, PaymentMethod, TableInfo, AuditLog, FinancialSummary, StoreSettings, SystemUser, PromoBanner, UserRole } from '../types';
 import { INITIAL_PRODUCTS, INITIAL_TABLES, CUP_FEE, INITIAL_STORE_SETTINGS, INITIAL_USERS, INITIAL_PROMO_BANNERS } from '../constants';
 import { MOCK_ORDERS, MOCK_FINANCIAL_SUMMARY, MOCK_AUDIT_LOGS } from '../mock-data';
@@ -227,13 +227,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           }
         }
 
-        // Orders
+        // Orders: Bersihkan data dummy lama
         const savedOrders = localStorage.getItem('bubur_khalid_orders');
         if (savedOrders) {
           const parsed = JSON.parse(savedOrders);
           if (Array.isArray(parsed)) {
-            setOrders(parsed);
+            const cleanOrders = parsed.filter(
+              (o: Order) =>
+                !['ord-on-025', 'ord-on-026', 'ord-on-027', 'ord-ot-012', 'ord-ot-013'].includes(o.id) &&
+                !['ON-025', 'ON-026', 'ON-027', 'OT-012', 'OT-013'].includes(o.queue_number)
+            );
+            setOrders(cleanOrders);
+            localStorage.setItem('bubur_khalid_orders', JSON.stringify(cleanOrders));
           }
+        } else {
+          setOrders([]);
+        }
+
+        // Audit Logs: Bersihkan log dummy lama
+        const savedLogs = localStorage.getItem('bubur_khalid_audit_logs');
+        if (savedLogs) {
+          const parsed = JSON.parse(savedLogs);
+          if (Array.isArray(parsed)) {
+            const cleanLogs = parsed.filter(
+              (l: AuditLog) => !['log-1', 'log-2', 'log-3'].includes(l.id)
+            );
+            setAuditLogs(cleanLogs);
+            localStorage.setItem('bubur_khalid_audit_logs', JSON.stringify(cleanLogs));
+          }
+        } else {
+          setAuditLogs([]);
         }
 
         // Users & Session: Bersihkan data dummy lama jika ada
@@ -318,16 +341,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           .from('orders')
           .select('*')
           .order('created_at', { ascending: false });
-        if (!oErr && cloudOrders && cloudOrders.length > 0) {
-          const mappedOrders = cloudOrders.map((o: any) => ({
-            ...o,
-            subtotal: Number(o.subtotal),
-            total_amount: Number(o.total_amount),
-            cup_fee: Number(o.cup_fee || 0),
-            discount: Number(o.discount || 0),
-          }));
-          setOrders(mappedOrders);
-          localStorage.setItem('bubur_khalid_orders', JSON.stringify(mappedOrders));
+        if (!oErr && cloudOrders) {
+          const cleanCloudOrders = cloudOrders
+            .filter(
+              (o: any) =>
+                !['ord-on-025', 'ord-on-026', 'ord-on-027', 'ord-ot-012', 'ord-ot-013'].includes(o.id) &&
+                !['ON-025', 'ON-026', 'ON-027', 'OT-012', 'OT-013'].includes(o.queue_number)
+            )
+            .map((o: any) => ({
+              ...o,
+              subtotal: Number(o.subtotal || 0),
+              total_amount: Number(o.total_amount || 0),
+              cup_fee: Number(o.cup_fee || 0),
+              discount: Number(o.discount || 0),
+            }));
+          setOrders(cleanCloudOrders);
+          localStorage.setItem('bubur_khalid_orders', JSON.stringify(cleanCloudOrders));
         }
 
         // 4. Store Settings
@@ -1358,6 +1387,65 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
+  // Dynamic Financial Summary derived from real orders
+  const financialSummary = useMemo<FinancialSummary>(() => {
+    const today = new Date().toISOString().split('T')[0];
+    const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+
+    let today_revenue = 0;
+    let today_transactions = 0;
+    let today_online_revenue = 0;
+    let today_instore_revenue = 0;
+
+    let month_revenue = 0;
+    let month_transactions = 0;
+    let month_online_revenue = 0;
+    let month_instore_revenue = 0;
+
+    orders.forEach((o) => {
+      if (o.order_status === 'CANCELLED') return;
+      const dateStr = o.created_at ? o.created_at.split('T')[0] : '';
+      const isToday = dateStr === today;
+      const isMonth = dateStr.startsWith(currentMonth);
+
+      if (isToday) {
+        today_revenue += o.total_amount || 0;
+        today_transactions += 1;
+        if (o.queue_channel === 'ONLINE') {
+          today_online_revenue += o.total_amount || 0;
+        } else {
+          today_instore_revenue += o.total_amount || 0;
+        }
+      }
+
+      if (isMonth) {
+        month_revenue += o.total_amount || 0;
+        month_transactions += 1;
+        if (o.queue_channel === 'ONLINE') {
+          month_online_revenue += o.total_amount || 0;
+        } else {
+          month_instore_revenue += o.total_amount || 0;
+        }
+      }
+    });
+
+    const today_aov = today_transactions > 0 ? Math.round(today_revenue / today_transactions) : 0;
+
+    return {
+      today_revenue,
+      today_transactions,
+      today_online_revenue,
+      today_instore_revenue,
+      today_aov,
+      month_revenue,
+      month_transactions,
+      month_online_revenue,
+      month_instore_revenue,
+      refunds_total: 0,
+      net_revenue: month_revenue,
+    };
+  }, [orders]);
+
   return (
     <AppContext.Provider
       value={{
@@ -1415,7 +1503,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         signup,
         resetPassword,
         logout,
-        financialSummary: MOCK_FINANCIAL_SUMMARY,
+        financialSummary,
         isFinancialUnlocked,
         unlockFinancialGate,
         lockFinancialGate,

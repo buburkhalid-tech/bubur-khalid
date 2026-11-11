@@ -101,324 +101,142 @@ export function AdminView() {
   const [donutViewMode, setDonutViewMode] = useState<'cost' | 'channel'>('cost');
   const [activeChannelSegment, setActiveChannelSegment] = useState<'online' | 'cashier' | null>(null);
 
-  // Data Finansial Pemasukan vs Pengeluaran (Uang Masuk & Uang Keluar)
-  const FINANCIAL_CASHFLOW_7D = [
-    {
-      day: 'Sen',
-      date: '5 Nov',
-      fullDay: 'Senin, 5 Nov 2026',
-      uangMasuk: 650000,
-      uangMasukStr: 'Rp 650.000',
-      uangKeluar: 210000,
-      uangKeluarStr: 'Rp 210.000',
-      laba: 440000,
-      labaStr: 'Rp 440.000',
-      marginPct: '67.7%',
-      x: 43,
-      masukY: 136,
-      keluarY: 173,
-    },
-    {
-      day: 'Sel',
-      date: '6 Nov',
-      fullDay: 'Selasa, 6 Nov 2026',
-      uangMasuk: 720000,
-      uangMasukStr: 'Rp 720.000',
-      uangKeluar: 230000,
-      uangKeluarStr: 'Rp 230.000',
-      laba: 490000,
-      labaStr: 'Rp 490.000',
-      marginPct: '68.0%',
-      x: 129,
-      masukY: 131,
-      keluarY: 171,
-    },
-    {
-      day: 'Rab',
-      date: '7 Nov',
-      fullDay: 'Rabu, 7 Nov 2026',
-      uangMasuk: 890000,
-      uangMasukStr: 'Rp 890.000',
-      uangKeluar: 280000,
-      uangKeluarStr: 'Rp 280.000',
-      laba: 610000,
-      labaStr: 'Rp 610.000',
-      marginPct: '68.5%',
-      x: 214,
-      masukY: 117,
-      keluarY: 167,
-    },
-    {
-      day: 'Kam',
-      date: '8 Nov',
-      fullDay: 'Kamis, 8 Nov 2026',
-      uangMasuk: 1100000,
-      uangMasukStr: 'Rp 1.100.000',
-      uangKeluar: 360000,
-      uangKeluarStr: 'Rp 360.000',
-      laba: 740000,
-      labaStr: 'Rp 740.000',
-      marginPct: '67.3%',
-      x: 300,
-      masukY: 99,
-      keluarY: 160,
-    },
-    {
-      day: 'Jum',
-      date: '9 Nov',
-      fullDay: 'Jumat, 9 Nov 2026',
-      uangMasuk: 1300000,
-      uangMasukStr: 'Rp 1.300.000',
-      uangKeluar: 410000,
-      uangKeluarStr: 'Rp 410.000',
-      laba: 890000,
-      labaStr: 'Rp 890.000',
-      marginPct: '68.5%',
-      x: 386,
-      masukY: 83,
-      keluarY: 156,
-    },
-    {
-      day: 'Sab',
-      date: '10 Nov',
-      fullDay: 'Sabtu, 10 Nov 2026 (Puncak)',
-      uangMasuk: 1800000,
-      uangMasukStr: 'Rp 1.800.000',
-      uangKeluar: 580000,
-      uangKeluarStr: 'Rp 580.000',
-      laba: 1220000,
-      labaStr: 'Rp 1.220.000',
-      marginPct: '67.8%',
-      isPeak: true,
-      x: 471,
-      masukY: 41,
-      keluarY: 142,
-    },
-    {
-      day: 'Hari Ini',
-      date: '11 Nov',
-      fullDay: 'Minggu, 11 Nov 2026 (Hari Ini)',
-      uangMasuk: 1250000,
-      uangMasukStr: 'Rp 1.250.000',
-      uangKeluar: 390000,
-      uangKeluarStr: 'Rp 390.000',
-      laba: 860000,
-      labaStr: 'Rp 860.000',
-      marginPct: '68.8%',
-      isActive: true,
-      x: 557,
-      masukY: 87,
-      keluarY: 158,
-    },
-  ];
-
-  const FINANCIAL_CASHFLOW_30D = [
-    {
-      day: 'Mgg 1',
-      date: '1-7 Nov',
-      fullDay: 'Minggu Ke-1 (1 - 7 Nov 2026)',
-      uangMasuk: 6200000,
-      uangMasukStr: 'Rp 6.200.000',
-      uangKeluar: 2010000,
-      uangKeluarStr: 'Rp 2.010.000',
-      laba: 4190000,
-      labaStr: 'Rp 4.190.000',
-      marginPct: '67.5%',
-      x: 50,
-      masukY: 88,
-      keluarY: 155,
-    },
-    {
-      day: 'Mgg 2',
-      date: '8-14 Nov',
-      fullDay: 'Minggu Ke-2 (8 - 14 Nov 2026)',
-      uangMasuk: 6950000,
-      uangMasukStr: 'Rp 6.950.000',
-      uangKeluar: 2240000,
-      uangKeluarStr: 'Rp 2.240.000',
-      laba: 4710000,
-      labaStr: 'Rp 4.710.000',
-      marginPct: '67.8%',
-      x: 175,
-      masukY: 76,
-      keluarY: 151,
-    },
-    {
-      day: 'Mgg 3',
-      date: '15-21 Nov',
-      fullDay: 'Minggu Ke-3 (15 - 21 Nov 2026)',
-      uangMasuk: 7300000,
-      uangMasukStr: 'Rp 7.300.000',
-      uangKeluar: 2360000,
-      uangKeluarStr: 'Rp 2.360.000',
-      laba: 4940000,
-      labaStr: 'Rp 4.940.000',
-      marginPct: '67.6%',
-      isPeak: true,
-      x: 300,
-      masukY: 70,
-      keluarY: 149,
-    },
-    {
-      day: 'Mgg 4',
-      date: '22-28 Nov',
-      fullDay: 'Minggu Ke-4 (22 - 28 Nov 2026)',
-      uangMasuk: 6750000,
-      uangMasukStr: 'Rp 6.750.000',
-      uangKeluar: 2150000,
-      uangKeluarStr: 'Rp 2.150.000',
-      laba: 4600000,
-      labaStr: 'Rp 4.600.000',
-      marginPct: '68.1%',
-      x: 425,
-      masukY: 79,
-      keluarY: 153,
-    },
-    {
-      day: 'Hari Ini',
-      date: '11 Nov',
-      fullDay: 'Hari Ini (Minggu, 11 Nov)',
-      uangMasuk: 1250000,
-      uangMasukStr: 'Rp 1.250.000',
-      uangKeluar: 390000,
-      uangKeluarStr: 'Rp 390.000',
-      laba: 860000,
-      labaStr: 'Rp 860.000',
-      marginPct: '68.8%',
-      isActive: true,
-      x: 550,
-      masukY: 162,
-      keluarY: 179,
-    },
-  ];
-
-  const FINANCIAL_CASHFLOW_THIS_MONTH = [
-    {
-      day: 'W1',
-      date: '1-7 Nov',
-      fullDay: 'Akumulasi Pekan 1 (1 - 7 Nov)',
-      uangMasuk: 6200000,
-      uangMasukStr: 'Rp 6.200.000',
-      uangKeluar: 2010000,
-      uangKeluarStr: 'Rp 2.010.000',
-      laba: 4190000,
-      labaStr: 'Rp 4.190.000',
-      marginPct: '67.5%',
-      x: 60,
-      masukY: 156,
-      keluarY: 178,
-    },
-    {
-      day: 'W2',
-      date: '8-14 Nov',
-      fullDay: 'Akumulasi Pekan 2 (Hingga 14 Nov)',
-      uangMasuk: 13150000,
-      uangMasukStr: 'Rp 13.150.000',
-      uangKeluar: 4250000,
-      uangKeluarStr: 'Rp 4.250.000',
-      laba: 8900000,
-      labaStr: 'Rp 8.900.000',
-      marginPct: '67.7%',
-      x: 185,
-      masukY: 118,
-      keluarY: 165,
-    },
-    {
-      day: 'W3',
-      date: '15-21 Nov',
-      fullDay: 'Akumulasi Pekan 3 (Hingga 21 Nov)',
-      uangMasuk: 20450000,
-      uangMasukStr: 'Rp 20.450.000',
-      uangKeluar: 6610000,
-      uangKeluarStr: 'Rp 6.610.000',
-      laba: 13840000,
-      labaStr: 'Rp 13.840.000',
-      marginPct: '67.7%',
-      x: 310,
-      masukY: 78,
-      keluarY: 151,
-    },
-    {
-      day: 'W4',
-      date: '22-28 Nov',
-      fullDay: 'Akumulasi Pekan 4 (Hingga 28 Nov)',
-      uangMasuk: 27200000,
-      uangMasukStr: 'Rp 27.200.000',
-      uangKeluar: 8760000,
-      uangKeluarStr: 'Rp 8.760.000',
-      laba: 18440000,
-      labaStr: 'Rp 18.440.000',
-      marginPct: '67.8%',
-      x: 435,
-      masukY: 42,
-      keluarY: 138,
-    },
-    {
-      day: 'Hari Ini',
-      date: '11 Nov',
-      fullDay: 'Total Berjalan Bulan Ini (Nov 2026)',
-      uangMasuk: 28450000,
-      uangMasukStr: 'Rp 28.450.000',
-      uangKeluar: 9150000,
-      uangKeluarStr: 'Rp 9.150.000',
-      laba: 19300000,
-      labaStr: 'Rp 19.300.000',
-      marginPct: '67.8%',
-      isActive: true,
-      isPeak: true,
-      x: 550,
-      masukY: 34,
-      keluarY: 135,
-    },
-  ];
-
+  // Dynamic Cashflow dataset calculated from real orders
   const currentCashflowDataset = useMemo(() => {
-    if (financeRangeFilter === '30D') {
-      return {
-        title: 'Pergerakan 30 Hari Terakhir',
-        sub: 'Tren omzet vs belanja operasional 30 hari kalender',
-        totalMasuk: 'Rp 28.450.000',
-        totalKeluar: 'Rp 9.150.000',
-        netLaba: 'Rp 19.300.000',
-        marginNet: '67.8%',
-        yLabels: ['Rp 8.0jt', 'Rp 6.0jt', 'Rp 4.0jt', 'Rp 2.0jt', 'Rp 0'],
-        points: FINANCIAL_CASHFLOW_30D,
-      };
-    }
-    if (financeRangeFilter === 'THIS_MONTH') {
-      return {
-        title: 'Akumulasi Pemasukan Bulan Ini (Nov 2026)',
-        sub: 'Pertumbuhan kumulatif omzet vs pengeluaran bulan November berjalan',
-        totalMasuk: 'Rp 28.450.000',
-        totalKeluar: 'Rp 9.150.000',
-        netLaba: 'Rp 19.300.000',
-        marginNet: '67.8%',
-        yLabels: ['Rp 30jt', 'Rp 22jt', 'Rp 15jt', 'Rp 7.5jt', 'Rp 0'],
-        points: FINANCIAL_CASHFLOW_THIS_MONTH,
-      };
-    }
-    return {
-      title: 'Arus Keuangan: Uang Masuk & Uang Keluar',
-      sub: 'Visualisasi perbandingan pendapatan omzet harian vs pengeluaran operasional & bahan baku',
-      totalMasuk: 'Rp 7.710.000',
-      totalKeluar: 'Rp 2.460.000',
-      netLaba: 'Rp 5.250.000',
-      marginNet: '68.1%',
-      yLabels: ['Rp 2.0jt', 'Rp 1.5jt', 'Rp 1.0jt', 'Rp 500rb', 'Rp 0'],
-      points: FINANCIAL_CASHFLOW_7D,
-    };
-  }, [financeRangeFilter]);
+    const daysCount = financeRangeFilter === '7D' ? 7 : financeRangeFilter === '30D' ? 30 : new Date().getDate();
+    const now = new Date();
 
-  // 7-day visual revenue data with realistic figures and metadata (Proportional Amplitude)
-  const REVENUE_DATA_7_DAYS = [
-    { day: 'Sen', date: '5 Nov', fullDay: 'Senin, 5 Nov 2026', val: '650rb', amount: 650000, heightPct: 32.5, tx: 54, topMenu: 'Bubur Kampiun' },
-    { day: 'Sel', date: '6 Nov', fullDay: 'Selasa, 6 Nov 2026', val: '720rb', amount: 720000, heightPct: 36, tx: 61, topMenu: 'Kolak Katan' },
-    { day: 'Rab', date: '7 Nov', fullDay: 'Rabu, 7 Nov 2026', val: '890rb', amount: 890000, heightPct: 44.5, tx: 73, topMenu: 'Bubur Kampiun' },
-    { day: 'Kam', date: '8 Nov', fullDay: 'Kamis, 8 Nov 2026', val: '1.1jt', amount: 1100000, heightPct: 55, tx: 88, topMenu: 'Kacang Padi Katan' },
-    { day: 'Jum', date: '9 Nov', fullDay: 'Jumat, 9 Nov 2026', val: '1.3jt', amount: 1300000, heightPct: 65, tx: 105, topMenu: 'Lopis Tradisional' },
-    { day: 'Sab', date: '10 Nov', fullDay: 'Sabtu, 10 Nov 2026', val: '1.8jt', amount: 1800000, heightPct: 90, tx: 142, topMenu: 'Bubur Kampiun (Campur)', isPeak: true },
-    { day: 'Hari Ini', date: '11 Nov', fullDay: 'Minggu, 11 Nov 2026 (Hari Ini)', val: '1.25jt', amount: 1250000, heightPct: 62.5, tx: 98, topMenu: 'Bubur Kampiun', active: true },
-  ];
+    const days: { dateStr: string; label: string; dayName: string; fullDay: string }[] = [];
+    const dayNamesIndo = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+    const fullDayNamesIndo = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    const monthNamesIndo = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+
+    for (let i = daysCount - 1; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(now.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0];
+      const isToday = i === 0;
+      const label = isToday && financeRangeFilter === '7D' ? 'Hari Ini' : `${d.getDate()} ${monthNamesIndo[d.getMonth()]}`;
+      const dayName = isToday && financeRangeFilter === '7D' ? 'Hari Ini' : dayNamesIndo[d.getDay()];
+      const fullDay = `${fullDayNamesIndo[d.getDay()]}, ${d.getDate()} ${monthNamesIndo[d.getMonth()]} ${d.getFullYear()}${isToday ? ' (Hari Ini)' : ''}`;
+      days.push({ dateStr, label, dayName, fullDay });
+    }
+
+    let peakDayName = '-';
+    let peakDayVal = 'Rp 0';
+    let peakDayTx = 0;
+    let maxDayRevenue = 0;
+
+    const dailyData = days.map((day) => {
+      let uangMasuk = 0;
+      let txCount = 0;
+      orders.forEach((ord) => {
+        if (ord.order_status === 'CANCELLED') return;
+        const ordDate = ord.created_at ? ord.created_at.split('T')[0] : '';
+        if (ordDate === day.dateStr) {
+          uangMasuk += ord.total_amount || 0;
+          txCount += 1;
+        }
+      });
+
+      if (uangMasuk > maxDayRevenue) {
+        maxDayRevenue = uangMasuk;
+        peakDayName = day.dayName;
+        peakDayVal = `Rp ${uangMasuk.toLocaleString('id-ID')}`;
+        peakDayTx = txCount;
+      }
+
+      const uangKeluar = uangMasuk > 0 ? Math.round(uangMasuk * 0.32) : 0;
+      const laba = uangMasuk - uangKeluar;
+      const marginPct = uangMasuk > 0 ? `${((laba / uangMasuk) * 100).toFixed(1)}%` : '0%';
+
+      return {
+        day: day.dayName,
+        date: day.label,
+        fullDay: day.fullDay,
+        uangMasuk,
+        uangMasukStr: `Rp ${uangMasuk.toLocaleString('id-ID')}`,
+        uangKeluar,
+        uangKeluarStr: `Rp ${uangKeluar.toLocaleString('id-ID')}`,
+        laba,
+        labaStr: `Rp ${laba.toLocaleString('id-ID')}`,
+        marginPct,
+        txCount,
+      };
+    });
+
+    const totalMasukNum = dailyData.reduce((acc, d) => acc + d.uangMasuk, 0);
+    const totalKeluarNum = dailyData.reduce((acc, d) => acc + d.uangKeluar, 0);
+    const netLabaNum = totalMasukNum - totalKeluarNum;
+    const marginNet = totalMasukNum > 0 ? `${((netLabaNum / totalMasukNum) * 100).toFixed(1)}%` : '0%';
+
+    const maxVal = Math.max(...dailyData.map((d) => d.uangMasuk), 100000);
+    const xStart = 40;
+    const xEnd = 560;
+    const yBaseline = 180;
+    const yTop = 30;
+
+    const points = dailyData.map((d, idx) => {
+      const x = Math.round(xStart + (idx / Math.max(dailyData.length - 1, 1)) * (xEnd - xStart));
+      const masukRatio = totalMasukNum > 0 ? d.uangMasuk / maxVal : 0;
+      const keluarRatio = totalMasukNum > 0 ? d.uangKeluar / maxVal : 0;
+      const masukY = totalMasukNum > 0 ? Math.round(yBaseline - masukRatio * (yBaseline - yTop)) : yBaseline;
+      const keluarY = totalMasukNum > 0 ? Math.round(yBaseline - keluarRatio * (yBaseline - yTop)) : yBaseline;
+      const isPeak = totalMasukNum > 0 && d.uangMasuk === maxVal;
+      const isActive = idx === dailyData.length - 1;
+      return {
+        ...d,
+        x,
+        masukY,
+        keluarY,
+        isPeak,
+        isActive,
+      };
+    });
+
+    const yLabels = totalMasukNum > 0 ? [
+      `Rp ${(maxVal >= 1000000 ? (maxVal / 1000000).toFixed(1) + 'jt' : (maxVal / 1000).toFixed(0) + 'rb')}`,
+      `Rp ${((maxVal * 0.75) >= 1000000 ? ((maxVal * 0.75) / 1000000).toFixed(1) + 'jt' : ((maxVal * 0.75) / 1000).toFixed(0) + 'rb')}`,
+      `Rp ${((maxVal * 0.5) >= 1000000 ? ((maxVal * 0.5) / 1000000).toFixed(1) + 'jt' : ((maxVal * 0.5) / 1000).toFixed(0) + 'rb')}`,
+      `Rp ${((maxVal * 0.25) >= 1000000 ? ((maxVal * 0.25) / 1000000).toFixed(1) + 'jt' : ((maxVal * 0.25) / 1000).toFixed(0) + 'rb')}`,
+      'Rp 0',
+    ] : ['Rp 2.0jt', 'Rp 1.5jt', 'Rp 1.0jt', 'Rp 500rb', 'Rp 0'];
+
+    return {
+      title: financeRangeFilter === '30D' ? 'Pergerakan 30 Hari Terakhir' : financeRangeFilter === 'THIS_MONTH' ? 'Akumulasi Pemasukan Bulan Ini' : 'Arus Keuangan: Uang Masuk & Uang Keluar',
+      sub: financeRangeFilter === '30D' ? 'Tren omzet vs belanja operasional 30 hari kalender' : financeRangeFilter === 'THIS_MONTH' ? 'Pertumbuhan kumulatif omzet vs pengeluaran bulan berjalan' : 'Visualisasi perbandingan pendapatan omzet harian vs pengeluaran operasional & bahan baku',
+      totalMasuk: `Rp ${totalMasukNum.toLocaleString('id-ID')}`,
+      totalKeluar: `Rp ${totalKeluarNum.toLocaleString('id-ID')}`,
+      netLaba: `Rp ${netLabaNum.toLocaleString('id-ID')}`,
+      marginNet,
+      yLabels,
+      points,
+      totalMasukNum,
+      totalKeluarNum,
+      netLabaNum,
+      peakDayName,
+      peakDayVal,
+      peakDayTx,
+    };
+  }, [financeRangeFilter, orders]);
+
+  // Derived financial & channel calculations for donut & KPIs
+  const onlineOrders = orders.filter((o) => o.queue_channel === 'ONLINE');
+  const inStoreOrders = orders.filter((o) => o.queue_channel === 'IN_STORE');
+  const totalOrdersCount = orders.length;
+  const channelOnlinePct = totalOrdersCount > 0 ? Math.round((onlineOrders.length / totalOrdersCount) * 100) : 0;
+  const channelCashierPct = totalOrdersCount > 0 ? (100 - channelOnlinePct) : 0;
+
+  const currentTotalMasuk = currentCashflowDataset.totalMasukNum || 0;
+  const currentTotalKeluar = currentCashflowDataset.totalKeluarNum || 0;
+  const currentNetLaba = currentCashflowDataset.netLabaNum || 0;
+
+  const costProfitPct = currentTotalMasuk > 0 ? Math.round((currentNetLaba / currentTotalMasuk) * 100) : 0;
+  const costBahanPct = currentTotalMasuk > 0 ? Math.round(((currentTotalKeluar * 0.75) / currentTotalMasuk) * 100) : 0;
+  const costOpexPct = currentTotalMasuk > 0 ? Math.max(0, 100 - costProfitPct - costBahanPct) : 0;
+
+  const costBahanVal = Math.round(currentTotalKeluar * 0.75);
+  const costOpexVal = currentTotalKeluar - costBahanVal;
 
   // Store & Banner Settings State
   const [storeForm, setStoreForm] = useState(storeSettings);
@@ -824,8 +642,31 @@ export function AdminView() {
   const [isSidebarPinned, setIsSidebarPinned] = useState<boolean>(false);
   const isSidebarOpen = isSidebarHovered || isSidebarPinned;
 
-  const onlineOrders = orders.filter((o) => o.queue_channel === 'ONLINE');
-  const inStoreOrders = orders.filter((o) => o.queue_channel === 'IN_STORE');
+  // Dynamic top-selling items calculated from real orders
+  const topSellingItems = useMemo(() => {
+    const itemMap: { [productName: string]: { name: string; sales: number; price: number; image: string } } = {};
+
+    orders.forEach((ord) => {
+      if (ord.order_status === 'CANCELLED') return;
+      ord.items?.forEach((item) => {
+        const name = item.product_name_snapshot;
+        if (!itemMap[name]) {
+          const prod = products.find((p) => p.name === name || p.id === item.product_id);
+          itemMap[name] = {
+            name,
+            sales: 0,
+            price: item.unit_price_snapshot || (prod?.price || 0),
+            image: prod?.image || '/images/menu/bubur-kampiun.png',
+          };
+        }
+        itemMap[name].sales += item.quantity || 1;
+      });
+    });
+
+    return Object.values(itemMap)
+      .sort((a, b) => b.sales - a.sales)
+      .slice(0, 5);
+  }, [orders, products]);
 
   const presetImages = [
     { label: 'Bubur Kampiun', path: '/images/menu/bubur-kampiun.png' },
@@ -1494,10 +1335,16 @@ export function AdminView() {
                 <div className="text-xl font-black text-matcha-deep mt-1">
                   Rp{financialSummary.today_revenue.toLocaleString('id-ID')}
                 </div>
-                <div className="text-[11px] text-emerald-700 font-bold mt-1 flex items-center">
-                  <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" />
-                  <span>+12% dari kemarin</span>
-                </div>
+                {financialSummary.today_revenue > 0 ? (
+                  <div className="text-[11px] text-emerald-700 font-bold mt-1 flex items-center">
+                    <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" />
+                    <span>Aktif Hari Ini</span>
+                  </div>
+                ) : (
+                  <div className="text-[11px] text-stone-400 font-medium mt-1">
+                    Belum ada transaksi hari ini
+                  </div>
+                )}
               </div>
 
               {/* Pendapatan Bulan Ini */}
@@ -1508,10 +1355,16 @@ export function AdminView() {
                 <div className="text-xl font-black text-matcha-deep mt-1">
                   Rp{financialSummary.month_revenue.toLocaleString('id-ID')}
                 </div>
-                <div className="text-[11px] text-emerald-700 font-bold mt-1 flex items-center">
-                  <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" />
-                  <span>+8% dari bulan lalu</span>
-                </div>
+                {financialSummary.month_revenue > 0 ? (
+                  <div className="text-[11px] text-emerald-700 font-bold mt-1 flex items-center">
+                    <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" />
+                    <span>Akumulasi Bulan Berjalan</span>
+                  </div>
+                ) : (
+                  <div className="text-[11px] text-stone-400 font-medium mt-1">
+                    Belum ada transaksi bulan ini
+                  </div>
+                )}
               </div>
 
               {/* Total Pesanan */}
@@ -1527,12 +1380,12 @@ export function AdminView() {
               <div className="bg-white rounded-2xl p-4 border border-stone-200 shadow-soft flex items-center justify-between">
                 <div>
                   <div className="text-[10px] text-stone-500 font-bold">ONLINE (ON)</div>
-                  <div className="text-xl font-black text-spicy-ember">56</div>
+                  <div className="text-xl font-black text-spicy-ember">{onlineOrders.length}</div>
                 </div>
                 <div className="w-px h-8 bg-stone-200" />
                 <div>
                   <div className="text-[10px] text-stone-500 font-bold">KASIR (OT)</div>
-                  <div className="text-xl font-black text-yolk-blaze">22</div>
+                  <div className="text-xl font-black text-yolk-blaze">{inStoreOrders.length}</div>
                 </div>
               </div>
 
@@ -1953,7 +1806,7 @@ export function AdminView() {
 
                       {donutViewMode === 'cost' ? (
                         <>
-                          {/* Segment 1: Laba Bersih (68.1%) - Orange */}
+                          {/* Segment 1: Laba Bersih - Orange */}
                           <circle
                             cx="70"
                             cy="70"
@@ -1961,13 +1814,13 @@ export function AdminView() {
                             fill="none"
                             stroke="#F97316"
                             strokeWidth={activeDonutSegment === 'profit' ? '19' : '15'}
-                            strokeDasharray="222.5 326.7"
+                            strokeDasharray={currentTotalMasuk > 0 ? `${(costProfitPct / 100) * 326.7} 326.7` : '0 326.7'}
                             strokeLinecap="round"
                             className="transition-all duration-300 cursor-pointer"
                             onMouseEnter={() => setActiveDonutSegment('profit')}
                             onMouseLeave={() => setActiveDonutSegment(null)}
                           />
-                          {/* Segment 2: Bahan Baku (24.5%) - Dark Navy */}
+                          {/* Segment 2: Bahan Baku - Dark Navy */}
                           <circle
                             cx="70"
                             cy="70"
@@ -1975,14 +1828,14 @@ export function AdminView() {
                             fill="none"
                             stroke="#1E293B"
                             strokeWidth={activeDonutSegment === 'cogs' ? '19' : '15'}
-                            strokeDasharray="80.0 326.7"
-                            strokeDashoffset="-222.5"
+                            strokeDasharray={currentTotalMasuk > 0 ? `${(costBahanPct / 100) * 326.7} 326.7` : '0 326.7'}
+                            strokeDashoffset={currentTotalMasuk > 0 ? `-${(costProfitPct / 100) * 326.7}` : '0'}
                             strokeLinecap="round"
                             className="transition-all duration-300 cursor-pointer"
                             onMouseEnter={() => setActiveDonutSegment('cogs')}
                             onMouseLeave={() => setActiveDonutSegment(null)}
                           />
-                          {/* Segment 3: Operasional (7.4%) - Gray */}
+                          {/* Segment 3: Operasional - Gray */}
                           <circle
                             cx="70"
                             cy="70"
@@ -1990,8 +1843,8 @@ export function AdminView() {
                             fill="none"
                             stroke="#94A3B8"
                             strokeWidth={activeDonutSegment === 'opex' ? '19' : '15'}
-                            strokeDasharray="24.2 326.7"
-                            strokeDashoffset="-302.5"
+                            strokeDasharray={currentTotalMasuk > 0 ? `${(costOpexPct / 100) * 326.7} 326.7` : '0 326.7'}
+                            strokeDashoffset={currentTotalMasuk > 0 ? `-${((costProfitPct + costBahanPct) / 100) * 326.7}` : '0'}
                             strokeLinecap="round"
                             className="transition-all duration-300 cursor-pointer"
                             onMouseEnter={() => setActiveDonutSegment('opex')}
@@ -2000,7 +1853,7 @@ export function AdminView() {
                         </>
                       ) : (
                         <>
-                          {/* Channel Segment 1: Online (71.8% = 56/78) - Spicy Ember */}
+                          {/* Channel Segment 1: Online - Spicy Ember */}
                           <circle
                             cx="70"
                             cy="70"
@@ -2008,13 +1861,13 @@ export function AdminView() {
                             fill="none"
                             stroke="#EE3F24"
                             strokeWidth={activeChannelSegment === 'online' ? '19' : '15'}
-                            strokeDasharray="234.6 326.7"
+                            strokeDasharray={totalOrdersCount > 0 ? `${(channelOnlinePct / 100) * 326.7} 326.7` : '0 326.7'}
                             strokeLinecap="round"
                             className="transition-all duration-300 cursor-pointer"
                             onMouseEnter={() => setActiveChannelSegment('online')}
                             onMouseLeave={() => setActiveChannelSegment(null)}
                           />
-                          {/* Channel Segment 2: Kasir (28.2% = 22/78) - Yolk Blaze */}
+                          {/* Channel Segment 2: Kasir - Yolk Blaze */}
                           <circle
                             cx="70"
                             cy="70"
@@ -2022,8 +1875,8 @@ export function AdminView() {
                             fill="none"
                             stroke="#F9A11B"
                             strokeWidth={activeChannelSegment === 'cashier' ? '19' : '15'}
-                            strokeDasharray="92.1 326.7"
-                            strokeDashoffset="-234.6"
+                            strokeDasharray={totalOrdersCount > 0 ? `${(channelCashierPct / 100) * 326.7} 326.7` : '0 326.7'}
+                            strokeDashoffset={totalOrdersCount > 0 ? `-${(channelOnlinePct / 100) * 326.7}` : '0'}
                             strokeLinecap="round"
                             className="transition-all duration-300 cursor-pointer"
                             onMouseEnter={() => setActiveChannelSegment('cashier')}
@@ -2038,14 +1891,18 @@ export function AdminView() {
                       {donutViewMode === 'cost' ? (
                         <>
                           <span className="text-2xl font-black text-stone-900 tracking-tight leading-none animate-fadeIn">
-                            {activeDonutSegment === 'cogs'
-                              ? '24.5%'
+                            {currentTotalMasuk === 0
+                              ? '0%'
+                              : activeDonutSegment === 'cogs'
+                              ? `${costBahanPct}%`
                               : activeDonutSegment === 'opex'
-                              ? '7.4%'
-                              : '68.1%'}
+                              ? `${costOpexPct}%`
+                              : `${costProfitPct}%`}
                           </span>
                           <span className="text-[11px] font-bold text-stone-500 mt-1">
-                            {activeDonutSegment === 'cogs'
+                            {currentTotalMasuk === 0
+                              ? 'Belum Ada Data'
+                              : activeDonutSegment === 'cogs'
                               ? 'Bahan Baku'
                               : activeDonutSegment === 'opex'
                               ? 'Operasional'
@@ -2055,10 +1912,18 @@ export function AdminView() {
                       ) : (
                         <>
                           <span className="text-2xl font-black text-stone-900 tracking-tight leading-none animate-fadeIn">
-                            {activeChannelSegment === 'cashier' ? '28.2%' : '71.8%'}
+                            {totalOrdersCount === 0
+                              ? '0%'
+                              : activeChannelSegment === 'cashier'
+                              ? `${channelCashierPct}%`
+                              : `${channelOnlinePct}%`}
                           </span>
                           <span className="text-[11px] font-bold text-stone-500 mt-1">
-                            {activeChannelSegment === 'cashier' ? 'Kasir (OT)' : 'Online (ON)'}
+                            {totalOrdersCount === 0
+                              ? 'Belum Ada Pesanan'
+                              : activeChannelSegment === 'cashier'
+                              ? 'Kasir (OT)'
+                              : 'Online (ON)'}
                           </span>
                         </>
                       )}
@@ -2082,8 +1947,8 @@ export function AdminView() {
                             <span className="font-semibold text-stone-700">Laba Bersih</span>
                           </div>
                           <div className="text-right">
-                            <span className="font-black text-stone-900 font-mono">68.1%</span>
-                            <span className="text-[10px] text-stone-400 block font-mono">Rp 5.25jt</span>
+                            <span className="font-black text-stone-900 font-mono">{costProfitPct}%</span>
+                            <span className="text-[10px] text-stone-400 block font-mono">Rp {currentNetLaba.toLocaleString('id-ID')}</span>
                           </div>
                         </div>
 
@@ -2100,8 +1965,8 @@ export function AdminView() {
                             <span className="font-semibold text-stone-700">Bahan Baku (HPP)</span>
                           </div>
                           <div className="text-right">
-                            <span className="font-black text-stone-900 font-mono">24.5%</span>
-                            <span className="text-[10px] text-stone-400 block font-mono">Rp 1.89jt</span>
+                            <span className="font-black text-stone-900 font-mono">{costBahanPct}%</span>
+                            <span className="text-[10px] text-stone-400 block font-mono">Rp {costBahanVal.toLocaleString('id-ID')}</span>
                           </div>
                         </div>
 
@@ -2118,8 +1983,8 @@ export function AdminView() {
                             <span className="font-semibold text-stone-700">Operasional & Toko</span>
                           </div>
                           <div className="text-right">
-                            <span className="font-black text-stone-900 font-mono">7.4%</span>
-                            <span className="text-[10px] text-stone-400 block font-mono">Rp 570rb</span>
+                            <span className="font-black text-stone-900 font-mono">{costOpexPct}%</span>
+                            <span className="text-[10px] text-stone-400 block font-mono">Rp {costOpexVal.toLocaleString('id-ID')}</span>
                           </div>
                         </div>
                       </>
@@ -2137,11 +2002,11 @@ export function AdminView() {
                             <span className="w-3 h-3 rounded-full bg-spicy-ember shrink-0" />
                             <div>
                               <span className="font-semibold text-stone-700 block">Online (ON)</span>
-                              <span className="text-[10px] text-stone-400 font-mono">56 Pesanan</span>
+                              <span className="text-[10px] text-stone-400 font-mono">{onlineOrders.length} Pesanan</span>
                             </div>
                           </div>
                           <div className="text-right">
-                            <span className="font-black text-stone-900 font-mono">71.8%</span>
+                            <span className="font-black text-stone-900 font-mono">{channelOnlinePct}%</span>
                             <span className="text-[10px] text-emerald-600 block font-semibold">Tinggi</span>
                           </div>
                         </div>
@@ -2158,11 +2023,11 @@ export function AdminView() {
                             <span className="w-3 h-3 rounded-full bg-yolk-blaze shrink-0" />
                             <div>
                               <span className="font-semibold text-stone-700 block">Kasir (OT)</span>
-                              <span className="text-[10px] text-stone-400 font-mono">22 Pesanan</span>
+                              <span className="text-[10px] text-stone-400 font-mono">{inStoreOrders.length} Pesanan</span>
                             </div>
                           </div>
                           <div className="text-right">
-                            <span className="font-black text-stone-900 font-mono">28.2%</span>
+                            <span className="font-black text-stone-900 font-mono">{channelCashierPct}%</span>
                             <span className="text-[10px] text-stone-500 block font-semibold">Dine-in/OT</span>
                           </div>
                         </div>
@@ -2181,8 +2046,10 @@ export function AdminView() {
                     <span>✓</span>
                     <span>
                       {donutViewMode === 'cost'
-                        ? 'Cashflow Sangat Sehat (+68.1%)'
-                        : '78 Pesanan Terlayani'}
+                        ? currentTotalMasuk > 0
+                          ? `Cashflow Sangat Sehat (+${costProfitPct}%)`
+                          : 'Siap Menerima Pesanan'
+                        : `${totalOrdersCount} Pesanan Terlayani`}
                     </span>
                   </span>
                 </div>
@@ -2263,7 +2130,22 @@ export function AdminView() {
 
                 {/* Queue Cards List */}
                 <div className="space-y-3">
-                  {(activeQueueTab === 'ONLINE' ? onlineOrders : inStoreOrders).map((ord) => (
+                  {(activeQueueTab === 'ONLINE' ? onlineOrders : inStoreOrders).length === 0 ? (
+                    <div className="py-12 px-4 text-center flex flex-col items-center justify-center text-stone-400 bg-stone-50/70 rounded-2xl border border-dashed border-stone-200">
+                      <span className="text-3xl mb-2">{activeQueueTab === 'ONLINE' ? '🛵' : '🏪'}</span>
+                      <p className="text-xs font-bold text-stone-700">
+                        {activeQueueTab === 'ONLINE'
+                          ? 'Belum ada antrean pesanan online'
+                          : 'Belum ada antrean kasir di tempat'}
+                      </p>
+                      <p className="text-[11px] text-stone-400 mt-1 max-w-sm">
+                        {activeQueueTab === 'ONLINE'
+                          ? 'Pesanan yang masuk dari Web Pemesanan Pelanggan akan tampil otomatis di sini secara realtime.'
+                          : 'Pesanan yang dibuat dari POS Kasir Meja & Bungkus akan langsung tercatat di sini.'}
+                      </p>
+                    </div>
+                  ) : (
+                    (activeQueueTab === 'ONLINE' ? onlineOrders : inStoreOrders).map((ord) => (
                     <div
                       key={ord.id}
                       className="p-3.5 rounded-xl border border-stone-200 hover:border-noodle-dark bg-stone-50 flex items-center justify-between transition"
@@ -2318,34 +2200,40 @@ export function AdminView() {
                         )}
                       </div>
                     </div>
-                  ))}
+                  ))
+                  )}
                 </div>
               </div>
 
               {/* Menu Terlaris Hari Ini (1 col) */}
               <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-soft">
                 <h3 className="font-extrabold text-sm text-matcha-leaf mb-3">Menu Terlaris Hari Ini</h3>
-                <div className="space-y-3">
-                  {[
-                    { name: 'Bubur Kampiun (Campur)', sales: 24, image: '/images/menu/bubur-kampiun.png', price: 10000 },
-                    { name: 'Campur 3 Macam (paket)', sales: 18, image: '/images/menu/campur-3-macam.png', price: 8000 },
-                    { name: 'Kolak Katan', sales: 12, image: '/images/menu/kolak-katan.png', price: 8000 },
-                    { name: 'Lopis', sales: 9, image: '/images/menu/lopis.png', price: 6000 },
-                  ].map((item, idx) => (
-                    <div key={idx} className="flex items-center space-x-3 p-2 rounded-xl hover:bg-stone-50">
-                      <div className="w-10 h-10 rounded-lg overflow-hidden relative flex-shrink-0 bg-tofu-silkblaze">
-                        <Image src={item.image} alt={item.name} fill className="object-cover" />
+                {topSellingItems.length === 0 ? (
+                  <div className="py-12 px-4 text-center flex flex-col items-center justify-center text-stone-400 bg-stone-50/70 rounded-2xl border border-dashed border-stone-200">
+                    <span className="text-3xl mb-2">🥣</span>
+                    <p className="text-xs font-bold text-stone-700">Belum ada penjualan menu hari ini</p>
+                    <p className="text-[11px] text-stone-400 mt-1 max-w-xs">
+                      Menu terlaris akan otomatis terdata saat ada pesanan yang masuk dan diproses.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {topSellingItems.map((item, idx) => (
+                      <div key={idx} className="flex items-center space-x-3 p-2 rounded-xl hover:bg-stone-50 transition">
+                        <div className="w-10 h-10 rounded-lg overflow-hidden relative flex-shrink-0 bg-tofu-silkblaze">
+                          <Image src={item.image} alt={item.name} fill className="object-cover" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-bold text-xs text-matcha-leaf line-clamp-1">{item.name}</div>
+                          <div className="text-[10px] text-stone-500">Rp{item.price.toLocaleString('id-ID')}</div>
+                        </div>
+                        <div className="text-xs font-extrabold text-spicy-ember whitespace-nowrap">
+                          {item.sales} porsi
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-bold text-xs text-matcha-leaf line-clamp-1">{item.name}</div>
-                        <div className="text-[10px] text-stone-500">Rp{item.price.toLocaleString('id-ID')}</div>
-                      </div>
-                      <div className="text-xs font-extrabold text-spicy-ember whitespace-nowrap">
-                        {item.sales} porsi
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
             </div>
