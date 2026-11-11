@@ -112,6 +112,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       } else if (hostname.includes('admin') || hostname.includes('kasir') || process.env.NEXT_PUBLIC_DEFAULT_VIEW === 'admin') {
         setActiveView('admin');
       }
+
+      // Deteksi Meja dari URL Barcode Scan Meja (misal: ?table=Meja 01 atau ?table=01)
+      const tableParam = params.get('table') || params.get('meja');
+      if (tableParam) {
+        const decodedTable = decodeURIComponent(tableParam);
+        const formattedTable = decodedTable.toLowerCase().startsWith('meja')
+          ? decodedTable
+          : `Meja ${decodedTable.padStart(2, '0')}`;
+        setSelectedTable(formattedTable);
+        setCustomerServiceType('DINE_IN');
+      }
     }
   }, []);
   const [customerServiceType, setCustomerServiceType] = useState<'DINE_IN' | 'TAKEAWAY'>('TAKEAWAY');

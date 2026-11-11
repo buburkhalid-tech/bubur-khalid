@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
+import QRCode from 'qrcode';
 import { useApp } from '@/lib/store/AppContext';
 import { Product, SystemUser, UserRole, TableInfo, PromoBanner } from '@/lib/types';
 import { parseImageUrl, isGoogleDriveLink } from '@/lib/utils/image';
@@ -432,6 +433,128 @@ export function AdminView() {
   const [tableActiveInput, setTableActiveInput] = useState<boolean>(true);
   const [deletingTable, setDeletingTable] = useState<TableInfo | null>(null);
   const [viewingQrTable, setViewingQrTable] = useState<TableInfo | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string>('');
+
+  useEffect(() => {
+    if (viewingQrTable) {
+      const customerUrl = `https://bubur-khalid.vercel.app/?table=${encodeURIComponent(viewingQrTable.table_number)}`;
+      QRCode.toDataURL(customerUrl, {
+        width: 400,
+        margin: 2,
+        color: {
+          dark: '#023820',
+          light: '#ffffff',
+        },
+      })
+        .then((url) => setQrDataUrl(url))
+        .catch((err) => console.error('Error generating QR code:', err));
+    } else {
+      setQrDataUrl('');
+    }
+  }, [viewingQrTable]);
+
+  const handlePrintSticker = () => {
+    if (!qrDataUrl || !viewingQrTable) return;
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      window.print();
+      return;
+    }
+    const customerUrl = `https://bubur-khalid.vercel.app/?table=${encodeURIComponent(viewingQrTable.table_number)}`;
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Stiker QR ${viewingQrTable.table_number} - Bubur Khalid</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              min-height: 100vh;
+              margin: 0;
+              background: #FFF4E6;
+            }
+            .sticker {
+              border: 3px solid #023820;
+              border-radius: 24px;
+              padding: 28px 24px;
+              text-align: center;
+              background: white;
+              width: 280px;
+              box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+            }
+            .brand {
+              font-size: 16px;
+              font-weight: 900;
+              color: #023820;
+              margin-bottom: 4px;
+              letter-spacing: 1px;
+            }
+            .tagline {
+              font-size: 10px;
+              color: #666;
+              margin-bottom: 12px;
+            }
+            .qr-img {
+              width: 220px;
+              height: 220px;
+              margin: 0 auto;
+              display: block;
+              border-radius: 12px;
+            }
+            .table-title {
+              font-size: 20px;
+              font-weight: 900;
+              color: #EE3F24;
+              margin-top: 12px;
+            }
+            .instruction {
+              font-size: 12px;
+              font-weight: bold;
+              color: #023820;
+              margin-top: 4px;
+            }
+            .url {
+              font-size: 10px;
+              color: #888;
+              margin-top: 6px;
+              word-break: break-all;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="sticker">
+            <div class="brand">🥣 BUBUR KHALID</div>
+            <div class="tagline">Asli Minang • Hangat & Gurih</div>
+            <img class="qr-img" src="${qrDataUrl}" alt="QR Code" />
+            <div class="table-title">${viewingQrTable.table_number}</div>
+            <div class="instruction">Pindai untuk Pesan Menu</div>
+            <div class="url">${customerUrl}</div>
+          </div>
+          <script>
+            window.onload = function() {
+              window.print();
+              window.close();
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
+  const handleDownloadQrPng = () => {
+    if (!qrDataUrl || !viewingQrTable) return;
+    const a = document.createElement('a');
+    a.href = qrDataUrl;
+    a.download = `QR-Code-${viewingQrTable.table_number.replace(/\s+/g, '-')}-Bubur-Khalid.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    showToast(`QR Code untuk ${viewingQrTable.table_number} berhasil diunduh!`);
+  };
 
   // Promo Banners Management State (CRUD: Tambah, Edit, Hapus, Toggle, Preview)
   const [isPromoModalOpen, setIsPromoModalOpen] = useState<boolean>(false);
@@ -4263,16 +4386,29 @@ export function AdminView() {
 
             {/* Printable QR Sticker Preview */}
             <div className="bg-tofu-silkblaze p-5 rounded-2xl border-2 border-dashed border-stone-300 space-y-3 shadow-inner">
-              <div className="flex items-center justify-center space-x-1.5 text-xs font-black text-matcha-leaf">
-                <span>🥣</span>
+              <div className="flex items-center justify-center space-x-2 text-xs font-black text-matcha-leaf">
+                <div className="w-5 h-5 rounded-full overflow-hidden relative border border-stone-200">
+                  <Image src={storeSettings.storeLogo || '/images/logo/bubur-khalid-logo.png'} alt="Logo" fill className="object-cover" />
+                </div>
                 <span>BUBUR KHALID</span>
               </div>
-              <div className="w-40 h-40 bg-white rounded-2xl mx-auto p-3 shadow-md border border-stone-200 flex flex-col items-center justify-center">
-                <QrCode className="w-28 h-28 text-matcha-leaf" />
-                <span className="text-[9px] font-mono text-stone-400 mt-1">{viewingQrTable.qr_token}</span>
+              <div className="w-48 h-48 bg-white rounded-2xl mx-auto p-3 shadow-md border border-stone-200 flex flex-col items-center justify-center">
+                {qrDataUrl ? (
+                  <img src={qrDataUrl} alt={`QR Code ${viewingQrTable.table_number}`} className="w-40 h-40 object-contain rounded-lg" />
+                ) : (
+                  <div className="w-40 h-40 flex items-center justify-center">
+                    <div className="w-6 h-6 border-2 border-spicy-ember border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
+                <span className="text-[10px] font-bold text-matcha-leaf mt-1">{viewingQrTable.table_number}</span>
               </div>
-              <div className="text-[11px] font-extrabold text-matcha-leaf">
-                Pindai untuk Pesan di {viewingQrTable.table_number}
+              <div className="space-y-0.5">
+                <div className="text-xs font-extrabold text-matcha-leaf">
+                  Pindai untuk Pesan di {viewingQrTable.table_number}
+                </div>
+                <div className="text-[10px] text-stone-500 font-mono">
+                  bubur-khalid.vercel.app/?table={encodeURIComponent(viewingQrTable.table_number)}
+                </div>
               </div>
             </div>
 
@@ -4280,10 +4416,8 @@ export function AdminView() {
             <div className="space-y-2">
               <button
                 type="button"
-                onClick={() => {
-                  alert(`Memulai cetak stiker QR Code untuk ${viewingQrTable.table_number}...`);
-                }}
-                className="w-full bg-matcha-leaf hover:bg-matcha-surface text-tofu-silkblaze py-2.5 rounded-xl font-bold text-xs shadow-md flex items-center justify-center space-x-1.5 transition"
+                onClick={handlePrintSticker}
+                className="w-full bg-matcha-leaf hover:bg-matcha-surface text-tofu-silkblaze py-2.5 rounded-xl font-bold text-xs shadow-md flex items-center justify-center space-x-1.5 transition active:scale-[0.98]"
               >
                 <Printer className="w-3.5 h-3.5 text-yolk-blaze" />
                 <span>Cetak Stiker Meja Sekarang</span>
@@ -4291,13 +4425,11 @@ export function AdminView() {
 
               <button
                 type="button"
-                onClick={() => {
-                  alert(`QR Code SVG untuk ${viewingQrTable.table_number} berhasil diunduh!`);
-                }}
-                className="w-full bg-stone-100 hover:bg-stone-200 text-stone-700 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center space-x-1.5 transition"
+                onClick={handleDownloadQrPng}
+                className="w-full bg-stone-100 hover:bg-stone-200 text-stone-700 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center space-x-1.5 transition active:scale-[0.98]"
               >
                 <Download className="w-3.5 h-3.5" />
-                <span>Unduh Gambar QR (SVG / PNG)</span>
+                <span>Unduh Gambar QR (PNG)</span>
               </button>
 
               <button
