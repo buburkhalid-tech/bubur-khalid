@@ -403,8 +403,8 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
                   )}
                 </button>
 
-                {/* Active Order Tracker / Track Receipt Button */}
-                {activeTrackingOrder ? (
+                {/* Active Order Tracker Badge (Hanya muncul jika ada pesanan aktif) */}
+                {activeTrackingOrder && (
                   <button
                     onClick={() => setActiveTrackingOrder(activeTrackingOrder)}
                     className="bg-spicy-ember hover:bg-spicy-hover text-white text-[11px] px-3 py-1.5 rounded-full font-bold flex items-center space-x-1.5 shadow-md transition animate-pulse border border-white/30 cursor-pointer"
@@ -412,20 +412,6 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
                   >
                     <Clock className="w-3.5 h-3.5" />
                     <span>Antrean {activeTrackingOrder.queue_number}</span>
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setTrackingError(null);
-                      setIsTrackingModalOpen(true);
-                    }}
-                    className="bg-white/95 hover:bg-white text-matcha-leaf font-extrabold text-[11px] px-3 py-1.5 rounded-full shadow-md transition flex items-center space-x-1.5 border border-white/50 active:scale-95 cursor-pointer"
-                    title="Lacak Antrean dari Struk"
-                  >
-                    <Receipt className="w-3.5 h-3.5 text-spicy-ember" />
-                    <span className="hidden xs:inline">Lacak Pesanan</span>
-                    <span className="xs:hidden">Lacak</span>
                   </button>
                 )}
               </div>
@@ -494,40 +480,26 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
           </div>
 
           <div className="px-3 space-y-4">
-            {/* Search Bar with Receipt Live Tracking Option */}
+            {/* Search Bar */}
             <div className="relative -mt-4 z-30">
               <Search className="w-4 h-4 text-stone-400 absolute left-4 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Cari bubur lezat atau ketik kode struk (OT-001)..."
+                placeholder="Cari bubur lezat favoritmu..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && /^(OT|WB|BK|#|\d)/i.test(searchQuery.trim())) {
-                    e.preventDefault();
-                    handleTrackByCode(searchQuery.trim());
-                  }
-                }}
-                className="w-full bg-white pl-11 pr-28 py-3 rounded-full border border-stone-200 text-xs text-matcha-leaf placeholder:text-stone-400 focus:outline-none focus:border-spicy-ember shadow-lg font-medium"
+                className="w-full bg-white pl-11 pr-10 py-3 rounded-full border border-stone-200 text-xs text-matcha-leaf placeholder:text-stone-400 focus:outline-none focus:border-spicy-ember shadow-lg font-medium"
               />
-              <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center space-x-1">
+              {searchQuery && (
                 <button
                   type="button"
-                  onClick={() => {
-                    if (searchQuery.trim()) {
-                      handleTrackByCode(searchQuery.trim());
-                    } else {
-                      setTrackingError(null);
-                      setIsTrackingModalOpen(true);
-                    }
-                  }}
-                  className="bg-spicy-light hover:bg-spicy-ember hover:text-white text-spicy-ember px-2.5 py-1.5 rounded-full text-[10px] font-black transition flex items-center space-x-1 border border-spicy-ember/30 active:scale-95 cursor-pointer shadow-xs"
-                  title="Lacak Kode Struk"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 p-1"
+                  title="Hapus pencarian"
                 >
-                  <Receipt className="w-3.5 h-3.5" />
-                  <span>Lacak Struk</span>
+                  <X className="w-4 h-4" />
                 </button>
-              </div>
+              )}
             </div>
 
             {/* Toko Libur / Tutup Alert Banner */}
@@ -548,30 +520,7 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
               </div>
             ) : null}
 
-            {/* Smart Detection Banner: jika user mengetik kode yang mirip nomor antrean / struk */}
-            {searchQuery.trim() && /^(OT|WB|BK|#|\d{2,})/i.test(searchQuery.trim()) && (
-              <div
-                onClick={() => handleTrackByCode(searchQuery.trim())}
-                className="p-3 bg-gradient-to-r from-amber-50 to-orange-50 border border-spicy-ember/30 rounded-2xl flex items-center justify-between cursor-pointer hover:shadow-md transition active:scale-[0.99] animate-fadeIn"
-              >
-                <div className="flex items-center space-x-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-spicy-ember text-white flex items-center justify-center text-sm shadow-xs">
-                    <Receipt className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-matcha-leaf">
-                      Lacak Nomor Struk: <span className="font-mono text-spicy-ember font-black uppercase text-sm">{searchQuery.trim()}</span>
-                    </div>
-                    <div className="text-[10px] text-stone-500">Klik untuk melihat posisi antrean & status masak di dapur</div>
-                  </div>
-                </div>
-                <div className="bg-spicy-ember text-white p-1.5 rounded-xl shadow-xs">
-                  <ArrowRight className="w-4 h-4" />
-                </div>
-              </div>
-            )}
-
-            {/* Quick Action Category Pills (Like GoFood Restos Nearby, Ongkir Murah, Group Order, Promo) */}
+            {/* Quick Action Category Pills */}
             <div className="grid grid-cols-4 gap-2 text-center">
               <button
                 type="button"
@@ -617,19 +566,21 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
                 <span className="text-[9px] text-stone-500 block">Terlaris</span>
               </button>
 
+              {/* Lacak Struk Quick Action (Satu-satunya tombol Lacak Struk di beranda) */}
               <button
                 type="button"
                 onClick={() => {
-                  const lopis = products.find((p) => p.name.toLowerCase().includes('lopis'));
-                  if (lopis) handleOpenProductModal(lopis);
+                  setTrackingError(null);
+                  setIsTrackingModalOpen(true);
                 }}
-                className="p-2 rounded-2xl border bg-white border-stone-200 hover:border-spicy-ember flex flex-col items-center justify-center transition"
+                className="p-2 rounded-2xl border bg-white border-stone-200 hover:border-spicy-ember flex flex-col items-center justify-center transition active:scale-95 cursor-pointer shadow-xs group"
+                title="Lacak Status Pesanan / Nomor Struk"
               >
-                <div className="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center mb-1">
-                  <Tag className="w-4 h-4 text-spicy-ember" />
+                <div className="w-8 h-8 rounded-full bg-red-100 text-spicy-ember flex items-center justify-center mb-1 group-hover:bg-spicy-ember group-hover:text-white transition">
+                  <Receipt className="w-4 h-4" />
                 </div>
-                <span className="text-[11px] font-bold text-matcha-leaf block leading-tight">Hemat</span>
-                <span className="text-[9px] text-stone-500 block">Paket</span>
+                <span className="text-[11px] font-bold text-matcha-leaf block leading-tight">Lacak</span>
+                <span className="text-[9px] text-stone-500 block">Struk</span>
               </button>
             </div>
 
