@@ -56,13 +56,11 @@ function PrototypeContent() {
   }
 
   // JIKA DOMAIN PELANGGAN (bubur-khalid.vercel.app):
-  // Murni hanya menampilkan Web App versi Mobile pelanggan (tanpa bar navigasi demo sama sekali)
+  // Murni hanya menampilkan Web App Pelanggan (Layar penuh di HP seperti aplikasi asli, tanpa potongan/dummy frame)
   if (!isAdminPortal) {
     return (
-      <main className="min-h-screen bg-stone-100 flex justify-center">
-        <div className="w-full max-w-md bg-tofu-silkblaze min-h-screen shadow-2xl relative">
-          <CustomerView />
-        </div>
+      <main className="min-h-screen bg-tofu-silkblaze md:bg-stone-100 flex justify-center">
+        <CustomerView />
       </main>
     );
   }
@@ -81,10 +79,8 @@ function PrototypeContent() {
         {activeView === 'kds' && <KdsView />}
         {activeView === 'owner-financial' && <OwnerFinancialView />}
         {activeView === 'customer' && (
-          <main className="min-h-screen bg-stone-100 flex justify-center py-6">
-            <div className="w-full max-w-md bg-tofu-silkblaze min-h-screen shadow-2xl relative rounded-3xl overflow-hidden border border-stone-200">
-              <CustomerView />
-            </div>
+          <main className="min-h-screen bg-stone-100 flex justify-center py-4">
+            <CustomerView />
           </main>
         )}
       </div>

@@ -1,9 +1,23 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Bubur Khalid — Web Kasir & Ordering System',
-  description: 'Sistem Terintegrasi Pemesanan Makanan, POS Kasir Tablet, Kitchen Display System & Laporan Owner',
+  title: 'Bubur Khalid — Asli Minang',
+  description: 'Pesan Bubur Kampiun, Kolak, Pulut Hitam, dan Menu Tradisional Minang Khas Bubur Khalid.',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Bubur Khalid',
+  },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
+  themeColor: '#023820',
 };
 
 export default function RootLayout({

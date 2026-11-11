@@ -242,25 +242,12 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
   };
 
   return (
-    <div className="flex justify-center bg-stone-900/10 py-4 px-2 min-h-screen">
-      {/* Mobile Frame Container (Max width 430px for authentic smartphone UX) */}
-      <div className="w-full max-w-md bg-tofu-silkblaze min-h-[840px] shadow-2xl rounded-[32px] overflow-hidden flex flex-col border-4 border-stone-800 relative">
+    <div className="min-h-screen bg-tofu-silkblaze text-stone-800 w-full max-w-md mx-auto relative flex flex-col shadow-none md:shadow-xl">
+      {/* Native Web App Scrollable Body */}
+      <div className="flex-1 pb-28">
         
-        {/* Device Status Bar */}
-        <div className="bg-matcha-leaf text-noodle-cream text-xs px-6 py-2 flex justify-between items-center font-medium">
-          <span>16:20</span>
-          <div className="flex items-center space-x-1.5 text-[10px]">
-            <span>4G+</span>
-            <span>📶</span>
-            <span>🔋 85%</span>
-          </div>
-        </div>
-
-        {/* Scrollable Mobile Body */}
-        <div className="flex-1 overflow-y-auto pb-28 hide-scrollbar">
-          
-          {/* FULL FRAME HERO BANNER SECTION (Inspired by Domino's / GoFood Full Bleed Hero) */}
-          <div className="w-full relative overflow-hidden bg-matcha-leaf rounded-b-[32px] shadow-xl text-tofu-silkblaze">
+        {/* FULL FRAME HERO BANNER SECTION (Inspired by Domino's / GoFood Full Bleed Hero) */}
+        <div className="w-full relative overflow-hidden bg-matcha-leaf rounded-b-3xl shadow-lg text-tofu-silkblaze">
             
             {/* Full-bleed Hero Background Image with Seamless Dark Matcha Gradient */}
             <div className="absolute inset-0 z-0">
@@ -1002,12 +989,12 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
           </div>
         </div>
 
-        {/* Sticky Cart Bar (Inspired by GoFood & Bubur Khalid reference) */}
+        {/* Sticky Cart Bar (Floating at bottom) */}
         {customerCart.length > 0 && (
-          <div className="absolute bottom-4 left-4 right-4 z-30">
+          <div className="fixed bottom-4 left-0 right-0 px-4 max-w-md mx-auto z-30 pointer-events-none">
             <button
               onClick={() => setIsCheckoutOpen(true)}
-              className="w-full bg-spicy-ember hover:bg-spicy-hover text-white px-4 py-3 rounded-2xl shadow-floating flex items-center justify-between transition-all transform active:scale-[0.98]"
+              className="pointer-events-auto w-full bg-spicy-ember hover:bg-spicy-hover text-white px-4 py-3 rounded-2xl shadow-floating flex items-center justify-between transition-all transform active:scale-[0.98]"
             >
               <div className="flex items-center space-x-3 text-left">
                 <div className="w-9 h-9 rounded-xl bg-black/20 flex items-center justify-center font-bold text-sm">
@@ -1913,7 +1900,6 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
           </div>
         )}
 
-      </div>
     </div>
   );
 }
