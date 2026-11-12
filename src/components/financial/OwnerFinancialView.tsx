@@ -909,29 +909,31 @@ export function OwnerFinancialView() {
             </div>
 
             <div className="flex items-center space-x-2">
-              {staffSalaries.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (confirm('Kosongkan seluruh daftar gaji karyawan kembali ke 0?')) {
-                      clearStaffSalaries();
-                    }
-                  }}
-                  className="text-xs bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold px-3 py-2 rounded-xl transition border border-stone-200 flex items-center space-x-1 cursor-pointer"
-                  title="Kosongkan daftar gaji"
-                >
-                  <Trash2 className="w-3.5 h-3.5 text-stone-500" />
-                  <span>Kosongkan Gaji (0)</span>
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => {
+                  if (staffSalaries.length === 0) {
+                    showToast('Daftar karyawan sudah kosong (0).');
+                    return;
+                  }
+                  if (confirm('Reset seluruh daftar karyawan kembali ke 0?')) {
+                    clearStaffSalaries();
+                  }
+                }}
+                className="text-xs bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold px-3.5 py-2.5 rounded-xl transition border border-stone-200 flex items-center space-x-1.5 cursor-pointer shadow-xs"
+                title="Reset seluruh daftar karyawan ke 0"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-stone-500" />
+                <span>Reset Karyawan</span>
+              </button>
 
               <button
                 type="button"
                 onClick={handleOpenAddSalaryModal}
-                className="text-xs bg-spicy-ember hover:bg-spicy-hover text-white font-extrabold px-4 py-2 rounded-xl shadow-md transition flex items-center space-x-1.5 cursor-pointer"
+                className="text-xs bg-spicy-ember hover:bg-spicy-hover text-white font-extrabold px-4 py-2.5 rounded-xl shadow-md transition flex items-center space-x-1.5 cursor-pointer active:scale-95"
               >
                 <Plus className="w-4 h-4" />
-                <span>+ Input Gaji Karyawan Baru</span>
+                <span>Tambah Karyawan</span>
               </button>
             </div>
           </div>
@@ -955,7 +957,7 @@ export function OwnerFinancialView() {
                   className="inline-flex items-center space-x-1.5 text-xs bg-spicy-ember text-white font-extrabold px-5 py-2.5 rounded-xl shadow-md hover:bg-spicy-hover transition cursor-pointer"
                 >
                   <Plus className="w-4 h-4" />
-                  <span>+ Input Gaji Karyawan Pertama</span>
+                  <span>Tambah Karyawan</span>
                 </button>
               </div>
             </div>
