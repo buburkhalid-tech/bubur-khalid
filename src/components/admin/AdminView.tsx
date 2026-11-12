@@ -110,15 +110,11 @@ export function AdminView() {
 
   // Proteksi navigasi & hak akses berbasis peran (RBAC)
   useEffect(() => {
-    // 1. Tab pembayaran hanya untuk OWNER
-    if (settingsSubTab === 'payment' && !isOwner) {
+    // 1. Tab promo, banner, payment hanya untuk OWNER (karyawan hanya akses security/akun)
+    if (settingsSubTab !== 'security' && !isOwner) {
       setSettingsSubTab('security');
     }
-    // 2. Tab promo/banner hanya untuk OWNER & ADMIN
-    if ((settingsSubTab === 'promo' || settingsSubTab === 'banner') && (isCashier || isKitchen)) {
-      setSettingsSubTab('security');
-    }
-    // 3. Tab Menu, Meja, Tong Sampah disembunyikan untuk Kasir / Dapur
+    // 2. Tab Menu, Meja, Tong Sampah disembunyikan untuk Kasir / Dapur
     if ((activeTab === 'menu' || activeTab === 'tables' || activeTab === 'trash') && currentUser && !isAdminOrOwner) {
       setActiveTab('dashboard');
     }
@@ -887,7 +883,7 @@ export function AdminView() {
                   : activeTab === 'tables'
                   ? 'Manajemen Meja'
                   : activeTab === 'settings'
-                  ? 'Security & Toko'
+                  ? (isOwner ? 'Security & Toko' : 'Akun & Keamanan')
                   : 'Tong Sampah'}
               </div>
             </div>
@@ -1013,7 +1009,7 @@ export function AdminView() {
                 >
                   <div className="flex items-center space-x-3">
                     <Shield className="w-4 h-4 text-yolk-blaze" />
-                    <span>{isCashier || isKitchen ? 'Akun & Ganti Sandi' : 'Security & Pengaturan'}</span>
+                    <span>{isOwner ? 'Security & Pengaturan' : 'Akun & Ganti Sandi'}</span>
                   </div>
                 </button>
 
@@ -1351,9 +1347,9 @@ export function AdminView() {
                   ? 'Manajemen Menu & Harga'
                   : activeTab === 'tables'
                   ? 'Pengaturan Meja & QR Code'
-                  : currentUser?.role === 'OWNER'
+                  : isOwner
                   ? 'Pengaturan Toko, Banner & Metode Pembayaran'
-                  : 'Pengaturan Toko & Banner'}
+                  : 'Pengaturan Akun & Keamanan'}
               </h1>
               <p className="text-xs text-stone-500">{liveTodayIndo} • Zona Waktu Asia/Padang Pariaman (WIB)</p>
             </div>
@@ -3316,49 +3312,48 @@ export function AdminView() {
         {activeTab === 'settings' && (
           <div className="mt-6 space-y-6">
 
-            {/* Top Sub-Navigation Tabs */}
-            <div className="flex flex-wrap gap-2 p-1.5 bg-stone-200/80 rounded-2xl border border-stone-300">
-              <button
-                type="button"
-                onClick={() => setSettingsSubTab('security')}
-                className={`flex-1 min-w-[170px] py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-center space-x-2 ${
-                  settingsSubTab === 'security'
-                    ? 'bg-spicy-ember text-white shadow-md'
-                    : 'bg-transparent text-stone-700 hover:bg-stone-300/50'
-                }`}
-              >
-                <Shield className="w-4 h-4" />
-                <span className="whitespace-nowrap">Security & Pengguna</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setSettingsSubTab('promo')}
-                className={`flex-1 min-w-[190px] py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-center space-x-2 ${
-                  settingsSubTab === 'promo'
-                    ? 'bg-spicy-ember text-white shadow-md'
-                    : 'bg-transparent text-stone-700 hover:bg-stone-300/50'
-                }`}
-              >
-                <Sparkles className="w-4 h-4 text-yolk-blaze" />
-                <span className="whitespace-nowrap">Banner Promosi (Carousel)</span>
-                <span className="bg-yolk-blaze text-stone-950 text-[10px] px-1.5 py-0.2 rounded-full font-black">
-                  {promoBanners?.length || 0}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setSettingsSubTab('banner')}
-                className={`flex-1 min-w-[160px] py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-center space-x-2 ${
-                  settingsSubTab === 'banner'
-                    ? 'bg-spicy-ember text-white shadow-md'
-                    : 'bg-transparent text-stone-700 hover:bg-stone-300/50'
-                }`}
-              >
-                <Store className="w-4 h-4" />
-                <span>Hero Banner & Profil</span>
-              </button>
-              {/* Hanya tampil jika akun yang login adalah OWNER */}
-              {currentUser?.role === 'OWNER' && (
+            {/* Top Sub-Navigation Tabs: HANYA TAMPIL UNTUK OWNER */}
+            {isOwner && (
+              <div className="flex flex-wrap gap-2 p-1.5 bg-stone-200/80 rounded-2xl border border-stone-300">
+                <button
+                  type="button"
+                  onClick={() => setSettingsSubTab('security')}
+                  className={`flex-1 min-w-[170px] py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-center space-x-2 ${
+                    settingsSubTab === 'security'
+                      ? 'bg-spicy-ember text-white shadow-md'
+                      : 'bg-transparent text-stone-700 hover:bg-stone-300/50'
+                  }`}
+                >
+                  <Shield className="w-4 h-4" />
+                  <span className="whitespace-nowrap">Security & Pengguna</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSettingsSubTab('promo')}
+                  className={`flex-1 min-w-[190px] py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-center space-x-2 ${
+                    settingsSubTab === 'promo'
+                      ? 'bg-spicy-ember text-white shadow-md'
+                      : 'bg-transparent text-stone-700 hover:bg-stone-300/50'
+                  }`}
+                >
+                  <Sparkles className="w-4 h-4 text-yolk-blaze" />
+                  <span className="whitespace-nowrap">Banner Promosi (Carousel)</span>
+                  <span className="bg-yolk-blaze text-stone-950 text-[10px] px-1.5 py-0.2 rounded-full font-black">
+                    {promoBanners?.length || 0}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSettingsSubTab('banner')}
+                  className={`flex-1 min-w-[160px] py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-center space-x-2 ${
+                    settingsSubTab === 'banner'
+                      ? 'bg-spicy-ember text-white shadow-md'
+                      : 'bg-transparent text-stone-700 hover:bg-stone-300/50'
+                  }`}
+                >
+                  <Store className="w-4 h-4" />
+                  <span>Hero Banner & Profil</span>
+                </button>
                 <button
                   type="button"
                   onClick={() => setSettingsSubTab('payment')}
@@ -3371,8 +3366,8 @@ export function AdminView() {
                   <CreditCard className="w-4 h-4" />
                   <span>Metode Pembayaran</span>
                 </button>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* SUB-TAB 1: SECURITY & USER MANAGEMENT */}
             {settingsSubTab === 'security' && (
@@ -3433,8 +3428,11 @@ export function AdminView() {
                   </div>
                 </div>
 
-                {/* PREVIEW SIMULASI MOBILE PELANGGAN (DIPINDAHKAN KE SINI SESUAI INSTRUKSI) */}
-                <div className="bg-gradient-to-r from-matcha-deep via-matcha-leaf to-[#012213] text-tofu-silkblaze p-5 rounded-2xl border border-matcha-surface shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                {/* HANYA OWNER YANG BISA MELIHAT SIMULASI PELANGGAN & MANAJEMEN AKUN STAF */}
+                {isOwner && (
+                  <>
+                    {/* PREVIEW SIMULASI MOBILE PELANGGAN (DIPINDAHKAN KE SINI SESUAI INSTRUKSI) */}
+                    <div className="bg-gradient-to-r from-matcha-deep via-matcha-leaf to-[#012213] text-tofu-silkblaze p-5 rounded-2xl border border-matcha-surface shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div className="flex items-start sm:items-center space-x-3.5">
                     <div className="w-12 h-12 rounded-2xl bg-spicy-ember text-white flex items-center justify-center flex-shrink-0 shadow-md border border-white/20">
                       <Smartphone className="w-6 h-6 text-yolk-blaze animate-bounce" />
@@ -3692,12 +3690,14 @@ export function AdminView() {
                     </table>
                   </div>
                 </div>
-
-              </div>
+              </>
             )}
 
-            {/* SUB-TAB: BANNER PROMOSI BERJALAN (CAROUSEL LOOPING) */}
-            {settingsSubTab === 'promo' && (
+          </div>
+        )}
+
+        {/* SUB-TAB: BANNER PROMOSI BERJALAN (CAROUSEL LOOPING: KHUSUS OWNER) */}
+        {isOwner && settingsSubTab === 'promo' && (
               <div className="space-y-6">
                 
                 {/* Header Action Card */}
@@ -3889,8 +3889,8 @@ export function AdminView() {
               </div>
             )}
 
-            {/* SUB-TAB 2 & 3: FORM PENGATURAN TOKO & PEMBAYARAN */}
-            {settingsSubTab !== 'security' && settingsSubTab !== 'promo' && (
+            {/* SUB-TAB 2 & 3: FORM PENGATURAN TOKO & PEMBAYARAN (KHUSUS OWNER) */}
+            {isOwner && settingsSubTab !== 'security' && settingsSubTab !== 'promo' && (
               <form onSubmit={handleSaveStoreForm} className="space-y-6">
                 {settingsSubTab === 'banner' && (
                   <div className="space-y-6">
