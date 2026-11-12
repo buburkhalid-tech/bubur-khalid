@@ -743,7 +743,7 @@ export function OwnerFinancialView() {
               title="Reset seluruh transaksi dan gaji ke Rp 0"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span>Reset Keuangan ke 0</span>
+              <span>Reset Keuangan</span>
             </button>
 
             <button
@@ -871,7 +871,7 @@ export function OwnerFinancialView() {
                 title="Reset seluruh pemasukan omzet, beban gaji, dan laba bersih ke Rp 0"
               >
                 <RotateCcw className="w-3.5 h-3.5 text-red-600" />
-                <span>Reset Arus Kas ke Rp 0</span>
+                <span>Reset Keuangan</span>
               </button>
             </div>
           </div>
