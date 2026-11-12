@@ -109,8 +109,9 @@ interface AppContextType {
   auditLogs: AuditLog[];
   addAuditLog: (action: string, entity: string, entityId: string, details: string) => void;
 
-  // Cloud Sync
+  // Cloud Sync & Clear
   syncFromCloud: () => Promise<void>;
+  clearAllOrders: () => Promise<void>;
 
   // Toast
   toastMessage: string | null;
@@ -233,15 +234,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           }
         }
 
-        // Orders: Bersihkan data dummy lama
+        // Orders: Bersihkan data dummy / test lama
         const savedOrders = localStorage.getItem('bubur_khalid_orders');
         if (savedOrders) {
           const parsed = JSON.parse(savedOrders);
           if (Array.isArray(parsed)) {
             const cleanOrders = parsed.filter(
               (o: Order) =>
-                !['ord-on-025', 'ord-on-026', 'ord-on-027', 'ord-ot-012', 'ord-ot-013'].includes(o.id) &&
-                !['ON-025', 'ON-026', 'ON-027', 'OT-012', 'OT-013'].includes(o.queue_number)
+                !['ord-on-025', 'ord-on-026', 'ord-on-027', 'ord-ot-012', 'ord-ot-013', 'ord-pos-1794416905553', 'ord-pos-1794440967709', 'ord-pos-1794416022064', 'ord-pos-1794416925451'].includes(o.id) &&
+                !['ON-025', 'ON-026', 'ON-027', 'OT-012', 'OT-013', 'OT-015', 'OT-016', 'OT-017'].includes(o.queue_number)
             );
             setOrders(cleanOrders);
             localStorage.setItem('bubur_khalid_orders', JSON.stringify(cleanOrders));
@@ -359,8 +360,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const cleanCloudOrders = cloudOrders
             .filter(
               (o: any) =>
-                !['ord-on-025', 'ord-on-026', 'ord-on-027', 'ord-ot-012', 'ord-ot-013'].includes(o.id) &&
-                !['ON-025', 'ON-026', 'ON-027', 'OT-012', 'OT-013'].includes(o.queue_number)
+                !['ord-on-025', 'ord-on-026', 'ord-on-027', 'ord-ot-012', 'ord-ot-013', 'ord-pos-1794416905553', 'ord-pos-1794440967709', 'ord-pos-1794416022064', 'ord-pos-1794416925451'].includes(o.id) &&
+                !['ON-025', 'ON-026', 'ON-027', 'OT-012', 'OT-013', 'OT-015', 'OT-016', 'OT-017'].includes(o.queue_number)
             )
             .map((o: any) => ({
               ...o,
@@ -772,8 +773,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       showToast(`❌ ${msg}`);
       throw new Error(msg);
     }
-    const onlineSeq = orders.filter((o) => o.queue_channel === 'ONLINE').length + 28;
-    const globalSeq = orders.length + 51;
+    const onlineSeq = orders.filter((o) => o.queue_channel === 'ONLINE').length + 1;
+    const globalSeq = orders.length + 1;
     const queueNum = `ON-${String(onlineSeq).padStart(3, '0')}`;
     const isPaid = paymentMethod === 'QRIS';
 
@@ -869,8 +870,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     qrisRef?: string,
     qrisProvider?: string
   ) => {
-    const otSeq = orders.filter((o) => o.queue_channel === 'IN_STORE').length + 14;
-    const globalSeq = orders.length + 51;
+    const otSeq = orders.filter((o) => o.queue_channel === 'IN_STORE').length + 1;
+    const globalSeq = orders.length + 1;
     const queueNum = `OT-${String(otSeq).padStart(3, '0')}`;
     const total = posCartTotal.total;
     const change = cashReceived && cashReceived > total ? cashReceived - total : 0;
@@ -1723,8 +1724,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const cleanCloudOrders = cloudOrders
           .filter(
             (o: any) =>
-              !['ord-on-025', 'ord-on-026', 'ord-on-027', 'ord-ot-012', 'ord-ot-013'].includes(o.id) &&
-              !['ON-025', 'ON-026', 'ON-027', 'OT-012', 'OT-013'].includes(o.queue_number)
+              !['ord-on-025', 'ord-on-026', 'ord-on-027', 'ord-ot-012', 'ord-ot-013', 'ord-pos-1794416905553', 'ord-pos-1794440967709', 'ord-pos-1794416022064', 'ord-pos-1794416925451'].includes(o.id) &&
+              !['ON-025', 'ON-026', 'ON-027', 'OT-012', 'OT-013', 'OT-015', 'OT-016', 'OT-017'].includes(o.queue_number)
           )
           .map((o: any) => ({
             ...o,
@@ -1782,6 +1783,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       showToast('✅ Data berhasil disinkronkan langsung dari Cloud!');
     } catch (err: any) {
       showToast('Gagal sinkronisasi data: ' + err.message);
+    }
+  };
+
+  // Clear all orders (Hard Reset to start fresh with real operational transactions)
+  const clearAllOrders = async () => {
+    try {
+      showToast('Membersihkan data transaksi...');
+      await supabase.from('orders').delete().neq('id', 'keep-none');
+      setOrders([]);
+      try {
+        localStorage.setItem('bubur_khalid_orders', JSON.stringify([]));
+      } catch (e) {}
+      showToast('✅ Seluruh data transaksi berhasil di-reset.');
+    } catch (err: any) {
+      showToast('Gagal membersihkan transaksi: ' + err.message);
     }
   };
 
@@ -1852,6 +1868,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         auditLogs,
         addAuditLog,
         syncFromCloud,
+        clearAllOrders,
         toastMessage,
         showToast,
       }}
