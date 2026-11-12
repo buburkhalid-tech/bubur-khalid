@@ -41,6 +41,33 @@ import {
   CalendarDays,
 } from 'lucide-react';
 
+const formatAuditAction = (action: string) => {
+  switch (action) {
+    case 'FINANCIAL_UNLOCK_SUCCESS':
+      return { label: 'Buka Laporan Keuangan', color: 'bg-emerald-100 text-emerald-800 border-emerald-200' };
+    case 'FINANCIAL_UNLOCK_FAILED':
+      return { label: 'Akses Keuangan Ditolak', color: 'bg-red-100 text-red-800 border-red-200' };
+    case 'RESET_FINANCIAL_ALL':
+      return { label: 'Reset Keuangan & Gaji', color: 'bg-rose-100 text-rose-800 border-rose-200' };
+    case 'ADD_STAFF_SALARY':
+      return { label: 'Input Gaji Karyawan', color: 'bg-blue-100 text-blue-800 border-blue-200' };
+    case 'UPDATE_STAFF_SALARY':
+      return { label: 'Perbarui Gaji Karyawan', color: 'bg-indigo-100 text-indigo-800 border-indigo-200' };
+    case 'DELETE_STAFF_SALARY':
+      return { label: 'Hapus Gaji Karyawan', color: 'bg-stone-200 text-stone-800 border-stone-300' };
+    case 'TOGGLE_SALARY_STATUS':
+      return { label: 'Ubah Status Gaji', color: 'bg-amber-100 text-amber-800 border-amber-200' };
+    case 'CLEAR_SALARIES':
+      return { label: 'Kosongkan Gaji', color: 'bg-red-100 text-red-800 border-red-200' };
+    case 'LOGIN':
+      return { label: 'Masuk Portal', color: 'bg-emerald-100 text-emerald-800 border-emerald-200' };
+    case 'LOGOUT':
+      return { label: 'Keluar Sesi', color: 'bg-stone-200 text-stone-700 border-stone-300' };
+    default:
+      return { label: action.replace(/_/g, ' '), color: 'bg-stone-100 text-stone-700 border-stone-200' };
+  }
+};
+
 export function OwnerFinancialView() {
   const {
     isFinancialUnlocked,
@@ -425,7 +452,7 @@ export function OwnerFinancialView() {
             </div>
             <h2 className="text-xl font-extrabold text-matcha-leaf">Verifikasi Identitas Pemilik</h2>
             <p className="text-xs text-stone-500 mt-1 leading-relaxed">
-              Sesuai PRD v1.1 Bagian 27, seluruh data omzet, keuntungan, gaji karyawan, dan reset keuangan dilindungi ketat dan hanya dapat diakses oleh role <strong className="text-matcha-leaf">OWNER</strong>.
+              Seluruh data omzet penjualan, laba bersih, gaji staf, dan laporan keuangan dilindungi secara ketat dan hanya dapat diakses oleh Pemilik Toko (<strong className="text-matcha-leaf">Owner</strong>).
             </p>
           </div>
 
@@ -1183,9 +1210,9 @@ export function OwnerFinancialView() {
           </div>
         </div>
 
-        {/* REAL TRANSACTIONS BREAKDOWN TABLE */}
-        <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-soft space-y-3">
-          <div className="flex justify-between items-center">
+        {/* REAL TRANSACTIONS BREAKDOWN (RESPONSIVE CARDS ON MOBILE & TABLE ON DESKTOP) */}
+        <div className="bg-white p-5 md:p-6 rounded-3xl border border-stone-200 shadow-soft space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 className="font-extrabold text-sm text-matcha-leaf">
                 Rincian Transaksi Riil Hari Ini ({todayOrders.length})
@@ -1209,93 +1236,197 @@ export function OwnerFinancialView() {
               Belum ada transaksi yang tercatat hari ini (Saldo Rp 0).
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs min-w-[600px]">
-                <thead className="bg-stone-50 border-b border-stone-200 text-stone-600 font-bold">
-                  <tr>
-                    <th className="p-2.5">No. Antrean</th>
-                    <th className="p-2.5">Waktu</th>
-                    <th className="p-2.5">Pelanggan</th>
-                    <th className="p-2.5">Layanan</th>
-                    <th className="p-2.5">Rincian Menu</th>
-                    <th className="p-2.5">Metode Bayar</th>
-                    <th className="p-2.5 text-right">Total</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-stone-100">
-                  {todayOrders.map((o) => (
-                    <tr key={o.id} className="hover:bg-stone-50/60 transition">
-                      <td className="p-2.5">
-                        <span className="font-mono font-black bg-stone-100 text-stone-800 px-2 py-0.5 rounded text-xs">
+            <>
+              {/* TAMPILAN MOBILE: KARTU TRANSAKSI RESPONSIF (md:hidden) */}
+              <div className="space-y-2.5 md:hidden">
+                {todayOrders.map((o) => (
+                  <div
+                    key={o.id}
+                    className="bg-stone-50/80 p-3.5 rounded-2xl border border-stone-200 space-y-2"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <span className="font-mono font-black bg-matcha-deep text-noodle-cream px-2 py-0.5 rounded-lg text-xs tracking-wider whitespace-nowrap">
                           {o.queue_number}
                         </span>
-                      </td>
-                      <td className="p-2.5 text-stone-500 font-mono text-[11px]">
-                        {o.created_at ? new Date(o.created_at).toLocaleTimeString('id-ID') : '-'} WIB
-                      </td>
-                      <td className="p-2.5 font-bold text-matcha-leaf">{o.customer_name}</td>
-                      <td className="p-2.5 text-stone-500">
-                        {o.service_type === 'DINE_IN' ? `Meja ${o.table_number || '-'}` : 'Takeaway'}
-                      </td>
-                      <td className="p-2.5 text-stone-600 text-[11px] max-w-xs truncate">
-                        {(o.items || []).map((it) => `${it.product_name_snapshot || 'Menu'} (${it.quantity}x)`).join(', ')}
-                      </td>
-                      <td className="p-2.5">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          o.payment_method === 'CASH'
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : 'bg-amber-100 text-amber-800'
-                        }`}>
-                          {o.payment_method}
+                        <span className="text-xs font-bold text-matcha-leaf truncate max-w-[140px]">
+                          {o.customer_name || 'Pelanggan'}
                         </span>
-                      </td>
-                      <td className="p-2.5 text-right font-mono font-black text-matcha-leaf">
+                      </div>
+                      <span
+                        className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase whitespace-nowrap ${
+                          o.payment_method === 'CASH'
+                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                            : 'bg-amber-100 text-amber-800 border border-amber-200'
+                        }`}
+                      >
+                        {o.payment_method === 'CASH' ? 'Tunai di Kasir' : o.payment_method}
+                      </span>
+                    </div>
+
+                    <div className="bg-white p-2.5 rounded-xl border border-stone-200/70 text-[11px] space-y-1">
+                      <div className="flex items-center justify-between text-stone-400 text-[10px]">
+                        <span>{o.service_type === 'DINE_IN' ? `Makan di Tempat (${o.table_number || 'Meja'})` : 'Bungkus / Takeaway'}</span>
+                        <span className="font-mono font-bold text-stone-500">
+                          {o.created_at ? new Date(o.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'} WIB
+                        </span>
+                      </div>
+                      <div className="font-medium text-stone-700 leading-snug">
+                        {(o.items || []).map((it) => `${it.product_name_snapshot || 'Menu'} (${it.quantity}x)`).join(', ')}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1 border-t border-stone-200/50 text-xs">
+                      <span className="text-[11px] text-stone-500 font-semibold">Total Pesanan:</span>
+                      <span className="font-mono font-black text-sm text-matcha-leaf">
                         Rp{(o.total_amount || 0).toLocaleString('id-ID')}
-                      </td>
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* TAMPILAN DESKTOP: TABEL DATA LENGKAP (hidden md:block) */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-left text-xs min-w-[650px]">
+                  <thead className="bg-stone-50 border-b border-stone-200 text-stone-600 font-bold">
+                    <tr>
+                      <th className="p-2.5">No. Antrean</th>
+                      <th className="p-2.5">Waktu</th>
+                      <th className="p-2.5">Pelanggan</th>
+                      <th className="p-2.5">Layanan</th>
+                      <th className="p-2.5">Rincian Menu</th>
+                      <th className="p-2.5">Metode Bayar</th>
+                      <th className="p-2.5 text-right">Total</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-stone-100">
+                    {todayOrders.map((o) => (
+                      <tr key={o.id} className="hover:bg-stone-50/60 transition">
+                        <td className="p-2.5 whitespace-nowrap">
+                          <span className="font-mono font-black bg-stone-100 text-stone-800 px-2.5 py-0.5 rounded-lg text-xs">
+                            {o.queue_number}
+                          </span>
+                        </td>
+                        <td className="p-2.5 text-stone-500 font-mono text-[11px] whitespace-nowrap">
+                          {o.created_at ? new Date(o.created_at).toLocaleTimeString('id-ID') : '-'} WIB
+                        </td>
+                        <td className="p-2.5 font-bold text-matcha-leaf">{o.customer_name}</td>
+                        <td className="p-2.5 text-stone-500">
+                          {o.service_type === 'DINE_IN' ? `Meja ${o.table_number || '-'}` : 'Takeaway'}
+                        </td>
+                        <td className="p-2.5 text-stone-600 text-[11px] max-w-xs truncate">
+                          {(o.items || []).map((it) => `${it.product_name_snapshot || 'Menu'} (${it.quantity}x)`).join(', ')}
+                        </td>
+                        <td className="p-2.5 whitespace-nowrap">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            o.payment_method === 'CASH'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-amber-100 text-amber-800'
+                          }`}>
+                            {o.payment_method === 'CASH' ? 'Tunai di Kasir' : o.payment_method}
+                          </span>
+                        </td>
+                        <td className="p-2.5 text-right font-mono font-black text-matcha-leaf whitespace-nowrap">
+                          Rp{(o.total_amount || 0).toLocaleString('id-ID')}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
 
-        {/* SECURITY & FINANCIAL ACCESS AUDIT LOG TABLE */}
-        <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-soft space-y-3">
-          <div className="flex justify-between items-center">
-            <h3 className="font-extrabold text-sm text-matcha-leaf">
-              Log Audit Keamanan Finansial (Sesuai Bagian 27.4 PRD)
-            </h3>
-            <span className="text-[11px] text-stone-400 font-mono">Immutable Server Audit Trail</span>
+        {/* SECURITY & FINANCIAL ACCESS AUDIT LOG (RESPONSIVE FEED ON MOBILE & TABLE ON DESKTOP) */}
+        <div className="bg-white p-5 md:p-6 rounded-3xl border border-stone-200 shadow-soft space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-100 pb-3">
+            <div>
+              <h3 className="font-extrabold text-sm text-matcha-leaf">
+                Riwayat Aktivitas &amp; Audit Keamanan
+              </h3>
+              <p className="text-[11px] text-stone-500">
+                Pencatatan waktu dan aktivitas resmi akses sistem finansial toko.
+              </p>
+            </div>
+            <span className="text-[10px] bg-stone-100 text-stone-600 font-semibold px-2.5 py-1 rounded-full border border-stone-200">
+              Tercatat Otomatis Server
+            </span>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* TAMPILAN MOBILE: KARTU TIMELINE AUDIT (md:hidden) */}
+          <div className="space-y-2.5 md:hidden">
+            {auditLogs.slice(0, 15).map((log) => {
+              const act = formatAuditAction(log.action);
+              return (
+                <div
+                  key={log.id}
+                  className="bg-stone-50/80 p-3 rounded-2xl border border-stone-200 space-y-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <span className="font-black text-xs text-matcha-leaf">{log.actor}</span>
+                      <span className="bg-stone-200 text-stone-700 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider">
+                        {log.role}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-stone-500 font-mono">
+                      {new Date(log.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} WIB
+                    </span>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-black border ${act.color}`}>
+                      {act.label}
+                    </span>
+                  </div>
+
+                  {log.details && (
+                    <p className="text-[11px] text-stone-600 bg-white p-2 rounded-xl border border-stone-200/60 leading-relaxed">
+                      {log.details}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* TAMPILAN DESKTOP: TABEL AUDIT (hidden md:block) */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-stone-50 border-b border-stone-200 text-stone-600 font-bold">
                 <tr>
                   <th className="p-2.5">Waktu</th>
                   <th className="p-2.5">Aktor</th>
                   <th className="p-2.5">Role</th>
-                  <th className="p-2.5">Aksi</th>
+                  <th className="p-2.5">Aktivitas</th>
                   <th className="p-2.5">Keterangan</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-100">
-                {auditLogs.map((log) => (
-                  <tr key={log.id} className="hover:bg-stone-50/60">
-                    <td className="p-2.5 text-stone-500 font-mono text-[11px]">
-                      {new Date(log.timestamp).toLocaleTimeString('id-ID')} WIB
-                    </td>
-                    <td className="p-2.5 font-bold text-matcha-leaf">{log.actor}</td>
-                    <td className="p-2.5">
-                      <span className="bg-stone-200 px-1.5 py-0.5 rounded text-[10px] font-mono">
-                        {log.role}
-                      </span>
-                    </td>
-                    <td className="p-2.5 font-mono text-spicy-ember text-[11px]">{log.action}</td>
-                    <td className="p-2.5 text-stone-600 text-[11px]">{log.details}</td>
-                  </tr>
-                ))}
+                {auditLogs.map((log) => {
+                  const act = formatAuditAction(log.action);
+                  return (
+                    <tr key={log.id} className="hover:bg-stone-50/60">
+                      <td className="p-2.5 text-stone-500 font-mono text-[11px] whitespace-nowrap">
+                        {new Date(log.timestamp).toLocaleTimeString('id-ID')} WIB
+                      </td>
+                      <td className="p-2.5 font-bold text-matcha-leaf whitespace-nowrap">{log.actor}</td>
+                      <td className="p-2.5 whitespace-nowrap">
+                        <span className="bg-stone-200 px-2 py-0.5 rounded text-[10px] font-bold">
+                          {log.role}
+                        </span>
+                      </td>
+                      <td className="p-2.5 whitespace-nowrap">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-black border ${act.color}`}>
+                          {act.label}
+                        </span>
+                      </td>
+                      <td className="p-2.5 text-stone-600 text-[11px]">{log.details}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
