@@ -57,7 +57,6 @@ import {
   FileSpreadsheet,
   AlertCircle,
   AlertOctagon,
-  RefreshCw,
 } from 'lucide-react';
 
 export function AdminView() {
@@ -93,7 +92,6 @@ export function AdminView() {
     deletePromoBanner,
     togglePromoBannerStatus,
     showToast,
-    syncFromCloud,
     clearAllOrders,
     currentUser,
     logout,
@@ -1311,17 +1309,6 @@ export function AdminView() {
             </div>
 
             <div className="flex items-center space-x-2 md:space-x-3">
-              {/* Quick Cloud Sync Button */}
-              <button
-                type="button"
-                onClick={() => syncFromCloud()}
-                className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-white border border-stone-200 text-stone-700 hover:text-matcha-leaf hover:bg-noodle-cream text-xs font-bold shadow-xs transition active:scale-95"
-                title="Sinkronkan data dengan database Supabase Cloud"
-              >
-                <RefreshCw className="w-3.5 h-3.5 text-spicy-ember" />
-                <span className="hidden sm:inline">Sinkron Data</span>
-              </button>
-
               <button className="w-9 h-9 rounded-xl bg-white border border-stone-200 flex items-center justify-center text-matcha-leaf shadow-sm hover:bg-noodle-cream transition">
                 <Bell className="w-4 h-4" />
               </button>
