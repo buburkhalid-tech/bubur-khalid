@@ -111,7 +111,11 @@ interface AppContextType {
   updateStaffSalary: (id: string, updated: Partial<StaffSalary>) => void;
   deleteStaffSalary: (id: string) => void;
   toggleStaffSalaryStatus: (id: string) => void;
+  clearStaffSalaries: () => void;
   resetDefaultStaffSalaries: () => void;
+
+  // Financial Reset
+  resetAllFinancialData: () => Promise<void>;
 
   // Audit Logs
   auditLogs: AuditLog[];
@@ -1452,11 +1456,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  const clearStaffSalaries = () => {
+    setStaffSalaries([]);
+    syncSalariesToCloud([]);
+    addAuditLog('CLEAR_SALARIES', 'Payroll', 'all', 'Daftar gaji karyawan dikosongkan (reset ke 0)');
+    showToast('Daftar gaji karyawan telah dikosongkan.');
+  };
+
   const resetDefaultStaffSalaries = () => {
-    setStaffSalaries(INITIAL_STAFF_SALARIES);
-    syncSalariesToCloud(INITIAL_STAFF_SALARIES);
-    addAuditLog('RESET_SALARIES', 'Payroll', 'all', 'Gaji karyawan di-reset ke preset Karyawan A, B, C');
-    showToast('Gaji karyawan di-reset ke preset Karyawan A, B, C.');
+    setStaffSalaries([]);
+    syncSalariesToCloud([]);
+    addAuditLog('RESET_SALARIES', 'Payroll', 'all', 'Gaji karyawan di-reset ke 0');
+    showToast('Gaji karyawan di-reset ke 0.');
   };
 
   // User Authentication & Session Management
@@ -1937,6 +1948,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Reset Seluruh Keuangan & Gaji ke Rp 0 (Khusus Akses Owner Khalid)
+  const resetAllFinancialData = async () => {
+    try {
+      showToast('Mereset seluruh data omzet & gaji ke Rp 0...');
+      // 1. Reset orders di Supabase & local state
+      await supabase.from('orders').delete().neq('id', 'keep-none');
+      setOrders([]);
+      try {
+        localStorage.setItem('bubur_khalid_orders', JSON.stringify([]));
+      } catch (e) {}
+
+      // 2. Reset staff salaries ke [] (kosong)
+      setStaffSalaries([]);
+      syncSalariesToCloud([]);
+      try {
+        localStorage.setItem('bubur_khalid_staff_salaries', JSON.stringify([]));
+      } catch (e) {}
+
+      addAuditLog('RESET_FINANCIAL_ALL', 'Financial', 'all', 'Owner mereset seluruh omzet penjualan dan daftar gaji karyawan ke Rp 0');
+      showToast('✅ Seluruh transaksi & gaji berhasil di-reset ke Rp 0.');
+    } catch (err: any) {
+      showToast('Gagal mereset data keuangan: ' + err.message);
+    }
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -2006,7 +2042,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         updateStaffSalary,
         deleteStaffSalary,
         toggleStaffSalaryStatus,
+        clearStaffSalaries,
         resetDefaultStaffSalaries,
+        resetAllFinancialData,
         auditLogs,
         addAuditLog,
         syncFromCloud,

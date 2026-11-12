@@ -36,6 +36,9 @@ import {
   ArrowDownRight,
   Sparkles,
   Check,
+  RotateCcw,
+  AlertTriangle,
+  CalendarDays,
 } from 'lucide-react';
 
 export function OwnerFinancialView() {
@@ -56,7 +59,8 @@ export function OwnerFinancialView() {
     updateStaffSalary,
     deleteStaffSalary,
     toggleStaffSalaryStatus,
-    resetDefaultStaffSalaries,
+    clearStaffSalaries,
+    resetAllFinancialData,
   } = useApp();
 
   const [passcodeInput, setPasscodeInput] = useState<string>('');
@@ -65,6 +69,10 @@ export function OwnerFinancialView() {
   const [otpExpiry, setOtpExpiry] = useState<number | null>(null);
   const [otpSent, setOtpSent] = useState<boolean>(false);
   const [countdown, setCountdown] = useState<number>(0);
+
+  // Modal Reset Seluruh Keuangan ke 0
+  const [isResetFinancialModalOpen, setIsResetFinancialModalOpen] = useState<boolean>(false);
+  const [isResetting, setIsResetting] = useState<boolean>(false);
 
   // Dynamic Real Financial Data derived from orders
   const validOrders = useMemo(() => orders.filter((o) => o.order_status !== 'CANCELLED'), [orders]);
@@ -119,17 +127,29 @@ export function OwnerFinancialView() {
   const cashOrders = useMemo(() => todayOrders.filter((o) => o.payment_method === 'CASH'), [todayOrders]);
   const cashRev = useMemo(() => cashOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0), [cashOrders]);
 
+  // HELPER: Konversi Gaji ke Setara Bulanan (Per Hari x 26 hari kerja, Per Minggu x 4, Per Bulan x 1)
+  const getSalaryMonthlyEquivalent = (s: StaffSalary): number => {
+    const amount = Number(s.salary_amount || 0);
+    if (s.salary_type === 'DAILY') {
+      return amount * 26; // Standar UMKM F&B buka Senin-Sabtu (26 hari kerja per bulan)
+    }
+    if (s.salary_type === 'WEEKLY') {
+      return amount * 4; // 4 minggu per bulan
+    }
+    return amount;
+  };
+
   // STAFF SALARY & CASHFLOW CALCULATIONS (Pemasukan vs Pengeluaran)
   const totalSalaryExpense = useMemo(
-    () => staffSalaries.reduce((sum, s) => sum + Number(s.salary_amount || 0), 0),
+    () => staffSalaries.reduce((sum, s) => sum + getSalaryMonthlyEquivalent(s), 0),
     [staffSalaries]
   );
   const paidSalaryExpense = useMemo(
-    () => staffSalaries.filter((s) => s.payment_status === 'PAID').reduce((sum, s) => sum + Number(s.salary_amount || 0), 0),
+    () => staffSalaries.filter((s) => s.payment_status === 'PAID').reduce((sum, s) => sum + getSalaryMonthlyEquivalent(s), 0),
     [staffSalaries]
   );
   const pendingSalaryExpense = useMemo(
-    () => staffSalaries.filter((s) => s.payment_status === 'PENDING').reduce((sum, s) => sum + Number(s.salary_amount || 0), 0),
+    () => staffSalaries.filter((s) => s.payment_status === 'PENDING').reduce((sum, s) => sum + getSalaryMonthlyEquivalent(s), 0),
     [staffSalaries]
   );
 
@@ -149,7 +169,7 @@ export function OwnerFinancialView() {
   const [salaryFormRole, setSalaryFormRole] = useState<string>('Koki / Dapur');
   const [salaryFormCustomRole, setSalaryFormCustomRole] = useState<string>('');
   const [salaryFormAmount, setSalaryFormAmount] = useState<string>('2500000');
-  const [salaryFormType, setSalaryFormType] = useState<'MONTHLY' | 'DAILY'>('MONTHLY');
+  const [salaryFormType, setSalaryFormType] = useState<'DAILY' | 'WEEKLY' | 'MONTHLY'>('MONTHLY');
   const [salaryFormStatus, setSalaryFormStatus] = useState<'PAID' | 'PENDING'>('PAID');
   const [salaryFormNotes, setSalaryFormNotes] = useState<string>('');
 
@@ -226,7 +246,7 @@ export function OwnerFinancialView() {
   // Modal Salary Handlers
   const handleOpenAddSalaryModal = () => {
     setEditingSalary(null);
-    setSalaryFormName(`Karyawan ${String.fromCharCode(65 + (staffSalaries.length % 26))}`);
+    setSalaryFormName(staffSalaries.length === 0 ? 'Karyawan A' : `Karyawan ${String.fromCharCode(65 + (staffSalaries.length % 26))}`);
     setSalaryFormRole('Koki / Dapur');
     setSalaryFormCustomRole('');
     setSalaryFormAmount('2500000');
@@ -248,7 +268,7 @@ export function OwnerFinancialView() {
       setSalaryFormCustomRole(salary.role);
     }
     setSalaryFormAmount(String(salary.salary_amount));
-    setSalaryFormType(salary.salary_type);
+    setSalaryFormType(salary.salary_type || 'MONTHLY');
     setSalaryFormStatus(salary.payment_status);
     setSalaryFormNotes(salary.notes || '');
     setIsSalaryModalOpen(true);
@@ -285,12 +305,20 @@ export function OwnerFinancialView() {
         salary_amount: cleanAmount,
         salary_type: salaryFormType,
         payment_status: salaryFormStatus,
-        period: 'Bulan Berjalan',
+        period: salaryFormType === 'DAILY' ? 'Harian (Per Hari)' : salaryFormType === 'WEEKLY' ? 'Mingguan (Per Minggu)' : 'Bulanan (Per Bulan)',
         notes: salaryFormNotes.trim(),
       });
     }
 
     setIsSalaryModalOpen(false);
+  };
+
+  // EKSEKUSI RESET KEUANGAN KE RP 0 OLEH OWNER
+  const handleExecuteResetAll = async () => {
+    setIsResetting(true);
+    await resetAllFinancialData();
+    setIsResetting(false);
+    setIsResetFinancialModalOpen(false);
   };
 
   // EKSPOR CSV AKTIF: Mengunduh file CSV laporan riil terperinci termasuk Gaji & Arus Kas
@@ -306,7 +334,7 @@ export function OwnerFinancialView() {
     csvContent += '=== RINGKASAN ARUS KAS & LABA BERSIH ===\n';
     csvContent += 'Indikator Keuangan,Nominal,Keterangan\n';
     csvContent += `Total Omzet Pemasukan Bulan Ini,"Rp ${monthRevenue.toLocaleString('id-ID')}",Akumulasi pesanan riil\n`;
-    csvContent += `Total Beban Gaji Karyawan,"Rp ${totalSalaryExpense.toLocaleString('id-ID')}",${staffSalaries.length} Orang Karyawan\n`;
+    csvContent += `Total Beban Gaji Karyawan (Setara Bulanan),"Rp ${totalSalaryExpense.toLocaleString('id-ID')}",${staffSalaries.length} Orang Karyawan\n`;
     csvContent += `Gaji Terbayar (Lunas),"Rp ${paidSalaryExpense.toLocaleString('id-ID')}",Sudah dibayarkan\n`;
     csvContent += `Gaji Belum Dibayar (Pending),"Rp ${pendingSalaryExpense.toLocaleString('id-ID')}",Menunggu pembayaran\n`;
     csvContent += `Estimasi Beban Bahan Baku & HPP (30%),"Rp ${estimatedCogs.toLocaleString('id-ID')}",Standar F&B Bubur Minang\n`;
@@ -315,14 +343,15 @@ export function OwnerFinancialView() {
     csvContent += `Margin Laba Bersih,"${netProfitMargin}%",Profit Margin\n\n`;
 
     csvContent += '=== RINCIAN GAJI STAF KARYAWAN ===\n';
-    csvContent += 'No,Nama Karyawan,Pekerjaan / Posisi,Tipe Gaji,Nominal Gaji,Status Pembayaran,Catatan\n';
+    csvContent += 'No,Nama Karyawan,Pekerjaan / Posisi,Set Pembayaran,Nominal Gaji,Estimasi Bulanan,Status Pembayaran,Catatan\n';
     if (staffSalaries.length === 0) {
-      csvContent += '-,Belum ada data gaji,-,-,-,-,-\n';
+      csvContent += '-,Belum ada data gaji,-,-,-,-,-,-\n';
     } else {
       staffSalaries.forEach((s, idx) => {
         const statusText = s.payment_status === 'PAID' ? 'LUNAS' : 'PENDING';
-        const typeText = s.salary_type === 'MONTHLY' ? 'Bulanan' : 'Harian';
-        csvContent += `${idx + 1},"${s.name.replace(/"/g, '""')}","${s.role.replace(/"/g, '""')}","${typeText}","Rp ${s.salary_amount.toLocaleString('id-ID')}","${statusText}","${(s.notes || '-').replace(/"/g, '""')}"\n`;
+        const typeText = s.salary_type === 'DAILY' ? 'Per Hari (Harian)' : s.salary_type === 'WEEKLY' ? 'Per Minggu (Mingguan)' : 'Per Bulan (Bulanan)';
+        const monthlyEq = getSalaryMonthlyEquivalent(s);
+        csvContent += `${idx + 1},"${s.name.replace(/"/g, '""')}","${s.role.replace(/"/g, '""')}","${typeText}","Rp ${s.salary_amount.toLocaleString('id-ID')}","Rp ${monthlyEq.toLocaleString('id-ID')}","${statusText}","${(s.notes || '-').replace(/"/g, '""')}"\n`;
       });
     }
     csvContent += '\n';
@@ -396,7 +425,7 @@ export function OwnerFinancialView() {
             </div>
             <h2 className="text-xl font-extrabold text-matcha-leaf">Verifikasi Identitas Pemilik</h2>
             <p className="text-xs text-stone-500 mt-1 leading-relaxed">
-              Sesuai PRD v1.1 Bagian 27, seluruh data omzet, keuntungan, gaji karyawan, dan laporan keuangan dilindungi ketat dan hanya dapat diakses oleh role <strong className="text-matcha-leaf">OWNER</strong>.
+              Sesuai PRD v1.1 Bagian 27, seluruh data omzet, keuntungan, gaji karyawan, dan reset keuangan dilindungi ketat dan hanya dapat diakses oleh role <strong className="text-matcha-leaf">OWNER</strong>.
             </p>
           </div>
 
@@ -607,7 +636,7 @@ export function OwnerFinancialView() {
     );
   }
 
-  // IF UNLOCKED: Show Comprehensive Financial Dashboard & Payroll
+  // IF UNLOCKED: Show Comprehensive Financial Dashboard, Payroll, and Reset Control
   const formatSeconds = (sec: number) => {
     const m = Math.floor(sec / 60);
     const s = sec % 60;
@@ -645,7 +674,18 @@ export function OwnerFinancialView() {
             </div>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2.5">
+            {/* Tombol Khusus Reset Keuangan & Gaji ke 0 */}
+            <button
+              type="button"
+              onClick={() => setIsResetFinancialModalOpen(true)}
+              className="bg-red-500/20 hover:bg-red-500 text-white hover:text-white px-3 py-2 rounded-xl text-xs font-black flex items-center space-x-1.5 border border-red-400/40 transition cursor-pointer"
+              title="Reset seluruh transaksi dan gaji ke Rp 0"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Reset Keuangan ke 0</span>
+            </button>
+
             <button
               onClick={handleExportCSV}
               className="bg-matcha-surface hover:bg-matcha-leaf text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center space-x-1.5 border border-matcha-surface transition cursor-pointer"
@@ -818,7 +858,7 @@ export function OwnerFinancialView() {
                 -Rp{totalSalaryExpense.toLocaleString('id-ID')}
               </div>
               <p className="text-[11px] text-rose-700">
-                Total {staffSalaries.length} karyawan (Lunas: Rp{paidSalaryExpense.toLocaleString('id-ID')})
+                Total {staffSalaries.length} karyawan (Setara bulanan)
               </p>
             </div>
 
@@ -852,32 +892,38 @@ export function OwnerFinancialView() {
           </div>
         </div>
 
-        {/* SECTION: MANAJEMEN GAJI KARYAWAN (INPUT GAJI KARYAWAN A, B, C...) */}
+        {/* SECTION: MANAJEMEN GAJI KARYAWAN (INPUT MANUAL OLEH OWNER DENGAN SET PER HARI / MINGGU / BULAN) */}
         <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-soft space-y-5">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <div className="inline-flex items-center space-x-1.5 bg-spicy-ember/10 text-spicy-ember text-[11px] font-black px-2.5 py-0.5 rounded-md uppercase tracking-wider mb-1">
                 <Briefcase className="w-3.5 h-3.5" />
-                <span>Penggajian Karyawan &amp; Tenaga Kerja</span>
+                <span>Penggajian Karyawan (Input Manual Owner)</span>
               </div>
               <h3 className="font-black text-base text-matcha-leaf">
-                Manajemen &amp; Rincian Gaji Karyawan ({staffSalaries.length} Orang)
+                Daftar Gaji Karyawan ({staffSalaries.length} Orang)
               </h3>
               <p className="text-xs text-stone-500">
-                Input gaji karyawan (Karyawan A, B, C, dst.) dengan peran pekerjaannya untuk kalkulasi otomatis pengeluaran bulanan toko.
+                Atur pembayaran gaji <strong className="text-matcha-leaf">Per Hari</strong>, <strong className="text-matcha-leaf">Per Minggu</strong>, atau <strong className="text-matcha-leaf">Per Bulan</strong>. Data dimasukkan secara manual dari 0 oleh Owner.
               </p>
             </div>
 
             <div className="flex items-center space-x-2">
-              <button
-                type="button"
-                onClick={resetDefaultStaffSalaries}
-                className="text-xs bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold px-3 py-2 rounded-xl transition border border-stone-200 flex items-center space-x-1 cursor-pointer"
-                title="Reset kembali ke preset Karyawan A, B, C"
-              >
-                <RefreshCw className="w-3.5 h-3.5 text-stone-500" />
-                <span>Reset Preset (A, B, C)</span>
-              </button>
+              {staffSalaries.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm('Kosongkan seluruh daftar gaji karyawan kembali ke 0?')) {
+                      clearStaffSalaries();
+                    }
+                  }}
+                  className="text-xs bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold px-3 py-2 rounded-xl transition border border-stone-200 flex items-center space-x-1 cursor-pointer"
+                  title="Kosongkan daftar gaji"
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-stone-500" />
+                  <span>Kosongkan Gaji (0)</span>
+                </button>
+              )}
 
               <button
                 type="button"
@@ -892,119 +938,154 @@ export function OwnerFinancialView() {
 
           {/* Staff Cards Grid / Table */}
           {staffSalaries.length === 0 ? (
-            <div className="p-8 text-center text-stone-400 bg-stone-50/60 rounded-2xl border border-dashed border-stone-200 text-xs space-y-3">
-              <Users className="w-8 h-8 mx-auto text-stone-300" />
-              <p>Belum ada data gaji karyawan yang diinput.</p>
-              <button
-                type="button"
-                onClick={resetDefaultStaffSalaries}
-                className="inline-flex items-center space-x-1.5 text-xs bg-spicy-ember text-white font-bold px-4 py-2 rounded-xl shadow-sm hover:bg-spicy-hover transition cursor-pointer"
-              >
-                <span>Muat Preset Gaji Karyawan A, B, C</span>
-              </button>
+            <div className="p-10 md:p-14 text-center text-stone-500 bg-stone-50/60 rounded-3xl border border-dashed border-stone-200 space-y-3">
+              <div className="w-14 h-14 rounded-2xl bg-stone-100 text-stone-400 mx-auto flex items-center justify-center">
+                <Users className="w-7 h-7 text-stone-400 stroke-1" />
+              </div>
+              <div className="max-w-md mx-auto space-y-1">
+                <h4 className="font-black text-sm text-matcha-leaf">Daftar Gaji Karyawan Masih 0 (Kosong)</h4>
+                <p className="text-xs text-stone-500 leading-relaxed">
+                  Data gaji karyawan dimulai dari 0 sesuai sistem Owner. Silakan input gaji staf (Karyawan A, B, C, dst.) secara manual dengan set pembayaran Per Hari, Per Minggu, atau Per Bulan.
+                </p>
+              </div>
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={handleOpenAddSalaryModal}
+                  className="inline-flex items-center space-x-1.5 text-xs bg-spicy-ember text-white font-extrabold px-5 py-2.5 rounded-xl shadow-md hover:bg-spicy-hover transition cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>+ Input Gaji Karyawan Pertama</span>
+                </button>
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {staffSalaries.map((salary, idx) => (
-                <div
-                  key={salary.id}
-                  className="p-4 rounded-2xl border border-stone-200 bg-stone-50/50 hover:bg-white hover:shadow-soft transition space-y-3 flex flex-col justify-between"
-                >
-                  <div className="space-y-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center space-x-2.5">
-                        <div className="w-10 h-10 rounded-xl bg-matcha-leaf text-white flex items-center justify-center font-black text-sm flex-shrink-0 shadow-sm">
-                          {salary.name.slice(0, 2).toUpperCase()}
+              {staffSalaries.map((salary, idx) => {
+                const monthlyEq = getSalaryMonthlyEquivalent(salary);
+                const periodLabel =
+                  salary.salary_type === 'DAILY'
+                    ? 'Per Hari'
+                    : salary.salary_type === 'WEEKLY'
+                    ? 'Per Minggu'
+                    : 'Per Bulan';
+
+                const periodBadgeColor =
+                  salary.salary_type === 'DAILY'
+                    ? 'bg-blue-100 text-blue-800 border-blue-200'
+                    : salary.salary_type === 'WEEKLY'
+                    ? 'bg-purple-100 text-purple-800 border-purple-200'
+                    : 'bg-emerald-100 text-emerald-800 border-emerald-200';
+
+                return (
+                  <div
+                    key={salary.id}
+                    className="p-4 rounded-2xl border border-stone-200 bg-stone-50/50 hover:bg-white hover:shadow-soft transition space-y-3 flex flex-col justify-between"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center space-x-2.5">
+                          <div className="w-10 h-10 rounded-xl bg-matcha-leaf text-white flex items-center justify-center font-black text-sm flex-shrink-0 shadow-sm">
+                            {salary.name.slice(0, 2).toUpperCase()}
+                          </div>
+                          <div>
+                            <h4 className="font-black text-sm text-matcha-leaf leading-tight">
+                              {salary.name}
+                            </h4>
+                            <span className="inline-block text-[11px] font-bold text-stone-500 bg-stone-100 px-2 py-0.5 rounded-md mt-0.5">
+                              {salary.role}
+                            </span>
+                          </div>
                         </div>
+
+                        {/* Tombol Toggle Status Cepat (Lunas / Pending) */}
+                        <button
+                          type="button"
+                          onClick={() => toggleStaffSalaryStatus(salary.id)}
+                          className={`text-[11px] font-black px-2.5 py-1 rounded-full transition flex items-center space-x-1 cursor-pointer ${
+                            salary.payment_status === 'PAID'
+                              ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                              : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+                          }`}
+                          title="Klik untuk mengubah status pembayaran"
+                        >
+                          {salary.payment_status === 'PAID' ? (
+                            <>
+                              <Check className="w-3 h-3" />
+                              <span>LUNAS</span>
+                            </>
+                          ) : (
+                            <>
+                              <Clock className="w-3 h-3" />
+                              <span>PENDING</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      <div className="pt-2 border-t border-stone-200/60 flex items-center justify-between">
                         <div>
-                          <h4 className="font-black text-sm text-matcha-leaf leading-tight">
-                            {salary.name}
-                          </h4>
-                          <span className="inline-block text-[11px] font-bold text-stone-500 bg-stone-100 px-2 py-0.5 rounded-md mt-0.5">
-                            {salary.role}
-                          </span>
+                          <div className="flex items-center space-x-1.5 mb-1">
+                            <span className={`text-[10px] font-black px-2 py-0.5 rounded-md border ${periodBadgeColor}`}>
+                              {periodLabel}
+                            </span>
+                          </div>
+                          <div className="text-lg font-black text-matcha-leaf font-mono">
+                            Rp{salary.salary_amount.toLocaleString('id-ID')}
+                            <span className="text-xs font-normal text-stone-500">
+                              {salary.salary_type === 'DAILY' ? ' / hari' : salary.salary_type === 'WEEKLY' ? ' / mgg' : ' / bln'}
+                            </span>
+                          </div>
                         </div>
-                      </div>
 
-                      {/* Tombol Toggle Status Cepat (Lunas / Pending) */}
-                      <button
-                        type="button"
-                        onClick={() => toggleStaffSalaryStatus(salary.id)}
-                        className={`text-[11px] font-black px-2.5 py-1 rounded-full transition flex items-center space-x-1 cursor-pointer ${
-                          salary.payment_status === 'PAID'
-                            ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
-                            : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
-                        }`}
-                        title="Klik untuk mengubah status pembayaran"
-                      >
-                        {salary.payment_status === 'PAID' ? (
-                          <>
-                            <Check className="w-3 h-3" />
-                            <span>LUNAS</span>
-                          </>
-                        ) : (
-                          <>
-                            <Clock className="w-3 h-3" />
-                            <span>PENDING</span>
-                          </>
+                        {salary.salary_type !== 'MONTHLY' && (
+                          <div className="text-right">
+                            <div className="text-[10px] text-stone-400 font-semibold uppercase">Setara Bulanan</div>
+                            <div className="text-xs font-bold text-stone-700 font-mono">
+                              ~Rp{monthlyEq.toLocaleString('id-ID')}
+                            </div>
+                          </div>
                         )}
-                      </button>
-                    </div>
-
-                    <div className="pt-2 border-t border-stone-200/60 flex items-center justify-between">
-                      <div>
-                        <div className="text-[10px] text-stone-400 font-semibold uppercase tracking-wider">
-                          Nominal ({salary.salary_type === 'MONTHLY' ? 'Bulanan' : 'Harian'})
-                        </div>
-                        <div className="text-lg font-black text-matcha-leaf font-mono">
-                          Rp{salary.salary_amount.toLocaleString('id-ID')}
-                        </div>
                       </div>
 
-                      <div className="text-right">
-                        <span className="text-[10px] text-stone-400 font-mono">
-                          {salary.salary_type === 'MONTHLY' ? 'Bulan Berjalan' : 'Per Shift/Hari'}
-                        </span>
+                      {salary.notes && (
+                        <p className="text-[11px] text-stone-500 italic bg-white p-2 rounded-xl border border-stone-100">
+                          &quot;{salary.notes}&quot;
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Actions: Edit & Delete */}
+                    <div className="pt-2 border-t border-stone-100 flex items-center justify-between">
+                      <span className="text-[10px] text-stone-400 font-mono">
+                        Staff #{idx + 1}
+                      </span>
+                      <div className="flex items-center space-x-1">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditSalaryModal(salary)}
+                          className="p-1.5 rounded-lg text-stone-500 hover:text-matcha-leaf hover:bg-stone-100 transition cursor-pointer"
+                          title="Edit Data Gaji"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm(`Hapus data gaji untuk "${salary.name}"?`)) {
+                              deleteStaffSalary(salary.id);
+                            }
+                          }}
+                          className="p-1.5 rounded-lg text-stone-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
+                          title="Hapus Gaji"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
-
-                    {salary.notes && (
-                      <p className="text-[11px] text-stone-500 italic bg-white p-2 rounded-xl border border-stone-100">
-                        &quot;{salary.notes}&quot;
-                      </p>
-                    )}
                   </div>
-
-                  {/* Actions: Edit & Delete */}
-                  <div className="pt-2 border-t border-stone-100 flex items-center justify-between">
-                    <span className="text-[10px] text-stone-400 font-mono">
-                      Input #{idx + 1}
-                    </span>
-                    <div className="flex items-center space-x-1">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenEditSalaryModal(salary)}
-                        className="p-1.5 rounded-lg text-stone-500 hover:text-matcha-leaf hover:bg-stone-100 transition cursor-pointer"
-                        title="Edit Data Gaji"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (confirm(`Hapus data gaji untuk "${salary.name}"?`)) {
-                            deleteStaffSalary(salary.id);
-                          }
-                        }}
-                        className="p-1.5 rounded-lg text-stone-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
-                        title="Hapus Gaji"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
@@ -1123,7 +1204,7 @@ export function OwnerFinancialView() {
 
           {todayOrders.length === 0 ? (
             <div className="p-8 text-center text-stone-400 bg-stone-50/60 rounded-xl border border-dashed border-stone-200 text-xs">
-              Belum ada transaksi yang tercatat hari ini.
+              Belum ada transaksi yang tercatat hari ini (Saldo Rp 0).
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -1219,7 +1300,7 @@ export function OwnerFinancialView() {
         </div>
       </div>
 
-      {/* MODAL INPUT / EDIT GAJI KARYAWAN */}
+      {/* MODAL INPUT / EDIT GAJI KARYAWAN (SET PER HARI, PER MINGGU, PER BULAN) */}
       {isSalaryModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-floating border-2 border-spicy-ember/30 text-matcha-leaf space-y-4 animate-slideUp">
@@ -1233,7 +1314,7 @@ export function OwnerFinancialView() {
                     {editingSalary ? 'Edit Gaji Karyawan' : 'Input Gaji Karyawan Baru'}
                   </h3>
                   <p className="text-[11px] text-stone-400">
-                    Kalkulasi otomatis ke pengeluaran bulanan
+                    Set pembayaran Per Hari, Per Minggu, atau Per Bulan
                   </p>
                 </div>
               </div>
@@ -1292,10 +1373,52 @@ export function OwnerFinancialView() {
                 )}
               </div>
 
+              {/* Set Pembayaran: Per Hari / Per Minggu / Per Bulan */}
+              <div>
+                <label className="block font-bold text-matcha-leaf mb-1">
+                  Set Periode Pembayaran Gaji:
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSalaryFormType('DAILY')}
+                    className={`py-2 px-2 rounded-xl text-center font-bold text-xs border transition cursor-pointer ${
+                      salaryFormType === 'DAILY'
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                        : 'bg-stone-50 border-stone-300 text-stone-600 hover:bg-stone-100'
+                    }`}
+                  >
+                    Per Hari
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSalaryFormType('WEEKLY')}
+                    className={`py-2 px-2 rounded-xl text-center font-bold text-xs border transition cursor-pointer ${
+                      salaryFormType === 'WEEKLY'
+                        ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
+                        : 'bg-stone-50 border-stone-300 text-stone-600 hover:bg-stone-100'
+                    }`}
+                  >
+                    Per Minggu
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSalaryFormType('MONTHLY')}
+                    className={`py-2 px-2 rounded-xl text-center font-bold text-xs border transition cursor-pointer ${
+                      salaryFormType === 'MONTHLY'
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                        : 'bg-stone-50 border-stone-300 text-stone-600 hover:bg-stone-100'
+                    }`}
+                  >
+                    Per Bulan
+                  </button>
+                </div>
+              </div>
+
               {/* Nominal Gaji */}
               <div>
                 <label className="block font-bold text-matcha-leaf mb-1">
-                  Nominal Gaji Pokok (Rp):
+                  Nominal Gaji ({salaryFormType === 'DAILY' ? 'Per Hari' : salaryFormType === 'WEEKLY' ? 'Per Minggu' : 'Per Bulan'}):
                 </label>
                 <div className="relative">
                   <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-black text-stone-500">
@@ -1306,47 +1429,58 @@ export function OwnerFinancialView() {
                     required
                     min={1}
                     step={1000}
-                    placeholder="Contoh: 2500000"
+                    placeholder={salaryFormType === 'DAILY' ? 'Contoh: 100000' : salaryFormType === 'WEEKLY' ? 'Contoh: 600000' : 'Contoh: 2500000'}
                     value={salaryFormAmount}
                     onChange={(e) => setSalaryFormAmount(e.target.value)}
                     className="w-full pl-11 pr-3.5 py-2.5 bg-stone-50 border border-stone-300 rounded-xl font-mono font-black text-matcha-leaf focus:outline-none focus:border-spicy-ember focus:bg-white transition text-sm"
                   />
                 </div>
-                <div className="text-[10px] text-stone-400 mt-1">
-                  {parseInt(salaryFormAmount || '0', 10) > 0 && (
-                    <span>Terbaca: Rp {parseInt(salaryFormAmount || '0', 10).toLocaleString('id-ID')}</span>
-                  )}
+                <div className="flex items-center justify-between text-[11px] text-stone-500 mt-1">
+                  <span>
+                    Terbaca: <strong>Rp {parseInt(salaryFormAmount || '0', 10).toLocaleString('id-ID')}</strong>
+                  </span>
+                  <span className="text-emerald-700 font-bold">
+                    ~Rp {(
+                      salaryFormType === 'DAILY'
+                        ? parseInt(salaryFormAmount || '0', 10) * 26
+                        : salaryFormType === 'WEEKLY'
+                        ? parseInt(salaryFormAmount || '0', 10) * 4
+                        : parseInt(salaryFormAmount || '0', 10)
+                    ).toLocaleString('id-ID')}/bln
+                  </span>
                 </div>
               </div>
 
-              {/* Tipe Gaji & Status Pembayaran */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-bold text-matcha-leaf mb-1">
-                    Tipe Gaji:
-                  </label>
-                  <select
-                    value={salaryFormType}
-                    onChange={(e) => setSalaryFormType(e.target.value as any)}
-                    className="w-full px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-bold text-matcha-leaf focus:outline-none focus:border-spicy-ember focus:bg-white transition"
+              {/* Status Pembayaran */}
+              <div>
+                <label className="block font-bold text-matcha-leaf mb-1">
+                  Status Pembayaran:
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSalaryFormStatus('PAID')}
+                    className={`py-2 px-3 rounded-xl text-center font-bold text-xs border transition cursor-pointer flex items-center justify-center space-x-1 ${
+                      salaryFormStatus === 'PAID'
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                        : 'bg-stone-50 border-stone-300 text-stone-600 hover:bg-stone-100'
+                    }`}
                   >
-                    <option value="MONTHLY">Bulanan (Per Bulan)</option>
-                    <option value="DAILY">Harian / Shift</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block font-bold text-matcha-leaf mb-1">
-                    Status Bayar:
-                  </label>
-                  <select
-                    value={salaryFormStatus}
-                    onChange={(e) => setSalaryFormStatus(e.target.value as any)}
-                    className="w-full px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-bold text-matcha-leaf focus:outline-none focus:border-spicy-ember focus:bg-white transition"
+                    <Check className="w-3.5 h-3.5" />
+                    <span>LUNAS (Terbayar)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSalaryFormStatus('PENDING')}
+                    className={`py-2 px-3 rounded-xl text-center font-bold text-xs border transition cursor-pointer flex items-center justify-center space-x-1 ${
+                      salaryFormStatus === 'PENDING'
+                        ? 'bg-amber-500 text-white border-amber-500 shadow-sm'
+                        : 'bg-stone-50 border-stone-300 text-stone-600 hover:bg-stone-100'
+                    }`}
                   >
-                    <option value="PAID">✓ LUNAS (Terbayar)</option>
-                    <option value="PENDING">⏳ PENDING (Belum Bayar)</option>
-                  </select>
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>PENDING (Belum Bayar)</span>
+                  </button>
                 </div>
               </div>
 
@@ -1357,7 +1491,7 @@ export function OwnerFinancialView() {
                 </label>
                 <input
                   type="text"
-                  placeholder="Misal: Termasuk bonus kehadiran, shift malam..."
+                  placeholder="Misal: Shift malam, bonus kehadiran..."
                   value={salaryFormNotes}
                   onChange={(e) => setSalaryFormNotes(e.target.value)}
                   className="w-full px-3.5 py-2 bg-stone-50 border border-stone-300 rounded-xl text-stone-700 focus:outline-none focus:border-spicy-ember focus:bg-white transition"
@@ -1380,6 +1514,68 @@ export function OwnerFinancialView() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL KONFIRMASI: RESET SELURUH KEUANGAN & GAJI KE 0 (SISTEM OWNER) */}
+      {isResetFinancialModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-floating border-2 border-red-500/40 text-matcha-leaf text-center space-y-4 animate-slideUp">
+            <div className="w-14 h-14 rounded-2xl bg-red-100 text-red-600 mx-auto flex items-center justify-center shadow-inner">
+              <AlertTriangle className="w-7 h-7" />
+            </div>
+
+            <div>
+              <span className="inline-block bg-red-100 text-red-700 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider mb-1">
+                Sistem Owner • Reset Finansial
+              </span>
+              <h3 className="font-black text-base text-matcha-leaf">
+                Reset Seluruh Keuangan ke 0?
+              </h3>
+              <p className="text-xs text-stone-500 mt-1 leading-relaxed">
+                Tindakan ini akan me-reset <strong>seluruh transaksi omzet</strong> dan menghapus <strong>seluruh daftar gaji karyawan</strong> kembali ke Rp 0.
+              </p>
+            </div>
+
+            <div className="p-3 bg-stone-50 border border-stone-200 rounded-2xl text-[11px] text-stone-600 text-left space-y-1">
+              <div className="font-bold text-matcha-leaf">Setelah di-reset:</div>
+              <ul className="list-disc pl-4 space-y-0.5 text-stone-500">
+                <li>Total Omzet Penjualan = <strong>Rp 0</strong></li>
+                <li>Daftar Gaji Karyawan = <strong>0 Orang (Kosong)</strong></li>
+                <li>Total Pengeluaran &amp; Laba = <strong>Rp 0</strong></li>
+                <li>Owner dapat menginput gaji karyawan riil secara manual dari awal.</li>
+              </ul>
+            </div>
+
+            <div className="flex space-x-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setIsResetFinancialModalOpen(false)}
+                disabled={isResetting}
+                className="flex-1 py-2.5 rounded-xl border border-stone-300 text-stone-700 font-bold text-xs hover:bg-stone-50 transition cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleExecuteResetAll}
+                disabled={isResetting}
+                className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs shadow-md transition flex items-center justify-center space-x-1 cursor-pointer disabled:opacity-75"
+              >
+                {isResetting ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Mereset...</span>
+                  </>
+                ) : (
+                  <>
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Ya, Reset ke 0</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

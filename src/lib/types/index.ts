@@ -156,7 +156,7 @@ export interface StaffSalary {
   name: string;
   role: string;
   salary_amount: number;
-  salary_type: 'MONTHLY' | 'DAILY';
+  salary_type: 'DAILY' | 'WEEKLY' | 'MONTHLY';
   payment_status: 'PAID' | 'PENDING';
   period?: string;
   notes?: string;

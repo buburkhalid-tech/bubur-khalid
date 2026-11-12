@@ -217,39 +217,5 @@ export const INITIAL_STORE_SETTINGS: StoreSettings = {
 // Data Pengguna Awal: Dikosongkan agar pengguna dapat mendaftar (Sign Up) akun pribadi pertama dari awal
 export const INITIAL_USERS: SystemUser[] = [];
 
-// Data Default Gaji Staf Karyawan A, B, C (Sesuai Permintaan Owner untuk Input & Kalkulasi Finansial)
-export const INITIAL_STAFF_SALARIES: StaffSalary[] = [
-  {
-    id: 'sal-1',
-    name: 'Karyawan A',
-    role: 'Koki / Dapur',
-    salary_amount: 2500000,
-    salary_type: 'MONTHLY',
-    payment_status: 'PAID',
-    period: 'Bulan Berjalan',
-    notes: 'Koki racikan utama bubur, ketan, dan kolak',
-    created_at: '2026-11-01T08:00:00.000Z',
-  },
-  {
-    id: 'sal-2',
-    name: 'Karyawan B',
-    role: 'Kasir POS & Front Office',
-    salary_amount: 2000000,
-    salary_type: 'MONTHLY',
-    payment_status: 'PAID',
-    period: 'Bulan Berjalan',
-    notes: 'Penanggung jawab transaksi kasir & pelayanan tamu',
-    created_at: '2026-11-01T08:00:00.000Z',
-  },
-  {
-    id: 'sal-3',
-    name: 'Karyawan C',
-    role: 'Pelayan & Kebersihan',
-    salary_amount: 1800000,
-    salary_type: 'MONTHLY',
-    payment_status: 'PENDING',
-    period: 'Bulan Berjalan',
-    notes: 'Pelayanan meja makan dan kebersihan gerai',
-    created_at: '2026-11-01T08:00:00.000Z',
-  },
-];
+// Data Default Gaji Staf Karyawan: Dimulai dari 0 (kosong) agar Owner memasukkan data riil secara manual
+export const INITIAL_STAFF_SALARIES: StaffSalary[] = [];
