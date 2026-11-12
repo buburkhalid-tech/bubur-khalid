@@ -1150,9 +1150,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Financial Gate Operations
   const unlockFinancialGate = (passcode: string, dynamicOtp?: string): boolean => {
     const trimmedInput = passcode.trim();
-    const isOtpValid = dynamicOtp && trimmedInput === dynamicOtp.trim();
+    const isOtpValid = Boolean(dynamicOtp && trimmedInput === dynamicOtp.trim());
 
-    if (trimmedInput === '123456' || trimmedInput === '888888' || isOtpValid) {
+    // Validasi keamanan: hanya cocokkan dengan dynamic OTP atau Kredensial Asli Owner (Password / PIN Pribadi)
+    const ownerUser = users.find((u) => u.role === 'OWNER') || currentUser;
+    const ownerPass = (ownerUser?.password || '').trim();
+    const ownerPin = (ownerUser?.pin || '').trim();
+
+    const isPasswordMatch = Boolean(
+      ownerPass &&
+      (trimmedInput === ownerPass ||
+       (ownerPass.endsWith('.') && trimmedInput === ownerPass.slice(0, -1)) ||
+       (!ownerPass.endsWith('.') && trimmedInput + '.' === ownerPass))
+    );
+
+    const isPinMatch = Boolean(ownerPin && trimmedInput === ownerPin);
+
+    if (isOtpValid || isPasswordMatch || isPinMatch) {
       setIsFinancialUnlocked(true);
       setFinancialLockRemainingSeconds(300);
       addAuditLog(
@@ -1160,14 +1174,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         'SecurityGate',
         'owner-auth',
         isOtpValid
-          ? 'Owner berhasil verifikasi OTP WhatsApp (+62 852-7428-1819)'
-          : 'Owner berhasil membuka laporan keuangan via PIN/Passcode'
+          ? 'Owner berhasil verifikasi OTP Keamanan'
+          : 'Owner berhasil membuka laporan keuangan via Kredensial Akun Resmi'
       );
       showToast('Verifikasi Owner berhasil! Sesi aktif selama 5 menit.');
       return true;
     } else {
       addAuditLog('FINANCIAL_UNLOCK_FAILED', 'SecurityGate', 'owner-auth', 'Percobaan verifikasi passcode/OTP gagal');
-      showToast('Kode OTP atau PIN salah. Akses finansial ditolak.');
+      showToast('Kode OTP, PIN, atau Kata Sandi salah. Akses finansial ditolak.');
       return false;
     }
   };
