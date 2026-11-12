@@ -103,12 +103,26 @@ export function AdminView() {
   const [activeQueueTab, setActiveQueueTab] = useState<'ONLINE' | 'IN_STORE'>('ONLINE');
   const [settingsSubTab, setSettingsSubTab] = useState<'security' | 'promo' | 'banner' | 'payment'>('security');
 
-  // Proteksi: Tab Metode Pembayaran hanya boleh diakses oleh akun dengan role OWNER
+  const isOwner = currentUser?.role === 'OWNER';
+  const isAdminOrOwner = currentUser?.role === 'OWNER' || currentUser?.role === 'ADMIN' || !currentUser;
+  const isCashier = currentUser?.role === 'CASHIER';
+  const isKitchen = currentUser?.role === 'KITCHEN_STAFF';
+
+  // Proteksi navigasi & hak akses berbasis peran (RBAC)
   useEffect(() => {
-    if (settingsSubTab === 'payment' && currentUser?.role !== 'OWNER') {
+    // 1. Tab pembayaran hanya untuk OWNER
+    if (settingsSubTab === 'payment' && !isOwner) {
       setSettingsSubTab('security');
     }
-  }, [currentUser?.role, settingsSubTab]);
+    // 2. Tab promo/banner hanya untuk OWNER & ADMIN
+    if ((settingsSubTab === 'promo' || settingsSubTab === 'banner') && (isCashier || isKitchen)) {
+      setSettingsSubTab('security');
+    }
+    // 3. Tab Menu, Meja, Tong Sampah disembunyikan untuk Kasir / Dapur
+    if ((activeTab === 'menu' || activeTab === 'tables' || activeTab === 'trash') && currentUser && !isAdminOrOwner) {
+      setActiveTab('dashboard');
+    }
+  }, [currentUser, isOwner, isAdminOrOwner, isCashier, isKitchen, settingsSubTab, activeTab]);
   const [revenueChartMode, setRevenueChartMode] = useState<'combo' | 'bar' | 'curve'>('combo');
   const [hoveredDayIdx, setHoveredDayIdx] = useState<number | null>(null);
   const [hoveredFinanceIdx, setHoveredFinanceIdx] = useState<number | null>(null);
@@ -612,6 +626,10 @@ export function AdminView() {
   };
 
   const handleOpenAddUser = (initialRole: UserRole = 'ADMIN') => {
+    if (!isOwner) {
+      showToast('❌ Akses ditolak: Hanya Owner yang berhak mendaftarkan akun baru!');
+      return;
+    }
     setEditingUser(null);
     setUserName('');
     setUserUsername('');
@@ -626,6 +644,11 @@ export function AdminView() {
   };
 
   const handleOpenEditUser = (user: SystemUser) => {
+    // Non-owner hanya dapat mengedit / mengganti kata sandi akunnya sendiri
+    if (!isOwner && user.id !== currentUser?.id) {
+      showToast('❌ Anda hanya dapat mengganti kata sandi akun Anda sendiri!');
+      return;
+    }
     setEditingUser(user);
     setUserName(user.name);
     setUserUsername(user.username);
@@ -932,42 +955,49 @@ export function AdminView() {
                   </div>
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab('menu');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold transition ${
-                    activeTab === 'menu'
-                      ? 'bg-spicy-ember text-white shadow-md'
-                      : 'text-noodle-cream hover:bg-matcha-surface'
-                  }`}
-                >
-                  <div className="flex items-center space-x-3">
-                    <UtensilsCrossed className="w-4 h-4" />
-                    <span>Menu & Harga</span>
-                  </div>
-                </button>
+                {/* Menu & Harga: Hanya Owner & Admin */}
+                {(!currentUser || isAdminOrOwner) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('menu');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold transition ${
+                      activeTab === 'menu'
+                        ? 'bg-spicy-ember text-white shadow-md'
+                        : 'text-noodle-cream hover:bg-matcha-surface'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <UtensilsCrossed className="w-4 h-4" />
+                      <span>Menu & Harga</span>
+                    </div>
+                  </button>
+                )}
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab('tables');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold transition ${
-                    activeTab === 'tables'
-                      ? 'bg-spicy-ember text-white shadow-md'
-                      : 'text-noodle-cream hover:bg-matcha-surface'
-                  }`}
-                >
-                  <div className="flex items-center space-x-3">
-                    <QrCode className="w-4 h-4" />
-                    <span>Meja & QR Code</span>
-                  </div>
-                </button>
+                {/* Meja & QR Code: Hanya Owner & Admin */}
+                {(!currentUser || isAdminOrOwner) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('tables');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold transition ${
+                      activeTab === 'tables'
+                        ? 'bg-spicy-ember text-white shadow-md'
+                        : 'text-noodle-cream hover:bg-matcha-surface'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <QrCode className="w-4 h-4" />
+                      <span>Meja & QR Code</span>
+                    </div>
+                  </button>
+                )}
 
+                {/* Security & Pengaturan (Bagi Kasir/Dapur tampil sebagai Akun & Sandi) */}
                 <button
                   type="button"
                   onClick={() => {
@@ -983,74 +1013,86 @@ export function AdminView() {
                 >
                   <div className="flex items-center space-x-3">
                     <Shield className="w-4 h-4 text-yolk-blaze" />
-                    <span>Security & Pengaturan</span>
+                    <span>{isCashier || isKitchen ? 'Akun & Ganti Sandi' : 'Security & Pengaturan'}</span>
                   </div>
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveView('owner-financial');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold text-noodle-cream hover:bg-matcha-surface transition"
-                >
-                  <div className="flex items-center space-x-3">
-                    <FileText className="w-4 h-4 text-yolk-blaze" />
-                    <span>Laporan Keuangan (Owner)</span>
-                  </div>
-                </button>
+                {/* Laporan Keuangan (Owner): HANYA TAMPIL UNTUK ROLE OWNER */}
+                {isOwner && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveView('owner-financial');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold text-noodle-cream hover:bg-matcha-surface transition"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <FileText className="w-4 h-4 text-yolk-blaze" />
+                      <span>Laporan Keuangan (Owner)</span>
+                    </div>
+                  </button>
+                )}
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveView('pos');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold text-noodle-cream hover:bg-matcha-surface transition"
-                >
-                  <div className="flex items-center space-x-3">
-                    <Calculator className="w-4 h-4 text-yolk-blaze" />
-                    <span>Buka POS Kasir Tablet</span>
-                  </div>
-                </button>
+                {/* POS Kasir Tablet: Owner, Admin, dan Kasir */}
+                {!isKitchen && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveView('pos');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold text-noodle-cream hover:bg-matcha-surface transition"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <Calculator className="w-4 h-4 text-yolk-blaze" />
+                      <span>Buka POS Kasir Tablet</span>
+                    </div>
+                  </button>
+                )}
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveView('kds');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold text-noodle-cream hover:bg-matcha-surface transition"
-                >
-                  <div className="flex items-center space-x-3">
-                    <ChefHat className="w-4 h-4 text-yolk-blaze" />
-                    <span>Buka Kitchen Display (Dapur)</span>
-                  </div>
-                </button>
+                {/* Kitchen Display: Owner, Admin, dan Tim Dapur */}
+                {!isCashier && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveView('kds');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold text-noodle-cream hover:bg-matcha-surface transition"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <ChefHat className="w-4 h-4 text-yolk-blaze" />
+                      <span>Buka Kitchen Display (Dapur)</span>
+                    </div>
+                  </button>
+                )}
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab('trash');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold transition ${
-                    activeTab === 'trash'
-                      ? 'bg-spicy-ember text-white shadow-md'
-                      : 'text-noodle-cream hover:bg-matcha-surface'
-                  }`}
-                >
-                  <div className="flex items-center space-x-3">
-                    <Trash2 className="w-4 h-4" />
-                    <span>Tong Sampah</span>
-                  </div>
-                  {trashProducts.length > 0 && (
-                    <span className="bg-spicy-ember text-white text-[10px] font-black px-2 py-0.5 rounded-full">
-                      {trashProducts.length}
-                    </span>
-                  )}
-                </button>
+                {/* Tong Sampah: Hanya Owner & Admin */}
+                {(!currentUser || isAdminOrOwner) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('trash');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold transition ${
+                      activeTab === 'trash'
+                        ? 'bg-spicy-ember text-white shadow-md'
+                        : 'text-noodle-cream hover:bg-matcha-surface'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <Trash2 className="w-4 h-4" />
+                      <span>Tong Sampah</span>
+                    </div>
+                    {trashProducts.length > 0 && (
+                      <span className="bg-spicy-ember text-white text-[10px] font-black px-2 py-0.5 rounded-full">
+                        {trashProducts.length}
+                      </span>
+                    )}
+                  </button>
+                )}
               </nav>
             </div>
           </div>
@@ -1141,59 +1183,63 @@ export function AdminView() {
               )}
             </button>
 
-            {/* Menu & Harga */}
-            <button
-              onClick={() => setActiveTab('menu')}
-              className={`w-full flex items-center ${
-                isSidebarOpen ? 'justify-start space-x-3 px-3 py-2.5' : 'justify-center p-2.5'
-              } rounded-xl transition-all duration-200 relative group/btn ${
-                activeTab === 'menu'
-                  ? 'bg-spicy-ember text-white shadow-md font-bold'
-                  : 'text-noodle-cream hover:bg-matcha-surface'
-              }`}
-              title="Menu & Harga"
-            >
-              <UtensilsCrossed className="w-5 h-5 flex-shrink-0" />
-              <span
-                className={`whitespace-nowrap overflow-hidden transition-all duration-200 ${
-                  isSidebarOpen ? 'opacity-100 max-w-[160px]' : 'opacity-0 max-w-0 hidden'
+            {/* Menu & Harga: Hanya Owner & Admin */}
+            {(!currentUser || isAdminOrOwner) && (
+              <button
+                onClick={() => setActiveTab('menu')}
+                className={`w-full flex items-center ${
+                  isSidebarOpen ? 'justify-start space-x-3 px-3 py-2.5' : 'justify-center p-2.5'
+                } rounded-xl transition-all duration-200 relative group/btn ${
+                  activeTab === 'menu'
+                    ? 'bg-spicy-ember text-white shadow-md font-bold'
+                    : 'text-noodle-cream hover:bg-matcha-surface'
                 }`}
+                title="Menu & Harga"
               >
-                Menu & Harga
-              </span>
-              {!isSidebarOpen && (
-                <div className="absolute left-full ml-3 px-2.5 py-1 bg-stone-900 text-white text-[11px] rounded-lg shadow-xl whitespace-nowrap opacity-0 group-hover/btn:opacity-100 pointer-events-none transition z-50">
+                <UtensilsCrossed className="w-5 h-5 flex-shrink-0" />
+                <span
+                  className={`whitespace-nowrap overflow-hidden transition-all duration-200 ${
+                    isSidebarOpen ? 'opacity-100 max-w-[160px]' : 'opacity-0 max-w-0 hidden'
+                  }`}
+                >
                   Menu & Harga
-                </div>
-              )}
-            </button>
+                </span>
+                {!isSidebarOpen && (
+                  <div className="absolute left-full ml-3 px-2.5 py-1 bg-stone-900 text-white text-[11px] rounded-lg shadow-xl whitespace-nowrap opacity-0 group-hover/btn:opacity-100 pointer-events-none transition z-50">
+                    Menu & Harga
+                  </div>
+                )}
+              </button>
+            )}
 
-            {/* Meja & QR */}
-            <button
-              onClick={() => setActiveTab('tables')}
-              className={`w-full flex items-center ${
-                isSidebarOpen ? 'justify-start space-x-3 px-3 py-2.5' : 'justify-center p-2.5'
-              } rounded-xl transition-all duration-200 relative group/btn ${
-                activeTab === 'tables'
-                  ? 'bg-spicy-ember text-white shadow-md font-bold'
-                  : 'text-noodle-cream hover:bg-matcha-surface'
-              }`}
-              title="Meja & QR"
-            >
-              <QrCode className="w-5 h-5 flex-shrink-0" />
-              <span
-                className={`whitespace-nowrap overflow-hidden transition-all duration-200 ${
-                  isSidebarOpen ? 'opacity-100 max-w-[160px]' : 'opacity-0 max-w-0 hidden'
+            {/* Meja & QR: Hanya Owner & Admin */}
+            {(!currentUser || isAdminOrOwner) && (
+              <button
+                onClick={() => setActiveTab('tables')}
+                className={`w-full flex items-center ${
+                  isSidebarOpen ? 'justify-start space-x-3 px-3 py-2.5' : 'justify-center p-2.5'
+                } rounded-xl transition-all duration-200 relative group/btn ${
+                  activeTab === 'tables'
+                    ? 'bg-spicy-ember text-white shadow-md font-bold'
+                    : 'text-noodle-cream hover:bg-matcha-surface'
                 }`}
+                title="Meja & QR"
               >
-                Meja & QR
-              </span>
-              {!isSidebarOpen && (
-                <div className="absolute left-full ml-3 px-2.5 py-1 bg-stone-900 text-white text-[11px] rounded-lg shadow-xl whitespace-nowrap opacity-0 group-hover/btn:opacity-100 pointer-events-none transition z-50">
-                  Meja & QR Code
-                </div>
-              )}
-            </button>
+                <QrCode className="w-5 h-5 flex-shrink-0" />
+                <span
+                  className={`whitespace-nowrap overflow-hidden transition-all duration-200 ${
+                    isSidebarOpen ? 'opacity-100 max-w-[160px]' : 'opacity-0 max-w-0 hidden'
+                  }`}
+                >
+                  Meja & QR
+                </span>
+                {!isSidebarOpen && (
+                  <div className="absolute left-full ml-3 px-2.5 py-1 bg-stone-900 text-white text-[11px] rounded-lg shadow-xl whitespace-nowrap opacity-0 group-hover/btn:opacity-100 pointer-events-none transition z-50">
+                    Meja & QR Code
+                  </div>
+                )}
+              </button>
+            )}
 
             {/* Pengaturan & Security */}
             <button
@@ -1208,7 +1254,7 @@ export function AdminView() {
                   ? 'bg-spicy-ember text-white shadow-md font-bold'
                   : 'text-noodle-cream hover:bg-matcha-surface'
               }`}
-              title="Security & Pengguna"
+              title={isCashier || isKitchen ? 'Akun & Ganti Sandi' : 'Security & Pengguna'}
             >
               <Shield className="w-5 h-5 text-yolk-blaze flex-shrink-0" />
               <span
@@ -1216,73 +1262,77 @@ export function AdminView() {
                   isSidebarOpen ? 'opacity-100 max-w-[160px]' : 'opacity-0 max-w-0 hidden'
                 }`}
               >
-                Security & Pengguna
+                {isCashier || isKitchen ? 'Akun & Sandi' : 'Security & Pengguna'}
               </span>
               {!isSidebarOpen && (
                 <div className="absolute left-full ml-3 px-2.5 py-1 bg-stone-900 text-white text-[11px] rounded-lg shadow-xl whitespace-nowrap opacity-0 group-hover/btn:opacity-100 pointer-events-none transition z-50">
-                  Security & Pengguna
+                  {isCashier || isKitchen ? 'Akun & Sandi' : 'Security & Pengguna'}
                 </div>
               )}
             </button>
 
-            {/* Laporan Keuangan */}
-            <button
-              onClick={() => setActiveView('owner-financial')}
-              className={`w-full flex items-center ${
-                isSidebarOpen ? 'justify-start space-x-3 px-3 py-2.5' : 'justify-center p-2.5'
-              } rounded-xl text-noodle-cream hover:bg-matcha-surface transition-all duration-200 relative group/btn whitespace-nowrap`}
-              title="Laporan Keuangan"
-            >
-              <FileText className="w-5 h-5 text-yolk-blaze flex-shrink-0" />
-              <span
-                className={`whitespace-nowrap overflow-hidden transition-all duration-200 ${
-                  isSidebarOpen ? 'opacity-100 max-w-[160px]' : 'opacity-0 max-w-0 hidden'
-                }`}
+            {/* Laporan Keuangan: HANYA TAMPIL UNTUK ROLE OWNER */}
+            {isOwner && (
+              <button
+                onClick={() => setActiveView('owner-financial')}
+                className={`w-full flex items-center ${
+                  isSidebarOpen ? 'justify-start space-x-3 px-3 py-2.5' : 'justify-center p-2.5'
+                } rounded-xl text-noodle-cream hover:bg-matcha-surface transition-all duration-200 relative group/btn whitespace-nowrap`}
+                title="Laporan Keuangan"
               >
-                Laporan Keuangan
-              </span>
-              {!isSidebarOpen && (
-                <div className="absolute left-full ml-3 px-2.5 py-1 bg-stone-900 text-white text-[11px] rounded-lg shadow-xl whitespace-nowrap opacity-0 group-hover/btn:opacity-100 pointer-events-none transition z-50">
-                  Laporan Keuangan
-                </div>
-              )}
-            </button>
-
-            {/* Tong Sampah */}
-            <button
-              onClick={() => setActiveTab('trash')}
-              className={`w-full flex items-center ${
-                isSidebarOpen ? 'justify-between px-3 py-2.5' : 'justify-center p-2.5'
-              } rounded-xl transition-all duration-200 relative group/btn ${
-                activeTab === 'trash'
-                  ? 'bg-spicy-ember text-white shadow-md font-bold'
-                  : 'text-noodle-cream hover:bg-matcha-surface'
-              }`}
-              title="Tong Sampah"
-            >
-              <div className="flex items-center space-x-3 overflow-hidden">
-                <Trash2 className="w-5 h-5 flex-shrink-0" />
+                <FileText className="w-5 h-5 text-yolk-blaze flex-shrink-0" />
                 <span
                   className={`whitespace-nowrap overflow-hidden transition-all duration-200 ${
                     isSidebarOpen ? 'opacity-100 max-w-[160px]' : 'opacity-0 max-w-0 hidden'
                   }`}
                 >
-                  Tong Sampah
+                  Laporan Keuangan
                 </span>
-              </div>
-              {trashProducts.length > 0 && (
-                <span className={`rounded-full bg-spicy-ember text-white font-bold flex items-center justify-center flex-shrink-0 ${
-                  isSidebarOpen ? 'w-5 h-5 text-[10px]' : 'absolute -top-1 -right-1 w-4 h-4 text-[9px] border border-white'
-                }`}>
-                  {trashProducts.length}
-                </span>
-              )}
-              {!isSidebarOpen && (
-                <div className="absolute left-full ml-3 px-2.5 py-1 bg-stone-900 text-white text-[11px] rounded-lg shadow-xl whitespace-nowrap opacity-0 group-hover/btn:opacity-100 pointer-events-none transition z-50">
-                  Tong Sampah ({trashProducts.length})
+                {!isSidebarOpen && (
+                  <div className="absolute left-full ml-3 px-2.5 py-1 bg-stone-900 text-white text-[11px] rounded-lg shadow-xl whitespace-nowrap opacity-0 group-hover/btn:opacity-100 pointer-events-none transition z-50">
+                    Laporan Keuangan
+                  </div>
+                )}
+              </button>
+            )}
+
+            {/* Tong Sampah: Hanya Owner & Admin */}
+            {(!currentUser || isAdminOrOwner) && (
+              <button
+                onClick={() => setActiveTab('trash')}
+                className={`w-full flex items-center ${
+                  isSidebarOpen ? 'justify-between px-3 py-2.5' : 'justify-center p-2.5'
+                } rounded-xl transition-all duration-200 relative group/btn ${
+                  activeTab === 'trash'
+                    ? 'bg-spicy-ember text-white shadow-md font-bold'
+                    : 'text-noodle-cream hover:bg-matcha-surface'
+                }`}
+                title="Tong Sampah"
+              >
+                <div className="flex items-center space-x-3 overflow-hidden">
+                  <Trash2 className="w-5 h-5 flex-shrink-0" />
+                  <span
+                    className={`whitespace-nowrap overflow-hidden transition-all duration-200 ${
+                      isSidebarOpen ? 'opacity-100 max-w-[160px]' : 'opacity-0 max-w-0 hidden'
+                    }`}
+                  >
+                    Tong Sampah
+                  </span>
                 </div>
-              )}
-            </button>
+                {trashProducts.length > 0 && (
+                  <span className={`rounded-full bg-spicy-ember text-white font-bold flex items-center justify-center flex-shrink-0 ${
+                    isSidebarOpen ? 'w-5 h-5 text-[10px]' : 'absolute -top-1 -right-1 w-4 h-4 text-[9px] border border-white'
+                  }`}>
+                    {trashProducts.length}
+                  </span>
+                )}
+                {!isSidebarOpen && (
+                  <div className="absolute left-full ml-3 px-2.5 py-1 bg-stone-900 text-white text-[11px] rounded-lg shadow-xl whitespace-nowrap opacity-0 group-hover/btn:opacity-100 pointer-events-none transition z-50">
+                    Tong Sampah ({trashProducts.length})
+                  </div>
+                )}
+              </button>
+            )}
           </nav>
         </div>
       </aside>
@@ -3360,11 +3410,21 @@ export function AdminView() {
                     </div>
                   </div>
 
-                  <div className="flex items-center space-x-2.5 w-full md:w-auto">
+                  <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                    <button
+                      type="button"
+                      onClick={() => currentUser && handleOpenEditUser(currentUser)}
+                      className="flex-1 md:flex-initial px-4 py-2.5 bg-matcha-surface hover:bg-matcha-leaf text-tofu-silkblaze border border-matcha-surface rounded-xl text-xs font-black flex items-center justify-center space-x-1.5 shadow-sm transition active:scale-95 cursor-pointer"
+                      title="Ganti kata sandi login atau PIN akun Anda"
+                    >
+                      <KeyRound className="w-4 h-4 text-yolk-blaze" />
+                      <span>Ganti Sandi & PIN</span>
+                    </button>
+
                     <button
                       type="button"
                       onClick={logout}
-                      className="w-full md:w-auto px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black flex items-center justify-center space-x-2 shadow-md transition active:scale-95"
+                      className="flex-1 md:flex-initial px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black flex items-center justify-center space-x-2 shadow-md transition active:scale-95 cursor-pointer"
                       title="Keluar dari akun Anda saat ini"
                     >
                       <LogOut className="w-4 h-4" />
@@ -3438,32 +3498,40 @@ export function AdminView() {
                       Kelola peran, kredensial PIN/Password, dan hak akses untuk Owner, Admin, Kasir, dan Tim Dapur
                     </p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleOpenAddUser('ADMIN')}
-                      className="px-3.5 py-2 bg-matcha-leaf hover:bg-matcha-leaf/90 text-white rounded-xl text-xs font-extrabold flex items-center space-x-1.5 shadow-sm transition active:scale-95"
-                    >
-                      <UserPlus className="w-3.5 h-3.5" />
-                      <span>Tambah Admin</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleOpenAddUser('CASHIER')}
-                      className="px-3.5 py-2 bg-spicy-ember hover:bg-spicy-hover text-white rounded-xl text-xs font-extrabold flex items-center space-x-1.5 shadow-sm transition active:scale-95"
-                    >
-                      <UserPlus className="w-3.5 h-3.5" />
-                      <span>Tambah Kasir</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleOpenAddUser('OWNER')}
-                      className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-extrabold flex items-center space-x-1.5 shadow-sm transition active:scale-95"
-                    >
-                      <UserPlus className="w-3.5 h-3.5" />
-                      <span>Tambah Owner</span>
-                    </button>
-                  </div>
+                  {/* Tombol Pendaftaran Karyawan: Khusus Owner */}
+                  {isOwner ? (
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenAddUser('ADMIN')}
+                        className="px-3.5 py-2 bg-matcha-leaf hover:bg-matcha-leaf/90 text-white rounded-xl text-xs font-extrabold flex items-center space-x-1.5 shadow-sm transition active:scale-95 cursor-pointer"
+                      >
+                        <UserPlus className="w-3.5 h-3.5" />
+                        <span>Tambah Admin</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenAddUser('CASHIER')}
+                        className="px-3.5 py-2 bg-spicy-ember hover:bg-spicy-hover text-white rounded-xl text-xs font-extrabold flex items-center space-x-1.5 shadow-sm transition active:scale-95 cursor-pointer"
+                      >
+                        <UserPlus className="w-3.5 h-3.5" />
+                        <span>Tambah Kasir</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenAddUser('OWNER')}
+                        className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-extrabold flex items-center space-x-1.5 shadow-sm transition active:scale-95 cursor-pointer"
+                      >
+                        <UserPlus className="w-3.5 h-3.5" />
+                        <span>Tambah Owner</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-1.5 bg-amber-50 border border-amber-200 text-amber-900 px-3.5 py-2 rounded-xl text-xs font-bold shadow-xs">
+                      <Shield className="w-4 h-4 text-amber-700 flex-shrink-0" />
+                      <span>Pendaftaran staf baru hanya dapat dilakukan oleh Owner</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Role Count Summary Cards */}
@@ -3554,39 +3622,64 @@ export function AdminView() {
                             </td>
                             <td className="p-3">
                               <span className="font-mono bg-stone-100 px-2 py-0.5 rounded text-[10px] text-stone-700">
-                                PIN: ••••{u.pin?.slice(-2) || '••'}
+                                {isOwner || u.id === currentUser?.id ? `PIN: ••••${u.pin?.slice(-2) || '••'}` : 'PIN: ••••••'}
                               </span>
                             </td>
                             <td className="p-3">
-                              <button
-                                type="button"
-                                onClick={() => toggleUserStatus(u.id)}
-                                className={`px-2.5 py-1 rounded-full text-[10px] font-black transition flex items-center space-x-1 border ${
-                                  u.is_active
-                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
-                                    : 'bg-stone-100 text-stone-500 border-stone-300 hover:bg-stone-200'
-                                }`}
-                              >
-                                <span className={`w-1.5 h-1.5 rounded-full ${u.is_active ? 'bg-emerald-600 animate-pulse' : 'bg-stone-400'}`} />
-                                <span>{u.is_active ? 'Aktif' : 'Non-Aktif'}</span>
-                              </button>
+                              {isOwner ? (
+                                <button
+                                  type="button"
+                                  onClick={() => toggleUserStatus(u.id)}
+                                  className={`px-2.5 py-1 rounded-full text-[10px] font-black transition flex items-center space-x-1 border cursor-pointer ${
+                                    u.is_active
+                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
+                                      : 'bg-stone-100 text-stone-500 border-stone-300 hover:bg-stone-200'
+                                  }`}
+                                >
+                                  <span className={`w-1.5 h-1.5 rounded-full ${u.is_active ? 'bg-emerald-600 animate-pulse' : 'bg-stone-400'}`} />
+                                  <span>{u.is_active ? 'Aktif' : 'Non-Aktif'}</span>
+                                </button>
+                              ) : (
+                                <span
+                                  className={`px-2.5 py-1 rounded-full text-[10px] font-black inline-flex items-center space-x-1 border ${
+                                    u.is_active
+                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                                      : 'bg-stone-100 text-stone-500 border-stone-300'
+                                  }`}
+                                >
+                                  <span className={`w-1.5 h-1.5 rounded-full ${u.is_active ? 'bg-emerald-600' : 'bg-stone-400'}`} />
+                                  <span>{u.is_active ? 'Aktif' : 'Non-Aktif'}</span>
+                                </span>
+                              )}
                             </td>
                             <td className="p-3 text-right">
                               <div className="flex items-center justify-end space-x-1.5">
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenEditUser(u)}
-                                  title="Edit Pengguna"
-                                  className="w-7 h-7 rounded-lg bg-stone-100 hover:bg-spicy-light text-stone-600 hover:text-spicy-ember flex items-center justify-center transition shadow-xs border border-stone-200/80 active:scale-95"
-                                >
-                                  <Edit2 className="w-3.5 h-3.5" />
-                                </button>
-                                {u.role !== 'OWNER' && (
+                                {/* Ganti Sandi: Owner bisa ganti siapa saja, Karyawan hanya akun sendiri */}
+                                {(isOwner || u.id === currentUser?.id) ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenEditUser(u)}
+                                    title={u.id === currentUser?.id ? 'Ganti Sandi & Profil Saya' : 'Edit Pengguna & Sandi'}
+                                    className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center space-x-1 shadow-xs transition active:scale-95 cursor-pointer ${
+                                      u.id === currentUser?.id
+                                        ? 'bg-spicy-ember text-white hover:bg-spicy-hover'
+                                        : 'bg-stone-100 hover:bg-spicy-light text-stone-700 hover:text-spicy-ember border border-stone-200/80'
+                                    }`}
+                                  >
+                                    <KeyRound className="w-3.5 h-3.5" />
+                                    <span>{u.id === currentUser?.id ? 'Ganti Sandi' : 'Edit Sandi'}</span>
+                                  </button>
+                                ) : (
+                                  <span className="text-[10px] text-stone-400 italic">Terkunci</span>
+                                )}
+
+                                {/* Hapus Pengguna: HANYA OWNER YANG BISA MENGHAPUS */}
+                                {isOwner && u.role !== 'OWNER' && (
                                   <button
                                     type="button"
                                     onClick={() => deleteUser(u.id)}
-                                    title="Hapus Pengguna"
-                                    className="w-7 h-7 rounded-lg bg-stone-100 hover:bg-red-50 text-stone-500 hover:text-red-600 flex items-center justify-center transition shadow-xs border border-stone-200/80 active:scale-95"
+                                    title="Hapus Karyawan (Khusus Owner)"
+                                    className="w-7 h-7 rounded-lg bg-stone-100 hover:bg-red-50 text-stone-500 hover:text-red-600 flex items-center justify-center transition shadow-xs border border-stone-200/80 active:scale-95 cursor-pointer"
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
                                   </button>
@@ -4607,11 +4700,17 @@ export function AdminView() {
               </div>
               <div>
                 <h3 className="font-extrabold text-base text-matcha-leaf">
-                  {editingUser
+                  {!isOwner && editingUser?.id === currentUser?.id
+                    ? 'Ganti Kata Sandi & Profil Saya'
+                    : editingUser
                     ? 'Edit Akun Pengguna'
                     : `Tambah ${userRole === 'OWNER' ? 'Owner' : userRole === 'CASHIER' ? 'Kasir' : userRole === 'ADMIN' ? 'Admin' : 'Staf'} Baru`}
                 </h3>
-                <p className="text-xs text-stone-500">Atur kredensial login, PIN, dan hak akses operasional</p>
+                <p className="text-xs text-stone-500">
+                  {!isOwner && editingUser?.id === currentUser?.id
+                    ? 'Ubah kata sandi login dan PIN akses keamanan akun Anda'
+                    : 'Atur kredensial login, PIN, dan hak akses operasional'}
+                </p>
               </div>
             </div>
 
@@ -4640,11 +4739,19 @@ export function AdminView() {
                   <input
                     type="text"
                     required
+                    readOnly={!isOwner && Boolean(editingUser)}
                     placeholder="siska_kasir"
                     value={userUsername}
                     onChange={(e) => setUserUsername(e.target.value)}
-                    className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-xs font-mono font-bold text-matcha-leaf focus:outline-none focus:border-spicy-ember"
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold focus:outline-none ${
+                      !isOwner && Boolean(editingUser)
+                        ? 'bg-stone-200/60 border-stone-300 text-stone-600 cursor-not-allowed'
+                        : 'bg-stone-50 border-stone-300 text-matcha-leaf focus:border-spicy-ember'
+                    }`}
                   />
+                  {!isOwner && Boolean(editingUser) && (
+                    <span className="text-[9px] text-stone-400 block mt-0.5">Username dikelola Owner</span>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-matcha-leaf mb-1">
@@ -4673,37 +4780,49 @@ export function AdminView() {
                 />
               </div>
 
-              {/* Role Selection */}
-              <div>
-                <label className="block text-xs font-bold text-matcha-leaf mb-1.5">
-                  Pilih Peran / Hak Akses (Role):
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { id: 'ADMIN', label: 'Admin', icon: '🛡️', desc: 'Menu, Meja & Pengaturan' },
-                    { id: 'CASHIER', label: 'Kasir', icon: '🏪', desc: 'POS Tablet & Cetak Struk' },
-                    { id: 'OWNER', label: 'Owner', icon: '👑', desc: 'Akses Penuh + Keuangan' },
-                    { id: 'KITCHEN_STAFF', label: 'Tim Dapur', icon: '🍳', desc: 'Kitchen Display (KDS)' },
-                  ].map((r) => (
-                    <button
-                      key={r.id}
-                      type="button"
-                      onClick={() => setUserRole(r.id as UserRole)}
-                      className={`p-2.5 rounded-xl border text-left transition flex items-start space-x-2 ${
-                        userRole === r.id
-                          ? 'border-spicy-ember bg-spicy-light ring-2 ring-spicy-ember/20'
-                          : 'border-stone-200 bg-white hover:bg-stone-50'
-                      }`}
-                    >
-                      <span className="text-base">{r.icon}</span>
-                      <div>
-                        <div className="font-extrabold text-xs text-matcha-leaf">{r.label}</div>
-                        <div className="text-[10px] text-stone-500 leading-tight">{r.desc}</div>
-                      </div>
-                    </button>
-                  ))}
+              {/* Role Selection: Hanya Owner yang dapat menentukan/mengubah Role */}
+              {isOwner ? (
+                <div>
+                  <label className="block text-xs font-bold text-matcha-leaf mb-1.5">
+                    Pilih Peran / Hak Akses (Role):
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { id: 'ADMIN', label: 'Admin', icon: '🛡️', desc: 'Menu, Meja & Pengaturan' },
+                      { id: 'CASHIER', label: 'Kasir', icon: '🏪', desc: 'POS Tablet & Cetak Struk' },
+                      { id: 'OWNER', label: 'Owner', icon: '👑', desc: 'Akses Penuh + Keuangan' },
+                      { id: 'KITCHEN_STAFF', label: 'Tim Dapur', icon: '🍳', desc: 'Kitchen Display (KDS)' },
+                    ].map((r) => (
+                      <button
+                        key={r.id}
+                        type="button"
+                        onClick={() => setUserRole(r.id as UserRole)}
+                        className={`p-2.5 rounded-xl border text-left transition flex items-start space-x-2 ${
+                          userRole === r.id
+                            ? 'border-spicy-ember bg-spicy-light ring-2 ring-spicy-ember/20'
+                            : 'border-stone-200 bg-white hover:bg-stone-50'
+                        }`}
+                      >
+                        <span className="text-base">{r.icon}</span>
+                        <div>
+                          <div className="font-extrabold text-xs text-matcha-leaf">{r.label}</div>
+                          <div className="text-[10px] text-stone-500 leading-tight">{r.desc}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div>
+                  <label className="block text-xs font-bold text-stone-500 mb-1">
+                    Peran Akun Saat Ini:
+                  </label>
+                  <div className="p-2.5 bg-stone-100 rounded-xl border border-stone-200 flex items-center space-x-2">
+                    <span className="text-base">{userRole === 'CASHIER' ? '🏪' : userRole === 'ADMIN' ? '🛡️' : '🍳'}</span>
+                    <span className="font-bold text-xs text-matcha-leaf">{userRole} (Hak akses dikelola Owner)</span>
+                  </div>
+                </div>
+              )}
 
               {/* Kata Sandi Login */}
               <div>
@@ -4746,36 +4865,42 @@ export function AdminView() {
                   className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-xs font-mono font-bold tracking-widest text-matcha-leaf focus:outline-none focus:border-spicy-ember"
                 />
                 <p className="text-[10px] text-stone-400 mt-1">
-                  *Digunakan untuk verifikasi otorisasi kasir dan pintu keamanan Owner
+                  *Digunakan untuk verifikasi otorisasi kasir dan pintu keamanan
                 </p>
               </div>
 
-              {/* Status Toggle */}
-              <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 flex items-center justify-between">
-                <div>
-                  <div className="font-bold text-xs text-matcha-leaf">Status Akun:</div>
-                  <div className="text-[10px] text-stone-500">
-                    {userActive ? 'Akun aktif dan dapat masuk sistem' : 'Akun dinonaktifkan sementara'}
+              {/* Status Toggle: Hanya Owner yang bisa menonaktifkan akun */}
+              {isOwner && (
+                <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 flex items-center justify-between">
+                  <div>
+                    <div className="font-bold text-xs text-matcha-leaf">Status Akun:</div>
+                    <div className="text-[10px] text-stone-500">
+                      {userActive ? 'Akun aktif dan dapat masuk sistem' : 'Akun dinonaktifkan sementara'}
+                    </div>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => setUserActive(!userActive)}
+                    className={`px-3 py-1 rounded-lg font-bold text-xs transition cursor-pointer ${
+                      userActive ? 'bg-emerald-600 text-white' : 'bg-stone-400 text-white'
+                    }`}
+                  >
+                    {userActive ? 'Aktif' : 'Non-Aktif'}
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setUserActive(!userActive)}
-                  className={`px-3 py-1 rounded-lg font-bold text-xs transition ${
-                    userActive ? 'bg-emerald-600 text-white' : 'bg-stone-400 text-white'
-                  }`}
-                >
-                  {userActive ? 'Aktif' : 'Non-Aktif'}
-                </button>
-              </div>
+              )}
 
               {/* Action Buttons */}
               <div className="flex space-x-2 pt-2 border-t border-stone-100">
                 <button
                   type="submit"
-                  className="flex-1 bg-spicy-ember hover:bg-spicy-hover text-white py-2.5 rounded-xl font-extrabold text-xs shadow-md transition"
+                  className="flex-1 bg-spicy-ember hover:bg-spicy-hover text-white py-2.5 rounded-xl font-extrabold text-xs shadow-md transition cursor-pointer"
                 >
-                  {editingUser ? 'Simpan Perubahan Akun' : 'Daftarkan Pengguna Baru'}
+                  {!isOwner && editingUser?.id === currentUser?.id
+                    ? 'Simpan Kata Sandi & Profil'
+                    : editingUser
+                    ? 'Simpan Perubahan Akun'
+                    : 'Daftarkan Pengguna Baru'}
                 </button>
                 <button
                   type="button"

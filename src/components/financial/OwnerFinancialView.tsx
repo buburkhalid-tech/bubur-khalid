@@ -425,6 +425,39 @@ export function OwnerFinancialView() {
     showToast('Laporan Keuangan & Gaji CSV berhasil diunduh ke perangkat Anda!');
   };
 
+  // IF NOT OWNER: Tolak akses finansial sama sekali
+  if (currentUser && currentUser.role !== 'OWNER') {
+    return (
+      <div className="min-h-screen bg-matcha-deep flex items-center justify-center p-4">
+        <div className="relative bg-white rounded-3xl max-w-md w-full p-7 md:p-8 shadow-floating border-2 border-red-500/30 text-matcha-leaf text-center space-y-4 animate-slideUp">
+          <div className="w-16 h-16 rounded-2xl bg-red-100 text-red-600 mx-auto flex items-center justify-center text-3xl shadow-sm">
+            🚫
+          </div>
+          <div>
+            <div className="inline-flex items-center space-x-1.5 bg-red-100 text-red-700 text-[11px] font-black px-3 py-1 rounded-full uppercase tracking-wider mb-2">
+              <span>Akses Ditolak</span>
+            </div>
+            <h2 className="text-xl font-extrabold text-matcha-leaf">Khusus Akun Pemilik (Owner)</h2>
+            <p className="text-xs text-stone-500 mt-1 leading-relaxed">
+              Halaman Laporan Keuangan, Omzet, Beban Gaji, dan Kalkulasi Laba Rugi dilindungi dan <strong>hanya dapat diakses oleh akun Pemilik (Owner)</strong>.
+            </p>
+          </div>
+          <div className="bg-stone-50 p-3 rounded-xl text-xs text-stone-600 text-left border border-stone-200">
+            <div>Pengguna: <strong className="text-matcha-leaf">{currentUser.name}</strong> (@{currentUser.username})</div>
+            <div>Role Anda: <span className="font-bold text-spicy-ember">{currentUser.role}</span></div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setActiveView('admin')}
+            className="w-full py-2.5 bg-spicy-ember hover:bg-spicy-hover text-white rounded-xl font-extrabold text-xs shadow-md transition cursor-pointer"
+          >
+            ← Kembali ke Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // IF LOCKED: Show Security Gate Modal (Enforcing Section 27 PRD)
   if (!isFinancialUnlocked) {
     return (

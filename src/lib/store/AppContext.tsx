@@ -1288,6 +1288,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // User & Security Management (Admin, Kasir, Owner, Dapur)
   const addUser = (userData: Omit<SystemUser, 'id' | 'created_at'>) => {
+    if (currentUser && currentUser.role !== 'OWNER') {
+      showToast('❌ Akses ditolak: Hanya Owner yang berhak mendaftarkan akun baru.');
+      return;
+    }
     const newUser: SystemUser = {
       ...userData,
       id: `usr-${Date.now()}`,
@@ -1306,6 +1310,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateUser = (id: string, updated: Partial<SystemUser>) => {
+    if (currentUser && currentUser.role !== 'OWNER' && currentUser.id !== id) {
+      showToast('❌ Akses ditolak: Anda hanya diizinkan mengganti sandi akun Anda sendiri.');
+      return;
+    }
+    // Cegah eskalasi hak akses oleh non-owner
+    if (currentUser && currentUser.role !== 'OWNER') {
+      delete updated.role;
+      delete updated.is_active;
+    }
+
     setUsers((prev) =>
       prev.map((u) => {
         if (u.id === id) {
@@ -1316,7 +1330,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             .then(({ error }) => {
               if (error) console.warn('Supabase user update error:', error.message);
             });
-          addAuditLog('UPDATE_USER', 'User', id, `Data pengguna "${u.name}" diperbarui`);
+          addAuditLog('UPDATE_USER', 'User', id, `Data kredensial pengguna "${u.name}" diperbarui`);
 
           // Jika role Owner dan ada nomor telepon/WA, sinkronkan juga ke adminWhatsapp toko
           if (updatedUser.role === 'OWNER' && updatedUser.phone) {
@@ -1325,15 +1339,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             }, 100);
           }
 
+          // Sinkronkan ke currentUser jika user yang sedang login mengedit akunnya sendiri
+          if (currentUser && currentUser.id === id) {
+            setCurrentUser(updatedUser);
+            try {
+              localStorage.setItem('bubur_khalid_logged_user', JSON.stringify(updatedUser));
+            } catch (e) {}
+          }
+
           return updatedUser;
         }
         return u;
       })
     );
-    showToast('Data pengguna berhasil diperbarui!');
+    showToast('Kata sandi / profil pengguna berhasil diperbarui!');
   };
 
   const deleteUser = (id: string) => {
+    if (currentUser && currentUser.role !== 'OWNER') {
+      showToast('❌ Akses ditolak: Hanya Owner yang berhak menghapus akun karyawan.');
+      return;
+    }
     const target = users.find((u) => u.id === id);
     if (!target) return;
     if (target.role === 'OWNER') {
@@ -1353,6 +1379,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const toggleUserStatus = (id: string) => {
+    if (currentUser && currentUser.role !== 'OWNER') {
+      showToast('❌ Akses ditolak: Hanya Owner yang dapat mengubah status aktifasi akun.');
+      return;
+    }
     setUsers((prev) =>
       prev.map((u) => {
         if (u.id === id) {
