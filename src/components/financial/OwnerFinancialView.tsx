@@ -734,31 +734,38 @@ export function OwnerFinancialView() {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 mt-2 sm:mt-0">
-            {/* Tombol Khusus Reset Keuangan & Gaji ke 0 */}
+          <div className="flex items-center space-x-2 mt-2 sm:mt-0 flex-shrink-0">
+            {/* Tombol Khusus Reset Keuangan (Hanya ikon di mobile, teks di desktop) */}
             <button
               type="button"
               onClick={() => setIsResetFinancialModalOpen(true)}
-              className="bg-red-600 hover:bg-red-700 text-white px-3.5 py-2 rounded-xl text-xs font-black flex items-center space-x-1.5 shadow-sm transition cursor-pointer active:scale-95"
-              title="Reset seluruh transaksi dan gaji ke Rp 0"
+              className="bg-red-600 hover:bg-red-700 text-white p-2.5 sm:px-3.5 sm:py-2 rounded-xl text-xs font-black flex items-center justify-center space-x-1.5 shadow-sm transition cursor-pointer active:scale-95"
+              title="Reset seluruh transaksi dan keuangan ke Rp 0"
             >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Reset Keuangan</span>
+              <RotateCcw className="w-4 h-4" />
+              <span className="hidden sm:inline">Reset Keuangan</span>
             </button>
 
+            {/* Tombol Ekspor CSV (Hanya ikon di mobile, teks di desktop) */}
             <button
+              type="button"
               onClick={handleExportCSV}
-              className="bg-matcha-surface hover:bg-matcha-leaf text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center space-x-1.5 border border-matcha-surface transition cursor-pointer active:scale-95"
+              className="bg-matcha-surface hover:bg-matcha-leaf text-white p-2.5 sm:px-3.5 sm:py-2 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 border border-matcha-surface transition cursor-pointer active:scale-95"
+              title="Ekspor CSV Laporan Lengkap"
             >
               <FileSpreadsheet className="w-4 h-4 text-yolk-blaze" />
-              <span>Ekspor CSV</span>
+              <span className="hidden sm:inline">Ekspor CSV</span>
             </button>
+
+            {/* Tombol Kunci Sesi (Hanya ikon di mobile, teks di desktop) */}
             <button
+              type="button"
               onClick={lockFinancialGate}
-              className="bg-spicy-ember hover:bg-spicy-hover text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center space-x-1.5 shadow-sm transition cursor-pointer active:scale-95"
+              className="bg-spicy-ember hover:bg-spicy-hover text-white p-2.5 sm:px-3.5 sm:py-2 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 shadow-sm transition cursor-pointer active:scale-95"
+              title="Kunci Sekarang (Keluar Sesi Finansial)"
             >
               <Lock className="w-4 h-4" />
-              <span>Kunci Sekarang</span>
+              <span className="hidden sm:inline">Kunci Sekarang</span>
             </button>
           </div>
         </div>
