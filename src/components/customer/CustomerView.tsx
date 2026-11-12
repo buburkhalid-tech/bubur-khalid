@@ -291,15 +291,37 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
       .reduce((sum, it) => sum + it.quantity, 0);
   };
 
+  // Live search results matching across name, description, and category
+  const liveSearchResults = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return [];
+    return products.filter((p) => {
+      const nameMatch = (p.name || '').toLowerCase().includes(q);
+      const descMatch = (p.description || '').toLowerCase().includes(q);
+      const catMatch = (p.category || '').toLowerCase().includes(q);
+      return nameMatch || descMatch || catMatch;
+    });
+  }, [products, searchQuery]);
+
   // Filtered products: Search query + Category filter
-  const filteredProducts = products.filter((p) => {
-    const matchesSearch =
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory =
-      selectedCategory === 'Semua' || p.category.toLowerCase() === selectedCategory.toLowerCase();
-    return matchesSearch && matchesCategory;
-  });
+  const filteredProducts = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return products.filter((p) => {
+      const matchesSearch =
+        !q ||
+        (p.name || '').toLowerCase().includes(q) ||
+        (p.description || '').toLowerCase().includes(q) ||
+        (p.category || '').toLowerCase().includes(q);
+
+      // If user typed a search query, search takes precedence across all categories
+      const matchesCategory =
+        Boolean(q) ||
+        selectedCategory === 'Semua' ||
+        (p.category || '').toLowerCase() === selectedCategory.toLowerCase();
+
+      return matchesSearch && matchesCategory;
+    });
+  }, [products, searchQuery, selectedCategory]);
 
   // Top 8 best-seller items for the horizontal slide carousel
   const featuredProducts = products.slice(0, 8);
@@ -512,15 +534,15 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
           </div>
 
           <div className="px-3 space-y-4">
-            {/* Search Bar */}
-            <div className="relative -mt-4 z-30">
-              <Search className="w-4 h-4 text-stone-400 absolute left-4 top-1/2 -translate-y-1/2" />
+            {/* Search Bar with Instant Live Dropdown */}
+            <div className="relative -mt-4 z-40">
+              <Search className="w-4 h-4 text-stone-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 placeholder="Cari bubur lezat favoritmu..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white pl-11 pr-10 py-3 rounded-full border border-stone-200 text-xs text-matcha-leaf placeholder:text-stone-400 focus:outline-none focus:border-spicy-ember shadow-lg font-medium"
+                className="w-full bg-white pl-11 pr-10 py-3 rounded-full border border-stone-200 text-xs text-matcha-leaf placeholder:text-stone-400 focus:outline-none focus:border-spicy-ember shadow-lg font-medium transition"
               />
               {searchQuery && (
                 <button
@@ -531,6 +553,92 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
                 >
                   <X className="w-4 h-4" />
                 </button>
+              )}
+
+              {/* Instant Search Dropdown Results Overlay */}
+              {searchQuery.trim().length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-floating border border-stone-200 overflow-hidden z-50 animate-fadeIn">
+                  <div className="px-4 py-2.5 bg-stone-50 border-b border-stone-100 flex items-center justify-between text-[11px]">
+                    <span className="font-extrabold text-matcha-leaf">
+                      Hasil Pencarian: &quot;{searchQuery}&quot;
+                    </span>
+                    <span className="font-bold text-stone-500">
+                      {liveSearchResults.length} menu ditemukan
+                    </span>
+                  </div>
+
+                  <div className="max-h-80 overflow-y-auto divide-y divide-stone-100">
+                    {liveSearchResults.length === 0 ? (
+                      <div className="py-6 px-4 text-center">
+                        <span className="text-2xl block mb-1">🥣</span>
+                        <p className="text-xs font-bold text-stone-700">Tidak ada menu yang cocok</p>
+                        <p className="text-[11px] text-stone-400 mt-0.5">Coba cari &quot;kampiun&quot;, &quot;kolak&quot;, atau &quot;ketan&quot;</p>
+                      </div>
+                    ) : (
+                      liveSearchResults.map((product) => {
+                        const isSoldOut = !product.is_available;
+                        return (
+                          <div
+                            key={product.id}
+                            onClick={() => {
+                              handleOpenProductModal(product);
+                            }}
+                            className="p-3 flex items-center space-x-3 hover:bg-noodle-cream/40 cursor-pointer transition active:bg-noodle-cream"
+                          >
+                            <div className="w-12 h-12 rounded-xl overflow-hidden relative flex-shrink-0 bg-tofu-silkblaze border border-stone-100">
+                              <Image
+                                src={getProductImage(product.image, product.id)}
+                                alt={product.name}
+                                fill
+                                className={`object-cover ${isSoldOut ? 'grayscale opacity-60' : ''}`}
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center space-x-2">
+                                <h4 className="font-extrabold text-xs text-matcha-leaf truncate">{product.name}</h4>
+                                {isSoldOut && (
+                                  <span className="bg-red-100 text-red-600 text-[9px] font-black px-1.5 py-0.5 rounded">
+                                    Habis
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[10px] text-stone-500 line-clamp-1 mt-0.5">
+                                {product.description}
+                              </p>
+                              <div className="text-xs font-black text-spicy-ember mt-0.5">
+                                Rp{product.price.toLocaleString('id-ID')}
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              className="px-2.5 py-1 bg-spicy-ember hover:bg-spicy-hover text-white text-[10px] font-bold rounded-lg shadow-2xs shrink-0"
+                            >
+                              Lihat
+                            </button>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  {liveSearchResults.length > 0 && (
+                    <div className="p-2.5 bg-stone-50 border-t border-stone-100 text-center">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const menuSection = document.getElementById('daftar-menu-section');
+                          if (menuSection) {
+                            menuSection.scrollIntoView({ behavior: 'smooth' });
+                          }
+                        }}
+                        className="text-[11px] font-extrabold text-spicy-ember hover:underline flex items-center justify-center space-x-1 mx-auto"
+                      >
+                        <span>Lihat di Daftar Menu Lengkap ({liveSearchResults.length} menu)</span>
+                        <span>↓</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 
@@ -928,46 +1036,79 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
               </div>
 
               {/* Section Header with Total Items & Layout Toggle (List vs Grid) */}
-              <div className="flex items-center justify-between pt-1">
+              <div id="daftar-menu-section" className="flex items-center justify-between pt-1">
                 <div>
                   <h3 className="font-black text-sm text-matcha-leaf flex items-center space-x-1.5">
-                    <span>Daftar Menu Bubur Khalid</span>
+                    <span>{searchQuery ? `Hasil Pencarian "${searchQuery}"` : 'Daftar Menu Bubur Khalid'}</span>
                     <span className="text-[11px] text-stone-400 font-semibold">({filteredProducts.length})</span>
                   </h3>
-                  <span className="text-[10px] text-stone-400 block">Scroll ke bawah untuk melihat menu</span>
+                  <span className="text-[10px] text-stone-400 block">
+                    {searchQuery ? 'Menampilkan menu yang cocok dengan kata kunci' : 'Scroll ke bawah untuk melihat menu'}
+                  </span>
                 </div>
 
-                {/* View Switcher Toggle (List vs 2-Column Grid) */}
-                <div className="flex items-center bg-white p-0.5 rounded-xl border border-stone-200 shadow-2xs">
-                  <button
-                    type="button"
-                    onClick={() => setLayoutMode('list')}
-                    className={`p-1.5 rounded-lg transition ${
-                      layoutMode === 'list'
-                        ? 'bg-spicy-ember text-white shadow-xs'
-                        : 'text-stone-400 hover:text-stone-700'
-                    }`}
-                    title="Tampilan List (Scroll ke Bawah)"
-                  >
-                    <List className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setLayoutMode('grid')}
-                    className={`p-1.5 rounded-lg transition ${
-                      layoutMode === 'grid'
-                        ? 'bg-spicy-ember text-white shadow-xs'
-                        : 'text-stone-400 hover:text-stone-700'
-                    }`}
-                    title="Tampilan Grid 2-Kolom (Modern Mobile)"
-                  >
-                    <Grid className="w-3.5 h-3.5" />
-                  </button>
+                <div className="flex items-center space-x-2">
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className="px-2 py-1 bg-stone-100 hover:bg-stone-200 text-stone-600 rounded-lg text-[10px] font-bold transition"
+                    >
+                      Reset Filter
+                    </button>
+                  )}
+                  {/* View Switcher Toggle (List vs 2-Column Grid) */}
+                  <div className="flex items-center bg-white p-0.5 rounded-xl border border-stone-200 shadow-2xs">
+                    <button
+                      type="button"
+                      onClick={() => setLayoutMode('list')}
+                      className={`p-1.5 rounded-lg transition ${
+                        layoutMode === 'list'
+                          ? 'bg-spicy-ember text-white shadow-xs'
+                          : 'text-stone-400 hover:text-stone-700'
+                      }`}
+                      title="Tampilan List (Scroll ke Bawah)"
+                    >
+                      <List className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLayoutMode('grid')}
+                      className={`p-1.5 rounded-lg transition ${
+                        layoutMode === 'grid'
+                          ? 'bg-spicy-ember text-white shadow-xs'
+                          : 'text-stone-400 hover:text-stone-700'
+                      }`}
+                      title="Tampilan Grid 2-Kolom (Modern Mobile)"
+                    >
+                      <Grid className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              {/* LIST MODE (Tampilan List Vertikal - Scroll ke Bawah) */}
-              {layoutMode === 'list' ? (
+              {/* Empty State when no items match search or category */}
+              {filteredProducts.length === 0 ? (
+                <div className="py-12 px-4 text-center bg-white rounded-3xl border border-dashed border-stone-200 shadow-xs flex flex-col items-center justify-center animate-fadeIn">
+                  <span className="text-4xl mb-2">🥣</span>
+                  <h4 className="font-black text-sm text-matcha-leaf">Menu Tidak Ditemukan</h4>
+                  <p className="text-xs text-stone-500 mt-1 max-w-xs">
+                    {searchQuery
+                      ? `Tidak ada menu yang sesuai dengan kata kunci "${searchQuery}".`
+                      : 'Belum ada menu di kategori ini.'}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSelectedCategory('Semua');
+                    }}
+                    className="mt-4 px-4 py-2 bg-spicy-ember hover:bg-spicy-hover text-white rounded-xl text-xs font-extrabold shadow-sm transition active:scale-95"
+                  >
+                    Lihat Semua Menu
+                  </button>
+                </div>
+              ) : layoutMode === 'list' ? (
                 <div className="space-y-2.5">
                   {filteredProducts.map((product) => {
                     const isSoldOut = !product.is_available;
