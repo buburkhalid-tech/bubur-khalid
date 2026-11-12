@@ -226,18 +226,33 @@ export function CustomerView() {
   };
 
   const handleShareProduct = (product: Product) => {
-    const text = `Nikmati ${product.name} khas Minang dari Bubur Khalid - hanya Rp${product.price.toLocaleString('id-ID')}!`;
+    // Bangun URL langsung ke menu spesifik
+    let shareUrl = `https://bubur-khalid.vercel.app/?menu=${encodeURIComponent(product.id)}`;
+    if (typeof window !== 'undefined') {
+      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const baseOrigin = isLocal ? window.location.origin : 'https://bubur-khalid.vercel.app';
+      const url = new URL(baseOrigin);
+      url.searchParams.set('menu', product.id);
+      if (selectedTable) {
+        url.searchParams.set('table', selectedTable);
+      }
+      shareUrl = url.toString();
+    }
+
+    const shareTitle = `${product.name} - Bubur Khalid`;
+    const shareText = `Cobain ${product.name} khas Minang dari Bubur Khalid (hanya Rp${product.price.toLocaleString('id-ID')}). Klik tautan berikut untuk lihat & pesan langsung:`;
+
     if (typeof navigator !== 'undefined' && navigator.share) {
       navigator
         .share({
-          title: product.name,
-          text,
-          url: window.location.href,
+          title: shareTitle,
+          text: shareText,
+          url: shareUrl,
         })
         .catch(() => {});
     } else if (typeof navigator !== 'undefined') {
-      navigator.clipboard.writeText(`${text} Pesan di: ${window.location.href}`);
-      triggerToast('Tautan menu berhasil disalin ke clipboard! 📋');
+      navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+      triggerToast(`Tautan menu ${product.name} berhasil disalin! 📋`);
     }
   };
 
@@ -352,6 +367,32 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
     setModalUseCup(customerServiceType === 'TAKEAWAY');
     setModalNotes('');
   };
+
+  const hasAutoOpenedRef = useRef<boolean>(false);
+
+  // DEEP LINKING: Deteksi ?menu= atau ?product= di URL saat halaman dimuat untuk langsung membuka modal menu yang dibagikan
+  useEffect(() => {
+    if (hasAutoOpenedRef.current) return;
+    if (typeof window === 'undefined' || !products || products.length === 0) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const menuQuery = params.get('menu') || params.get('product') || params.get('item');
+
+    if (menuQuery) {
+      const decoded = decodeURIComponent(menuQuery).trim().toLowerCase();
+      const targetProduct = products.find(
+        (p) =>
+          p.id.toLowerCase() === decoded ||
+          p.name.toLowerCase() === decoded ||
+          p.name.toLowerCase().replace(/\s+/g, '-') === decoded
+      );
+
+      if (targetProduct) {
+        hasAutoOpenedRef.current = true;
+        handleOpenProductModal(targetProduct);
+      }
+    }
+  }, [products]);
 
   const handleConfirmAddToCart = () => {
     if (isStoreUnavailable) {
