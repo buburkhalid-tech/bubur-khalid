@@ -3658,14 +3658,13 @@ export function AdminView() {
                                     type="button"
                                     onClick={() => handleOpenEditUser(u)}
                                     title={u.id === currentUser?.id ? 'Ganti Sandi & Profil Saya' : 'Edit Pengguna & Sandi'}
-                                    className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center space-x-1 shadow-xs transition active:scale-95 cursor-pointer ${
+                                    className={`w-7 h-7 rounded-lg flex items-center justify-center border shadow-xs transition active:scale-95 cursor-pointer ${
                                       u.id === currentUser?.id
                                         ? 'bg-spicy-ember text-white hover:bg-spicy-hover'
                                         : 'bg-stone-100 hover:bg-spicy-light text-stone-700 hover:text-spicy-ember border border-stone-200/80'
                                     }`}
                                   >
                                     <KeyRound className="w-3.5 h-3.5" />
-                                    <span>{u.id === currentUser?.id ? 'Ganti Sandi' : 'Edit Sandi'}</span>
                                   </button>
                                 ) : (
                                   <span className="text-[10px] text-stone-400 italic">Terkunci</span>
