@@ -5,6 +5,7 @@ import { Product, Order, OrderStatus, PaymentMethod, TableInfo, AuditLog, Financ
 import { INITIAL_PRODUCTS, INITIAL_TABLES, CUP_FEE, INITIAL_STORE_SETTINGS, INITIAL_USERS, INITIAL_PROMO_BANNERS } from '../constants';
 import { MOCK_ORDERS, MOCK_FINANCIAL_SUMMARY, MOCK_AUDIT_LOGS } from '../mock-data';
 import { supabase } from '../supabase/client';
+import { getJakartaDateStr, getJakartaMonthStr } from '../date-utils';
 
 interface CartItem {
   product: Product;
@@ -107,6 +108,9 @@ interface AppContextType {
   // Audit Logs
   auditLogs: AuditLog[];
   addAuditLog: (action: string, entity: string, entityId: string, details: string) => void;
+
+  // Cloud Sync
+  syncFromCloud: () => Promise<void>;
 
   // Toast
   toastMessage: string | null;
@@ -1609,10 +1613,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
-  // Dynamic Financial Summary derived from real orders
+  // Dynamic Financial Summary derived from real orders in Asia/Jakarta timezone
   const financialSummary = useMemo<FinancialSummary>(() => {
-    const today = new Date().toISOString().split('T')[0];
-    const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+    const today = getJakartaDateStr(new Date());
+    const currentMonth = getJakartaMonthStr(new Date());
 
     let today_revenue = 0;
     let today_transactions = 0;
@@ -1626,7 +1630,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     orders.forEach((o) => {
       if (o.order_status === 'CANCELLED') return;
-      const dateStr = o.created_at ? o.created_at.split('T')[0] : '';
+      const dateStr = getJakartaDateStr(o.created_at);
       const isToday = dateStr === today;
       const isMonth = dateStr.startsWith(currentMonth);
 
@@ -1667,6 +1671,104 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       net_revenue: month_revenue,
     };
   }, [orders]);
+
+  // Force re-sync data directly from Supabase Cloud (wipes local cache discrepancies)
+  const syncFromCloud = async () => {
+    try {
+      showToast('Menghubungkan & sinkronisasi data cloud Supabase...');
+      // 1. Fetch products
+      const { data: pData } = await supabase.from('products').select('*');
+      if (pData) {
+        const active = pData
+          .filter((p: any) => !p.is_deleted)
+          .map((p: any) => ({
+            ...p,
+            price: Number(p.price),
+            is_available: Boolean(p.is_available),
+          }));
+        const trashed = pData
+          .filter((p: any) => p.is_deleted)
+          .map((p: any) => ({
+            ...p,
+            price: Number(p.price),
+            is_available: Boolean(p.is_available),
+          }));
+        setProducts(active);
+        setTrashProducts(trashed);
+        localStorage.setItem('bubur_khalid_products', JSON.stringify(active));
+        localStorage.setItem('bubur_khalid_trash_products', JSON.stringify(trashed));
+      }
+
+      // 2. Fetch orders
+      const { data: cloudOrders, error: oErr } = await supabase
+        .from('orders')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (!oErr && cloudOrders) {
+        const cleanCloudOrders = cloudOrders
+          .filter(
+            (o: any) =>
+              !['ord-on-025', 'ord-on-026', 'ord-on-027', 'ord-ot-012', 'ord-ot-013'].includes(o.id) &&
+              !['ON-025', 'ON-026', 'ON-027', 'OT-012', 'OT-013'].includes(o.queue_number)
+          )
+          .map((o: any) => ({
+            ...o,
+            subtotal: Number(o.subtotal || 0),
+            total_amount: Number(o.total_amount || 0),
+            cup_fee: Number(o.cup_fee || 0),
+            discount: Number(o.discount || 0),
+          }));
+        setOrders(cleanCloudOrders);
+        localStorage.setItem('bubur_khalid_orders', JSON.stringify(cleanCloudOrders));
+      }
+
+      // 3. Fetch store settings
+      const { data: cloudSettings, error: sErr } = await supabase
+        .from('store_settings')
+        .select('*')
+        .limit(1)
+        .maybeSingle();
+      if (!sErr && cloudSettings) {
+        setStoreSettings((prev) => ({
+          ...prev,
+          storeName: cloudSettings.store_name || prev.storeName,
+          storeTagline: cloudSettings.store_tagline || prev.storeTagline,
+          storeAddress: cloudSettings.store_address || prev.storeAddress,
+          storeLogo: cloudSettings.store_logo || prev.storeLogo,
+          bannerTitle: cloudSettings.banner_title || prev.bannerTitle,
+          bannerSubtitle: cloudSettings.banner_subtitle || prev.bannerSubtitle,
+          bannerImage: cloudSettings.banner_image || prev.bannerImage,
+          operatingHours: cloudSettings.operating_hours || prev.operatingHours,
+          adminWhatsapp:
+            cloudSettings.admin_whatsapp && cloudSettings.admin_whatsapp !== '6281234567890'
+              ? cloudSettings.admin_whatsapp
+              : prev.adminWhatsapp || '6285274281819',
+          isStoreOpen: cloudSettings.is_store_open ?? prev.isStoreOpen,
+          isStoreHoliday: cloudSettings.payment_methods?._holiday?.isHoliday ?? prev.isStoreHoliday ?? false,
+          holidayReason: cloudSettings.payment_methods?._holiday?.reason ?? prev.holidayReason ?? 'Toko sedang libur hari ini. Buka kembali besok.',
+          cupFee: Number(cloudSettings.cup_fee ?? prev.cupFee),
+          paymentMethods: {
+            qris: {
+              ...prev.paymentMethods.qris,
+              ...(cloudSettings.payment_methods?.qris || {}),
+            },
+            cash: {
+              ...prev.paymentMethods.cash,
+              ...(cloudSettings.payment_methods?.cash || {}),
+            },
+            transfer: {
+              ...prev.paymentMethods.transfer,
+              ...(cloudSettings.payment_methods?.transfer || {}),
+            },
+          },
+        }));
+      }
+
+      showToast('✅ Data berhasil disinkronkan langsung dari Cloud!');
+    } catch (err: any) {
+      showToast('Gagal sinkronisasi data: ' + err.message);
+    }
+  };
 
   return (
     <AppContext.Provider
@@ -1734,6 +1836,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         financialLockRemainingSeconds,
         auditLogs,
         addAuditLog,
+        syncFromCloud,
         toastMessage,
         showToast,
       }}

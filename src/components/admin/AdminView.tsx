@@ -6,6 +6,7 @@ import QRCode from 'qrcode';
 import { useApp } from '@/lib/store/AppContext';
 import { Product, SystemUser, UserRole, TableInfo, PromoBanner } from '@/lib/types';
 import { parseImageUrl, isGoogleDriveLink } from '@/lib/utils/image';
+import { getJakartaDateStr, getJakartaMonthStr, formatJakartaFullDate } from '@/lib/date-utils';
 import {
   LayoutDashboard,
   ShoppingBag,
@@ -56,6 +57,7 @@ import {
   FileSpreadsheet,
   AlertCircle,
   AlertOctagon,
+  RefreshCw,
 } from 'lucide-react';
 
 export function AdminView() {
@@ -91,6 +93,7 @@ export function AdminView() {
     deletePromoBanner,
     togglePromoBannerStatus,
     showToast,
+    syncFromCloud,
     currentUser,
     logout,
     updateOrderStatus,
@@ -115,10 +118,12 @@ export function AdminView() {
   const [donutViewMode, setDonutViewMode] = useState<'cost' | 'channel'>('cost');
   const [activeChannelSegment, setActiveChannelSegment] = useState<'online' | 'cashier' | null>(null);
 
-  // Dynamic Cashflow dataset calculated from real orders
+  // Dynamic Cashflow dataset calculated from real orders in Asia/Jakarta timezone
   const currentCashflowDataset = useMemo(() => {
-    const daysCount = financeRangeFilter === '7D' ? 7 : financeRangeFilter === '30D' ? 30 : new Date().getDate();
+    const daysCount = financeRangeFilter === '7D' ? 7 : financeRangeFilter === '30D' ? 30 : 30;
     const now = new Date();
+    const todayJakarta = getJakartaDateStr(now);
+    const [nowY, nowM, nowD] = todayJakarta.split('-').map(Number);
 
     const days: { dateStr: string; label: string; dayName: string; fullDay: string }[] = [];
     const dayNamesIndo = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
@@ -126,13 +131,15 @@ export function AdminView() {
     const monthNamesIndo = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
     for (let i = daysCount - 1; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(now.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0];
-      const isToday = i === 0;
-      const label = isToday && financeRangeFilter === '7D' ? 'Hari Ini' : `${d.getDate()} ${monthNamesIndo[d.getMonth()]}`;
-      const dayName = isToday && financeRangeFilter === '7D' ? 'Hari Ini' : dayNamesIndo[d.getDay()];
-      const fullDay = `${fullDayNamesIndo[d.getDay()]}, ${d.getDate()} ${monthNamesIndo[d.getMonth()]} ${d.getFullYear()}${isToday ? ' (Hari Ini)' : ''}`;
+      const d = new Date(Date.UTC(nowY, nowM - 1, nowD - i, 12, 0, 0));
+      const dateStr = getJakartaDateStr(d);
+      const isToday = dateStr === todayJakarta;
+      const dayIdx = d.getUTCDay();
+      const mIdx = d.getUTCMonth();
+      const dateNum = d.getUTCDate();
+      const label = isToday && financeRangeFilter === '7D' ? 'Hari Ini' : `${dateNum} ${monthNamesIndo[mIdx]}`;
+      const dayName = isToday && financeRangeFilter === '7D' ? 'Hari Ini' : dayNamesIndo[dayIdx];
+      const fullDay = `${fullDayNamesIndo[dayIdx]}, ${dateNum} ${monthNamesIndo[mIdx]} ${d.getUTCFullYear()}${isToday ? ' (Hari Ini)' : ''}`;
       days.push({ dateStr, label, dayName, fullDay });
     }
 
@@ -146,7 +153,7 @@ export function AdminView() {
       let txCount = 0;
       orders.forEach((ord) => {
         if (ord.order_status === 'CANCELLED') return;
-        const ordDate = ord.created_at ? ord.created_at.split('T')[0] : '';
+        const ordDate = getJakartaDateStr(ord.created_at);
         if (ordDate === day.dateStr) {
           uangMasuk += ord.total_amount || 0;
           txCount += 1;
@@ -259,7 +266,7 @@ export function AdminView() {
     const validDates = new Set(currentCashflowDataset.points.map((p) => p.dateStr));
     return orders.reduce((sum, ord) => {
       if (ord.order_status === 'CANCELLED') return sum;
-      const ordDate = ord.created_at ? ord.created_at.split('T')[0] : '';
+      const ordDate = getJakartaDateStr(ord.created_at);
       if (validDates.has(ordDate)) {
         return sum + (ord.items?.reduce((s, it) => s + (it.quantity || 1), 0) || 0);
       }
@@ -680,12 +687,24 @@ export function AdminView() {
   const [isSidebarPinned, setIsSidebarPinned] = useState<boolean>(false);
   const isSidebarOpen = isSidebarHovered || isSidebarPinned;
 
-  // Dynamic top-selling items calculated from real orders
+  // Live dynamic today date formatted in Asia/Jakarta (id-ID)
+  const liveTodayIndo = useMemo(() => {
+    return formatJakartaFullDate(new Date());
+  }, []);
+
+  // Dynamic top-selling items calculated from real orders in Asia/Jakarta timezone
+  const [topSellingFilter, setTopSellingFilter] = useState<'today' | 'all'>('today');
+
   const topSellingItems = useMemo(() => {
     const itemMap: { [productName: string]: { name: string; sales: number; price: number; image: string } } = {};
+    const todayStr = getJakartaDateStr(new Date());
 
     orders.forEach((ord) => {
       if (ord.order_status === 'CANCELLED') return;
+      if (topSellingFilter === 'today') {
+        const ordDate = getJakartaDateStr(ord.created_at);
+        if (ordDate !== todayStr) return;
+      }
       ord.items?.forEach((item) => {
         const name = item.product_name_snapshot;
         if (!itemMap[name]) {
@@ -704,7 +723,7 @@ export function AdminView() {
     return Object.values(itemMap)
       .sort((a, b) => b.sales - a.sales)
       .slice(0, 5);
-  }, [orders, products]);
+  }, [orders, products, topSellingFilter]);
 
   const presetImages = [
     { label: 'Bubur Kampiun', path: '/images/menu/bubur-kampiun.png' },
@@ -1289,10 +1308,21 @@ export function AdminView() {
                   : 'Pengaturan Toko & Banner'
                 : 'Tong Sampah (Soft Delete)'}
             </h1>
-            <p className="text-xs text-stone-500">Hari ini, 11 Nov 2026 • Zona Waktu Asia/Jakarta (WIB)</p>
+            <p className="text-xs text-stone-500">{liveTodayIndo} • Zona Waktu Asia/Jakarta (WIB)</p>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 md:space-x-3">
+            {/* Quick Cloud Sync Button */}
+            <button
+              type="button"
+              onClick={() => syncFromCloud()}
+              className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-white border border-stone-200 text-stone-700 hover:text-matcha-leaf hover:bg-noodle-cream text-xs font-bold shadow-xs transition active:scale-95"
+              title="Sinkronkan data dengan database Supabase Cloud"
+            >
+              <RefreshCw className="w-3.5 h-3.5 text-spicy-ember" />
+              <span className="hidden sm:inline">Sinkron Data</span>
+            </button>
+
             <button className="w-9 h-9 rounded-xl bg-white border border-stone-200 flex items-center justify-center text-matcha-leaf shadow-sm hover:bg-noodle-cream transition">
               <Bell className="w-4 h-4" />
             </button>
@@ -2266,16 +2296,45 @@ export function AdminView() {
                 </div>
               </div>
 
-              {/* Menu Terlaris Hari Ini (1 col) */}
+              {/* Menu Terlaris (1 col) */}
               <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-soft">
-                <h3 className="font-extrabold text-sm text-matcha-leaf mb-3">Menu Terlaris Hari Ini</h3>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-extrabold text-sm text-matcha-leaf">
+                    Menu Terlaris {topSellingFilter === 'today' ? 'Hari Ini' : 'Sepanjang Waktu'}
+                  </h3>
+                  <div className="flex bg-stone-100 p-0.5 rounded-lg border border-stone-200 text-[10px] font-bold">
+                    <button
+                      type="button"
+                      onClick={() => setTopSellingFilter('today')}
+                      className={`px-2 py-0.5 rounded-md transition ${topSellingFilter === 'today' ? 'bg-white text-matcha-leaf shadow-xs' : 'text-stone-500 hover:text-stone-800'}`}
+                    >
+                      Hari Ini
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTopSellingFilter('all')}
+                      className={`px-2 py-0.5 rounded-md transition ${topSellingFilter === 'all' ? 'bg-white text-matcha-leaf shadow-xs' : 'text-stone-500 hover:text-stone-800'}`}
+                    >
+                      Semua
+                    </button>
+                  </div>
+                </div>
                 {topSellingItems.length === 0 ? (
-                  <div className="py-12 px-4 text-center flex flex-col items-center justify-center text-stone-400 bg-stone-50/70 rounded-2xl border border-dashed border-stone-200">
+                  <div className="py-10 px-4 text-center flex flex-col items-center justify-center text-stone-400 bg-stone-50/70 rounded-2xl border border-dashed border-stone-200">
                     <span className="text-3xl mb-2">🥣</span>
-                    <p className="text-xs font-bold text-stone-700">Belum ada penjualan menu hari ini</p>
+                    <p className="text-xs font-bold text-stone-700">Belum ada penjualan menu {topSellingFilter === 'today' ? 'hari ini' : ''}</p>
                     <p className="text-[11px] text-stone-400 mt-1 max-w-xs">
-                      Menu terlaris akan otomatis terdata saat ada pesanan yang masuk dan diproses.
+                      {topSellingFilter === 'today' ? 'Pesanan yang masuk hari ini akan otomatis dianalisis di sini.' : 'Belum ada transaksi menu tercatat.'}
                     </p>
+                    {topSellingFilter === 'today' && (
+                      <button
+                        type="button"
+                        onClick={() => setTopSellingFilter('all')}
+                        className="mt-3 text-[10px] font-bold text-spicy-ember hover:underline"
+                      >
+                        Lihat Menu Terlaris Sepanjang Waktu →
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-3">

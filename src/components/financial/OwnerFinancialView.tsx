@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '@/lib/store/AppContext';
+import { getJakartaDateStr, getJakartaMonthStr, formatJakartaFullDate, formatJakartaTime } from '@/lib/date-utils';
 import {
   ShieldAlert,
   Lock,
@@ -49,11 +50,11 @@ export function OwnerFinancialView() {
   const validOrders = useMemo(() => orders.filter((o) => o.order_status !== 'CANCELLED'), [orders]);
   const cancelledOrders = useMemo(() => orders.filter((o) => o.order_status === 'CANCELLED'), [orders]);
 
-  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
-  const currentMonthStr = useMemo(() => todayStr.substring(0, 7), [todayStr]);
+  const todayStr = useMemo(() => getJakartaDateStr(new Date()), []);
+  const currentMonthStr = useMemo(() => getJakartaMonthStr(new Date()), []);
 
   const todayOrders = useMemo(
-    () => validOrders.filter((o) => o.created_at?.startsWith(todayStr)),
+    () => validOrders.filter((o) => getJakartaDateStr(o.created_at) === todayStr),
     [validOrders, todayStr]
   );
   const todayRevenue = useMemo(
@@ -64,7 +65,7 @@ export function OwnerFinancialView() {
   const todayAov = todayTransactions > 0 ? Math.round(todayRevenue / todayTransactions) : 0;
 
   const monthOrders = useMemo(
-    () => validOrders.filter((o) => o.created_at?.startsWith(currentMonthStr)),
+    () => validOrders.filter((o) => getJakartaDateStr(o.created_at).startsWith(currentMonthStr)),
     [validOrders, currentMonthStr]
   );
   const monthRevenue = useMemo(
@@ -149,9 +150,8 @@ export function OwnerFinancialView() {
 
   // EKSPOR CSV AKTIF: Mengunduh file CSV laporan riil terperinci
   const handleExportCSV = () => {
-    const now = new Date();
-    const dateStr = now.toISOString().split('T')[0];
-    const timeStr = now.toTimeString().split(' ')[0];
+    const dateStr = getJakartaDateStr(new Date());
+    const timeStr = formatJakartaTime(new Date());
 
     let csvContent = '\uFEFF'; // BOM UTF-8 agar karakter Excel tidak rusak
     csvContent += 'LAPORAN KEUANGAN DAN TRANSAKSI RESMI BUBUR KHALID\n';
