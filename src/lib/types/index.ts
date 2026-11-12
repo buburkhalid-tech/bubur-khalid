@@ -151,6 +151,18 @@ export interface PaymentMethodConfig {
   accountHolder?: string;
 }
 
+export interface StaffSalary {
+  id: string;
+  name: string;
+  role: string;
+  salary_amount: number;
+  salary_type: 'MONTHLY' | 'DAILY';
+  payment_status: 'PAID' | 'PENDING';
+  period?: string;
+  notes?: string;
+  created_at: string;
+}
+
 export interface StoreSettings {
   storeName: string;
   storeTagline: string;

@@ -1,8 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
-import { Product, Order, OrderStatus, PaymentMethod, TableInfo, AuditLog, FinancialSummary, StoreSettings, SystemUser, PromoBanner, UserRole } from '../types';
-import { INITIAL_PRODUCTS, INITIAL_TABLES, CUP_FEE, INITIAL_STORE_SETTINGS, INITIAL_USERS, INITIAL_PROMO_BANNERS } from '../constants';
+import { Product, Order, OrderStatus, PaymentMethod, TableInfo, AuditLog, FinancialSummary, StoreSettings, SystemUser, PromoBanner, UserRole, StaffSalary } from '../types';
+import { INITIAL_PRODUCTS, INITIAL_TABLES, CUP_FEE, INITIAL_STORE_SETTINGS, INITIAL_USERS, INITIAL_PROMO_BANNERS, INITIAL_STAFF_SALARIES } from '../constants';
 import { MOCK_ORDERS, MOCK_FINANCIAL_SUMMARY, MOCK_AUDIT_LOGS } from '../mock-data';
 import { supabase } from '../supabase/client';
 import { getJakartaDateStr, getJakartaMonthStr } from '../date-utils';
@@ -105,6 +105,14 @@ interface AppContextType {
   lockFinancialGate: () => void;
   financialLockRemainingSeconds: number;
 
+  // Staff Salary Management (Payroll & Kalkulasi Pengeluaran)
+  staffSalaries: StaffSalary[];
+  addStaffSalary: (salary: Omit<StaffSalary, 'id' | 'created_at'>) => void;
+  updateStaffSalary: (id: string, updated: Partial<StaffSalary>) => void;
+  deleteStaffSalary: (id: string) => void;
+  toggleStaffSalaryStatus: (id: string) => void;
+  resetDefaultStaffSalaries: () => void;
+
   // Audit Logs
   auditLogs: AuditLog[];
   addAuditLog: (action: string, entity: string, entityId: string, details: string) => void;
@@ -162,6 +170,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [promoBanners, setPromoBanners] = useState<PromoBanner[]>(INITIAL_PROMO_BANNERS);
   const [users, setUsers] = useState<SystemUser[]>(INITIAL_USERS);
   const [currentUser, setCurrentUser] = useState<SystemUser | null>(null);
+  const [staffSalaries, setStaffSalaries] = useState<StaffSalary[]>(INITIAL_STAFF_SALARIES);
 
   // Initialize and restore all data from localStorage on client mount
   useEffect(() => {
@@ -302,6 +311,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         } else {
           setCurrentUser(null);
         }
+
+        // Staff Salaries
+        const savedSalaries = localStorage.getItem('bubur_khalid_staff_salaries');
+        if (savedSalaries) {
+          const parsed = JSON.parse(savedSalaries);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setStaffSalaries(parsed);
+          }
+        }
       } catch (err) {
         console.error('Failed to load local storage:', err);
       } finally {
@@ -417,6 +435,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               },
             },
           }));
+
+          if (cloudSettings.payment_methods?._salaries && Array.isArray(cloudSettings.payment_methods._salaries)) {
+            setStaffSalaries(cloudSettings.payment_methods._salaries);
+            localStorage.setItem('bubur_khalid_staff_salaries', JSON.stringify(cloudSettings.payment_methods._salaries));
+          }
         }
 
         // 5. Tables
@@ -562,6 +585,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       } catch (e) {}
     }
   }, [users, isHydrated]);
+
+  // Auto-sync Staff Salaries ke LocalStorage
+  useEffect(() => {
+    if (isHydrated && typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('bubur_khalid_staff_salaries', JSON.stringify(staffSalaries));
+      } catch (e) {}
+    }
+  }, [staffSalaries, isHydrated]);
 
   const addPromoBanner = (newBanner: Omit<PromoBanner, 'id'>) => {
     const banner: PromoBanner = {
@@ -1337,6 +1369,96 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
+  // Staff Salary Management & Payroll (Owner Financial)
+  const syncSalariesToCloud = (nextSalaries: StaffSalary[]) => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('bubur_khalid_staff_salaries', JSON.stringify(nextSalaries));
+      } catch (e) {}
+    }
+    supabase
+      .from('store_settings')
+      .select('payment_methods')
+      .eq('id', 'store-config')
+      .maybeSingle()
+      .then(({ data }) => {
+        const existing = data?.payment_methods || {};
+        supabase
+          .from('store_settings')
+          .update({
+            payment_methods: {
+              ...existing,
+              _salaries: nextSalaries,
+            },
+          })
+          .eq('id', 'store-config')
+          .then(({ error }) => {
+            if (error) console.warn('Supabase salaries sync error:', error.message);
+          });
+      });
+  };
+
+  const addStaffSalary = (salaryData: Omit<StaffSalary, 'id' | 'created_at'>) => {
+    const newSalary: StaffSalary = {
+      ...salaryData,
+      id: `sal-${Date.now()}`,
+      created_at: new Date().toISOString(),
+    };
+    setStaffSalaries((prev) => {
+      const next = [newSalary, ...prev];
+      syncSalariesToCloud(next);
+      return next;
+    });
+    addAuditLog('ADD_STAFF_SALARY', 'Payroll', newSalary.id, `Input gaji ${newSalary.name} (${newSalary.role}): Rp ${newSalary.salary_amount.toLocaleString('id-ID')}`);
+    showToast(`Data gaji ${newSalary.name} berhasil disimpan!`);
+  };
+
+  const updateStaffSalary = (id: string, updated: Partial<StaffSalary>) => {
+    setStaffSalaries((prev) => {
+      const next = prev.map((s) => (s.id === id ? { ...s, ...updated } : s));
+      syncSalariesToCloud(next);
+      return next;
+    });
+    addAuditLog('UPDATE_STAFF_SALARY', 'Payroll', id, `Pembaruan data gaji karyawan`);
+    showToast('Data gaji karyawan berhasil diperbarui!');
+  };
+
+  const deleteStaffSalary = (id: string) => {
+    const target = staffSalaries.find((s) => s.id === id);
+    setStaffSalaries((prev) => {
+      const next = prev.filter((s) => s.id !== id);
+      syncSalariesToCloud(next);
+      return next;
+    });
+    if (target) {
+      addAuditLog('DELETE_STAFF_SALARY', 'Payroll', id, `Hapus data gaji ${target.name}`);
+      showToast(`Data gaji ${target.name} telah dihapus.`);
+    }
+  };
+
+  const toggleStaffSalaryStatus = (id: string) => {
+    setStaffSalaries((prev) => {
+      const next = prev.map((s) => {
+        if (s.id === id) {
+          const nextStatus: 'PAID' | 'PENDING' = s.payment_status === 'PAID' ? 'PENDING' : 'PAID';
+          addAuditLog('TOGGLE_SALARY_STATUS', 'Payroll', id, `Status gaji ${s.name} diubah menjadi ${nextStatus}`);
+          showToast(`Status gaji ${s.name}: ${nextStatus === 'PAID' ? 'LUNAS (Terbayar)' : 'PENDING (Belum Bayar)'}`);
+          return { ...s, payment_status: nextStatus };
+        }
+        return s;
+      });
+      syncSalariesToCloud(next);
+      return next;
+    });
+  };
+
+  const resetDefaultStaffSalaries = () => {
+    setStaffSalaries(INITIAL_STAFF_SALARIES);
+    syncSalariesToCloud(INITIAL_STAFF_SALARIES);
+    addAuditLog('RESET_SALARIES', 'Payroll', 'all', 'Gaji karyawan di-reset ke preset Karyawan A, B, C');
+    showToast('Gaji karyawan di-reset ke preset Karyawan A, B, C.');
+  };
+
   // User Authentication & Session Management
   const login = async (
     identifier: string,
@@ -1879,6 +2001,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         unlockFinancialGate,
         lockFinancialGate,
         financialLockRemainingSeconds,
+        staffSalaries,
+        addStaffSalary,
+        updateStaffSalary,
+        deleteStaffSalary,
+        toggleStaffSalaryStatus,
+        resetDefaultStaffSalaries,
         auditLogs,
         addAuditLog,
         syncFromCloud,
