@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '@/lib/store/AppContext';
 import { getJakartaDateStr, getJakartaMonthStr, formatJakartaTime } from '@/lib/date-utils';
-import { StaffSalary } from '@/lib/types';
+import { StaffSalary, OperationalExpense, ExpenseCategory } from '@/lib/types';
 import {
   ShieldAlert,
   Lock,
@@ -39,6 +39,9 @@ import {
   RotateCcw,
   AlertTriangle,
   CalendarDays,
+  ShoppingBag,
+  Flame,
+  Package,
 } from 'lucide-react';
 
 const formatAuditAction = (action: string) => {
@@ -48,7 +51,7 @@ const formatAuditAction = (action: string) => {
     case 'FINANCIAL_UNLOCK_FAILED':
       return { label: 'Akses Keuangan Ditolak', color: 'bg-red-100 text-red-800 border-red-200' };
     case 'RESET_FINANCIAL_ALL':
-      return { label: 'Reset Keuangan & Gaji', color: 'bg-rose-100 text-rose-800 border-rose-200' };
+      return { label: 'Reset Keuangan & Belanja', color: 'bg-rose-100 text-rose-800 border-rose-200' };
     case 'ADD_STAFF_SALARY':
       return { label: 'Input Gaji Karyawan', color: 'bg-blue-100 text-blue-800 border-blue-200' };
     case 'UPDATE_STAFF_SALARY':
@@ -57,6 +60,14 @@ const formatAuditAction = (action: string) => {
       return { label: 'Hapus Gaji Karyawan', color: 'bg-stone-200 text-stone-800 border-stone-300' };
     case 'TOGGLE_SALARY_STATUS':
       return { label: 'Ubah Status Gaji', color: 'bg-amber-100 text-amber-800 border-amber-200' };
+    case 'ADD_EXPENSE':
+      return { label: 'Input Belanja Keluar', color: 'bg-amber-100 text-amber-800 border-amber-200' };
+    case 'UPDATE_EXPENSE':
+      return { label: 'Perbarui Belanja Keluar', color: 'bg-orange-100 text-orange-800 border-orange-200' };
+    case 'DELETE_EXPENSE':
+      return { label: 'Hapus Belanja Keluar', color: 'bg-stone-200 text-stone-700 border-stone-300' };
+    case 'CLEAR_EXPENSES':
+      return { label: 'Reset Belanja Keluar', color: 'bg-rose-100 text-rose-800 border-rose-200' };
     case 'CLEAR_SALARIES':
       return { label: 'Kosongkan Gaji', color: 'bg-red-100 text-red-800 border-red-200' };
     case 'LOGIN':
@@ -65,6 +76,21 @@ const formatAuditAction = (action: string) => {
       return { label: 'Keluar Sesi', color: 'bg-stone-200 text-stone-700 border-stone-300' };
     default:
       return { label: action.replace(/_/g, ' '), color: 'bg-stone-100 text-stone-700 border-stone-200' };
+  }
+};
+
+const getCategoryBadge = (cat: ExpenseCategory) => {
+  switch (cat) {
+    case 'BAHAN_BAKU':
+      return { label: 'Bahan Pokok (Beras/Santan)', color: 'bg-emerald-100 text-emerald-800 border-emerald-200', icon: '🌾' };
+    case 'GAS_LPG':
+      return { label: 'Gas LPG (3kg/12kg)', color: 'bg-amber-100 text-amber-900 border-amber-300', icon: '🔥' };
+    case 'MINYAK_BUMBU':
+      return { label: 'Minyak & Bumbu Dapur', color: 'bg-orange-100 text-orange-900 border-orange-300', icon: '🍳' };
+    case 'KEMASAN_CUP':
+      return { label: 'Cup & Kemasan', color: 'bg-cyan-100 text-cyan-900 border-cyan-300', icon: '🥤' };
+    default:
+      return { label: 'Operasional Lainnya', color: 'bg-stone-100 text-stone-700 border-stone-200', icon: '📦' };
   }
 };
 
@@ -87,6 +113,11 @@ export function OwnerFinancialView() {
     deleteStaffSalary,
     toggleStaffSalaryStatus,
     clearStaffSalaries,
+    operationalExpenses,
+    addOperationalExpense,
+    updateOperationalExpense,
+    deleteOperationalExpense,
+    clearOperationalExpenses,
     resetAllFinancialData,
   } = useApp();
 
@@ -180,9 +211,23 @@ export function OwnerFinancialView() {
     [staffSalaries]
   );
 
-  // Estimasi HPP / Bahan Baku F&B Bubur Minang (30% dari omzet bulanan)
-  const estimatedCogs = useMemo(() => Math.round(monthRevenue * 0.30), [monthRevenue]);
-  const totalExpenseMonth = useMemo(() => totalSalaryExpense + estimatedCogs, [totalSalaryExpense, estimatedCogs]);
+  // TOTAL BELANJA KELUAR RIIL (Bahan Pokok, Gas, Minyak, dll) - Input manual oleh Owner saat belanja keluar, jika tidak ada = Rp 0
+  const totalMaterialExpense = useMemo(
+    () => operationalExpenses.reduce((sum, e) => sum + (e.amount || 0), 0),
+    [operationalExpenses]
+  );
+
+  const materialExpensesByCategory = useMemo(() => {
+    return {
+      bahanBaku: operationalExpenses.filter((e) => e.category === 'BAHAN_BAKU').reduce((sum, e) => sum + e.amount, 0),
+      gasLpg: operationalExpenses.filter((e) => e.category === 'GAS_LPG').reduce((sum, e) => sum + e.amount, 0),
+      minyakBumbu: operationalExpenses.filter((e) => e.category === 'MINYAK_BUMBU').reduce((sum, e) => sum + e.amount, 0),
+      kemasanCup: operationalExpenses.filter((e) => e.category === 'KEMASAN_CUP').reduce((sum, e) => sum + e.amount, 0),
+      lainnya: operationalExpenses.filter((e) => e.category === 'OPERASIONAL_LAIN').reduce((sum, e) => sum + e.amount, 0),
+    };
+  }, [operationalExpenses]);
+
+  const totalExpenseMonth = useMemo(() => totalSalaryExpense + totalMaterialExpense, [totalSalaryExpense, totalMaterialExpense]);
   const netProfitMonth = useMemo(() => monthRevenue - totalExpenseMonth, [monthRevenue, totalExpenseMonth]);
   const netProfitMargin = useMemo(
     () => (monthRevenue > 0 ? ((netProfitMonth / monthRevenue) * 100).toFixed(1) : '0.0'),
@@ -199,6 +244,15 @@ export function OwnerFinancialView() {
   const [salaryFormType, setSalaryFormType] = useState<'DAILY' | 'WEEKLY' | 'MONTHLY'>('MONTHLY');
   const [salaryFormStatus, setSalaryFormStatus] = useState<'PAID' | 'PENDING'>('PAID');
   const [salaryFormNotes, setSalaryFormNotes] = useState<string>('');
+
+  // State for Operational Expenses Modal (Bahan Pokok, Gas, Minyak, dll)
+  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState<boolean>(false);
+  const [editingExpense, setEditingExpense] = useState<OperationalExpense | null>(null);
+  const [expenseFormItem, setExpenseFormItem] = useState<string>('');
+  const [expenseFormCategory, setExpenseFormCategory] = useState<ExpenseCategory>('BAHAN_BAKU');
+  const [expenseFormAmount, setExpenseFormAmount] = useState<string>('');
+  const [expenseFormDate, setExpenseFormDate] = useState<string>('');
+  const [expenseFormNotes, setExpenseFormNotes] = useState<string>('');
 
   const [authMethod, setAuthMethod] = useState<'PASSWORD' | 'EMAIL' | 'WHATSAPP'>('PASSWORD');
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -340,6 +394,64 @@ export function OwnerFinancialView() {
     setIsSalaryModalOpen(false);
   };
 
+  // HANDLERS FOR OPERATIONAL EXPENSES (Bahan Pokok, Gas, Minyak, dll)
+  const handleOpenAddExpense = () => {
+    setEditingExpense(null);
+    setExpenseFormItem('');
+    setExpenseFormCategory('BAHAN_BAKU');
+    setExpenseFormAmount('');
+    setExpenseFormDate(getJakartaDateStr(new Date()));
+    setExpenseFormNotes('');
+    setIsExpenseModalOpen(true);
+  };
+
+  const handleOpenEditExpense = (expense: OperationalExpense) => {
+    setEditingExpense(expense);
+    setExpenseFormItem(expense.item_name);
+    setExpenseFormCategory(expense.category);
+    setExpenseFormAmount(expense.amount.toString());
+    setExpenseFormDate(expense.date);
+    setExpenseFormNotes(expense.notes || '');
+    setIsExpenseModalOpen(true);
+  };
+
+  const handleSaveExpense = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanItem = expenseFormItem.trim();
+    const cleanAmount = parseInt(expenseFormAmount.replace(/\D/g, ''), 10);
+
+    if (!cleanItem) {
+      alert('Nama barang / keperluan belanja wajib diisi!');
+      return;
+    }
+    if (isNaN(cleanAmount) || cleanAmount <= 0) {
+      alert('Nominal belanja wajib lebih dari Rp 0!');
+      return;
+    }
+
+    const targetDate = expenseFormDate || getJakartaDateStr(new Date());
+
+    if (editingExpense) {
+      updateOperationalExpense(editingExpense.id, {
+        item_name: cleanItem,
+        category: expenseFormCategory,
+        amount: cleanAmount,
+        date: targetDate,
+        notes: expenseFormNotes.trim(),
+      });
+    } else {
+      addOperationalExpense({
+        item_name: cleanItem,
+        category: expenseFormCategory,
+        amount: cleanAmount,
+        date: targetDate,
+        notes: expenseFormNotes.trim(),
+      });
+    }
+
+    setIsExpenseModalOpen(false);
+  };
+
   // EKSEKUSI RESET KEUANGAN KE RP 0 OLEH OWNER
   const handleExecuteResetAll = async () => {
     setIsResetting(true);
@@ -364,8 +476,8 @@ export function OwnerFinancialView() {
     csvContent += `Total Beban Gaji Karyawan (Setara Bulanan),"Rp ${totalSalaryExpense.toLocaleString('id-ID')}",${staffSalaries.length} Orang Karyawan\n`;
     csvContent += `Gaji Terbayar (Lunas),"Rp ${paidSalaryExpense.toLocaleString('id-ID')}",Sudah dibayarkan\n`;
     csvContent += `Gaji Belum Dibayar (Pending),"Rp ${pendingSalaryExpense.toLocaleString('id-ID')}",Menunggu pembayaran\n`;
-    csvContent += `Estimasi Beban Bahan Baku & HPP (30%),"Rp ${estimatedCogs.toLocaleString('id-ID')}",Standar F&B Bubur Minang\n`;
-    csvContent += `Total Pengeluaran Bulan Ini,"Rp ${totalExpenseMonth.toLocaleString('id-ID')}",Gaji Karyawan + HPP\n`;
+    csvContent += `Total Belanja Keluar & Bahan Pokok (Input Riil),"Rp ${totalMaterialExpense.toLocaleString('id-ID')}",${operationalExpenses.length} Transaksi Belanja Riil\n`;
+    csvContent += `Total Pengeluaran Bulan Ini,"Rp ${totalExpenseMonth.toLocaleString('id-ID')}",Gaji Karyawan + Belanja Keluar\n`;
     csvContent += `LABA BERSIH BULAN INI (NET PROFIT),"Rp ${netProfitMonth.toLocaleString('id-ID')}",Omzet dikurangi Seluruh Pengeluaran\n`;
     csvContent += `Margin Laba Bersih,"${netProfitMargin}%",Profit Margin\n\n`;
 
@@ -379,6 +491,18 @@ export function OwnerFinancialView() {
         const typeText = s.salary_type === 'DAILY' ? 'Per Hari (Harian)' : s.salary_type === 'WEEKLY' ? 'Per Minggu (Mingguan)' : 'Per Bulan (Bulanan)';
         const monthlyEq = getSalaryMonthlyEquivalent(s);
         csvContent += `${idx + 1},"${s.name.replace(/"/g, '""')}","${s.role.replace(/"/g, '""')}","${typeText}","Rp ${s.salary_amount.toLocaleString('id-ID')}","Rp ${monthlyEq.toLocaleString('id-ID')}","${statusText}","${(s.notes || '-').replace(/"/g, '""')}"\n`;
+      });
+    }
+    csvContent += '\n';
+
+    csvContent += '=== RINCIAN BELANJA KELUAR (BAHAN POKOK, GAS, MINYAK, CUP) ===\n';
+    csvContent += 'No,Tanggal,Nama Barang / Keperluan,Kategori,Nominal Belanja,Catatan\n';
+    if (operationalExpenses.length === 0) {
+      csvContent += '-,Belum ada belanja,-,Rp 0,-\n';
+    } else {
+      operationalExpenses.forEach((exp, idx) => {
+        const catBadge = getCategoryBadge(exp.category);
+        csvContent += `${idx + 1},"${exp.date}","${exp.item_name.replace(/"/g, '""')}","${catBadge.label}","Rp ${exp.amount.toLocaleString('id-ID')}","${(exp.notes || '-').replace(/"/g, '""')}"\n`;
       });
     }
     csvContent += '\n';
@@ -791,7 +915,7 @@ export function OwnerFinancialView() {
             </div>
           </div>
 
-          {/* Card 2: Pengeluaran Bulan Ini (Gaji + HPP) */}
+          {/* Card 2: Pengeluaran Bulan Ini (Gaji + Belanja Keluar) */}
           <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-soft">
             <div className="flex items-center justify-between text-xs text-stone-500 font-semibold">
               <span>Total Beban Pengeluaran</span>
@@ -805,7 +929,7 @@ export function OwnerFinancialView() {
             <div className="text-[11px] text-stone-500 mt-2 flex items-center justify-between pt-2 border-t border-stone-100">
               <span>Gaji: Rp{totalSalaryExpense.toLocaleString('id-ID')}</span>
               <span className="font-bold text-stone-500">
-                HPP: Rp{estimatedCogs.toLocaleString('id-ID')}
+                Belanja: Rp{totalMaterialExpense.toLocaleString('id-ID')}
               </span>
             </div>
           </div>
@@ -941,17 +1065,19 @@ export function OwnerFinancialView() {
               </p>
             </div>
 
-            {/* (-) HPP & Bahan Baku */}
+            {/* (-) Belanja Keluar & Modal Bahan Pokok */}
             <div className="p-4 bg-amber-50/50 rounded-2xl border border-amber-200 space-y-1.5">
               <div className="text-[11px] font-bold text-amber-800 uppercase tracking-wider flex items-center space-x-1">
                 <span className="w-2 h-2 rounded-full bg-amber-500" />
-                <span>(-) Bahan Baku / HPP (30%)</span>
+                <span>(-) Belanja Bahan Pokok &amp; Operasional</span>
               </div>
               <div className="text-xl font-black text-amber-900 font-mono">
-                -Rp{estimatedCogs.toLocaleString('id-ID')}
+                -Rp{totalMaterialExpense.toLocaleString('id-ID')}
               </div>
               <p className="text-[11px] text-amber-700">
-                Estimasi belanja beras, ketan, santan, dan cup
+                {operationalExpenses.length > 0
+                  ? `${operationalExpenses.length} belanja (Gas, Minyak, Beras, Cup)`
+                  : 'Rp 0 (Belum ada belanja dicatat)'}
               </p>
             </div>
 
@@ -1181,6 +1307,283 @@ export function OwnerFinancialView() {
             </div>
             <div className="font-extrabold text-matcha-leaf">
               Akumulasi Beban Gaji Bulanan: <span className="font-mono text-spicy-ember">Rp{totalSalaryExpense.toLocaleString('id-ID')}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* SECTION: BELANJA KELUAR & MODAL AWAL BAHAN POKOK (INPUT MANUAL OLEH OWNER) */}
+        <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-soft space-y-5">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <div className="inline-flex items-center space-x-1.5 bg-amber-500/10 text-amber-900 text-[11px] font-black px-2.5 py-0.5 rounded-md uppercase tracking-wider mb-1">
+                <ShoppingBag className="w-3.5 h-3.5 text-amber-700" />
+                <span>Belanja Keluar &amp; Modal Bahan Pokok (Input Manual Owner)</span>
+              </div>
+              <h3 className="font-black text-base text-matcha-leaf">
+                Daftar Belanja Keluar &amp; Modal Pokok ({operationalExpenses.length} Item)
+              </h3>
+              <p className="text-xs text-stone-500">
+                Input manual ketika ada belanja keluar (Bahan Pokok, Gas LPG, Minyak &amp; Bumbu, Cup). Jika belum ada belanja riil, nilai adalah <strong className="text-matcha-leaf">Rp 0</strong>.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (operationalExpenses.length === 0) return;
+                  if (confirm('Kosongkan dan reset seluruh daftar belanja bahan pokok & operasional kembali ke Rp 0?')) {
+                    clearOperationalExpenses();
+                  }
+                }}
+                disabled={operationalExpenses.length === 0}
+                className="bg-stone-100 hover:bg-stone-200 text-stone-700 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition cursor-pointer disabled:opacity-50"
+                title="Reset seluruh rincian belanja ke Rp 0"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-stone-600" />
+                <span>Reset Belanja (Rp 0)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleOpenAddExpense}
+                className="bg-spicy-ember hover:bg-spicy-hover text-white px-3.5 py-1.5 rounded-xl text-xs font-extrabold flex items-center space-x-1.5 shadow-sm transition cursor-pointer active:scale-95"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>+ Catat Belanja Keluar</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Kategori Quick Stat Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+            <div className="bg-emerald-50/60 p-3 rounded-2xl border border-emerald-200">
+              <div className="text-[10px] font-bold text-emerald-800 flex items-center space-x-1">
+                <span>🌾</span>
+                <span>Bahan Pokok</span>
+              </div>
+              <div className="text-sm font-black text-emerald-950 font-mono mt-0.5">
+                Rp{materialExpensesByCategory.bahanBaku.toLocaleString('id-ID')}
+              </div>
+              <div className="text-[9px] text-emerald-700 mt-0.5">Beras, ketan, santan</div>
+            </div>
+
+            <div className="bg-amber-50/60 p-3 rounded-2xl border border-amber-200">
+              <div className="text-[10px] font-bold text-amber-900 flex items-center space-x-1">
+                <span>🔥</span>
+                <span>Gas LPG</span>
+              </div>
+              <div className="text-sm font-black text-amber-950 font-mono mt-0.5">
+                Rp{materialExpensesByCategory.gasLpg.toLocaleString('id-ID')}
+              </div>
+              <div className="text-[9px] text-amber-800 mt-0.5">Tabung 3kg &amp; 12kg</div>
+            </div>
+
+            <div className="bg-orange-50/60 p-3 rounded-2xl border border-orange-200">
+              <div className="text-[10px] font-bold text-orange-900 flex items-center space-x-1">
+                <span>🍳</span>
+                <span>Minyak &amp; Bumbu</span>
+              </div>
+              <div className="text-sm font-black text-orange-950 font-mono mt-0.5">
+                Rp{materialExpensesByCategory.minyakBumbu.toLocaleString('id-ID')}
+              </div>
+              <div className="text-[9px] text-orange-800 mt-0.5">Minyak, rempah dapur</div>
+            </div>
+
+            <div className="bg-cyan-50/60 p-3 rounded-2xl border border-cyan-200">
+              <div className="text-[10px] font-bold text-cyan-900 flex items-center space-x-1">
+                <span>🥤</span>
+                <span>Cup &amp; Kemasan</span>
+              </div>
+              <div className="text-sm font-black text-cyan-950 font-mono mt-0.5">
+                Rp{materialExpensesByCategory.kemasanCup.toLocaleString('id-ID')}
+              </div>
+              <div className="text-[9px] text-cyan-800 mt-0.5">Cup, tutup, kantong</div>
+            </div>
+
+            <div className="bg-stone-50 p-3 rounded-2xl border border-stone-200 col-span-2 sm:col-span-1">
+              <div className="text-[10px] font-bold text-stone-700 flex items-center space-x-1">
+                <span>📦</span>
+                <span>Operasional Lain</span>
+              </div>
+              <div className="text-sm font-black text-stone-900 font-mono mt-0.5">
+                Rp{materialExpensesByCategory.lainnya.toLocaleString('id-ID')}
+              </div>
+              <div className="text-[9px] text-stone-500 mt-0.5">Perlengkapan toko</div>
+            </div>
+          </div>
+
+          {/* LIST BELANJA KELUAR */}
+          {operationalExpenses.length === 0 ? (
+            <div className="text-center py-10 px-4 bg-stone-50/70 rounded-2xl border border-dashed border-stone-200 space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 mx-auto flex items-center justify-center text-xl shadow-inner">
+                <ShoppingBag className="w-6 h-6" />
+              </div>
+              <div className="max-w-md mx-auto space-y-1">
+                <h4 className="font-extrabold text-sm text-matcha-leaf">
+                  Belum Ada Pengeluaran Belanja (Rp 0)
+                </h4>
+                <p className="text-xs text-stone-500 leading-relaxed">
+                  Seluruh nominal belanja bahan pokok, gas, dan minyak saat ini adalah <strong className="text-matcha-leaf">Rp 0</strong>. Klik tombol <strong>&quot;+ Catat Belanja Keluar&quot;</strong> ketika ada pembelanjaan keluar untuk toko.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleOpenAddExpense}
+                className="inline-flex items-center space-x-1.5 px-4 py-2 bg-spicy-ember hover:bg-spicy-hover text-white rounded-xl font-bold text-xs shadow-sm transition cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>+ Catat Belanja Keluar Sekarang</span>
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* DESKTOP TABLE VIEW */}
+              <div className="hidden md:block overflow-x-auto rounded-2xl border border-stone-200">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-stone-100/80 text-stone-600 border-b border-stone-200 font-bold uppercase tracking-wider text-[11px]">
+                      <th className="py-3 px-4">No</th>
+                      <th className="py-3 px-4">Tanggal</th>
+                      <th className="py-3 px-4">Keperluan / Nama Barang</th>
+                      <th className="py-3 px-4">Kategori</th>
+                      <th className="py-3 px-4 text-right">Nominal (Rp)</th>
+                      <th className="py-3 px-4">Catatan</th>
+                      <th className="py-3 px-4 text-center">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-stone-100">
+                    {operationalExpenses.map((exp, idx) => {
+                      const catBadge = getCategoryBadge(exp.category);
+                      return (
+                        <tr key={exp.id} className="hover:bg-amber-50/20 transition-colors">
+                          <td className="py-3 px-4 text-stone-400 font-mono">{idx + 1}</td>
+                          <td className="py-3 px-4 text-stone-600 font-medium whitespace-nowrap">{exp.date}</td>
+                          <td className="py-3 px-4">
+                            <span className="font-black text-matcha-leaf text-sm">{exp.item_name}</span>
+                          </td>
+                          <td className="py-3 px-4 whitespace-nowrap">
+                            <span className={`inline-flex items-center space-x-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${catBadge.color}`}>
+                              <span>{catBadge.icon}</span>
+                              <span>{catBadge.label}</span>
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-right font-black font-mono text-sm text-stone-900 whitespace-nowrap">
+                            Rp{exp.amount.toLocaleString('id-ID')}
+                          </td>
+                          <td className="py-3 px-4 text-stone-500 text-[11px] max-w-xs truncate">
+                            {exp.notes || '-'}
+                          </td>
+                          <td className="py-3 px-4 text-center whitespace-nowrap">
+                            <div className="flex items-center justify-center space-x-1">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditExpense(exp)}
+                                className="p-1.5 rounded-lg text-stone-500 hover:text-matcha-leaf hover:bg-stone-100 transition cursor-pointer"
+                                title="Edit Belanja"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (confirm(`Hapus catatan belanja "${exp.item_name}" (Rp ${exp.amount.toLocaleString('id-ID')})?`)) {
+                                    deleteOperationalExpense(exp.id);
+                                  }
+                                }}
+                                className="p-1.5 rounded-lg text-stone-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
+                                title="Hapus Belanja"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* MOBILE CARDS FEED */}
+              <div className="md:hidden space-y-2.5">
+                {operationalExpenses.map((exp, idx) => {
+                  const catBadge = getCategoryBadge(exp.category);
+                  return (
+                    <div
+                      key={exp.id}
+                      className="p-3.5 bg-stone-50/70 rounded-2xl border border-stone-200 space-y-2.5"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center space-x-1.5 mb-1">
+                            <span className="text-[10px] text-stone-400 font-mono">#{idx + 1}</span>
+                            <span className="text-[10px] text-stone-500">• {exp.date}</span>
+                          </div>
+                          <h4 className="font-extrabold text-sm text-matcha-leaf leading-snug">
+                            {exp.item_name}
+                          </h4>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <span className="text-base font-black text-matcha-leaf font-mono">
+                            Rp{exp.amount.toLocaleString('id-ID')}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2 border-t border-stone-200/60">
+                        <span className={`inline-flex items-center space-x-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${catBadge.color}`}>
+                          <span>{catBadge.icon}</span>
+                          <span>{catBadge.label}</span>
+                        </span>
+
+                        <div className="flex items-center space-x-1">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditExpense(exp)}
+                            className="p-1.5 rounded-lg text-stone-500 hover:text-matcha-leaf hover:bg-stone-200 transition cursor-pointer"
+                            title="Edit Belanja"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (confirm(`Hapus catatan belanja "${exp.item_name}"?`)) {
+                                deleteOperationalExpense(exp.id);
+                              }
+                            }}
+                            className="p-1.5 rounded-lg text-stone-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
+                            title="Hapus Belanja"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {exp.notes && (
+                        <p className="text-[11px] text-stone-500 italic bg-white p-2 rounded-xl border border-stone-100">
+                          &quot;{exp.notes}&quot;
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {/* Ringkasan Footer Belanja */}
+          <div className="p-4 bg-amber-50/50 rounded-2xl border border-amber-200 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex items-center space-x-3 text-stone-600">
+              <span>Total Belanja: <strong>{operationalExpenses.length} Item</strong></span>
+              <span>•</span>
+              <span className="text-amber-900 font-bold">Bahan Pokok: Rp{materialExpensesByCategory.bahanBaku.toLocaleString('id-ID')}</span>
+              <span>•</span>
+              <span className="text-amber-900 font-bold">Gas &amp; Minyak: Rp{(materialExpensesByCategory.gasLpg + materialExpensesByCategory.minyakBumbu).toLocaleString('id-ID')}</span>
+            </div>
+            <div className="font-extrabold text-matcha-leaf">
+              Akumulasi Belanja Keluar: <span className="font-mono text-spicy-ember">Rp{totalMaterialExpense.toLocaleString('id-ID')}</span>
             </div>
           </div>
         </div>
@@ -1703,6 +2106,171 @@ export function OwnerFinancialView() {
         </div>
       )}
 
+      {/* MODAL: INPUT / EDIT BELANJA KELUAR & BAHAN POKOK (OWNER) */}
+      {isExpenseModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-floating border-2 border-spicy-ember/30 text-matcha-leaf space-y-4 animate-slideUp">
+            <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center">
+                  <ShoppingBag className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-black text-base text-matcha-leaf">
+                    {editingExpense ? 'Edit Belanja Keluar' : 'Catat Belanja Keluar'}
+                  </h3>
+                  <p className="text-[11px] text-stone-500">
+                    Input pengeluaran modal bahan pokok, gas, minyak dll
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsExpenseModalOpen(false)}
+                className="p-1.5 rounded-full text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveExpense} className="space-y-4 text-xs">
+              {/* Nama Barang / Keperluan */}
+              <div>
+                <label className="block font-bold text-matcha-leaf mb-1">
+                  Keperluan / Nama Barang Belanja: <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: Beras Ramos 25kg / Gas LPG 3kg (2 tabung)"
+                  value={expenseFormItem}
+                  onChange={(e) => setExpenseFormItem(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-300 rounded-xl font-bold text-matcha-leaf focus:outline-none focus:border-spicy-ember focus:bg-white transition text-sm"
+                />
+              </div>
+
+              {/* Kategori Belanja */}
+              <div>
+                <label className="block font-bold text-matcha-leaf mb-1">
+                  Kategori Pengeluaran:
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { id: 'BAHAN_BAKU', label: '🌾 Bahan Pokok (Beras/Santan)' },
+                    { id: 'GAS_LPG', label: '🔥 Gas LPG (3kg/12kg)' },
+                    { id: 'MINYAK_BUMBU', label: '🍳 Minyak & Bumbu' },
+                    { id: 'KEMASAN_CUP', label: '🥤 Cup & Kemasan' },
+                  ].map((cat) => (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setExpenseFormCategory(cat.id as ExpenseCategory)}
+                      className={`p-2 rounded-xl text-left font-bold text-[11px] border transition cursor-pointer ${
+                        expenseFormCategory === cat.id
+                          ? 'bg-amber-100 border-amber-400 text-amber-950 font-black shadow-sm'
+                          : 'bg-stone-50 border-stone-200 text-stone-600 hover:bg-stone-100'
+                      }`}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setExpenseFormCategory('OPERASIONAL_LAIN')}
+                  className={`w-full mt-2 p-2 rounded-xl text-left font-bold text-[11px] border transition cursor-pointer ${
+                    expenseFormCategory === 'OPERASIONAL_LAIN'
+                      ? 'bg-amber-100 border-amber-400 text-amber-950 font-black shadow-sm'
+                      : 'bg-stone-50 border-stone-200 text-stone-600 hover:bg-stone-100'
+                  }`}
+                >
+                  📦 Operasional Lainnya (Sabun, Plastik, Listrik/Air dll)
+                </button>
+              </div>
+
+              {/* Tanggal & Nominal Belanja */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-matcha-leaf mb-1">
+                    Tanggal Belanja:
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={expenseFormDate}
+                    onChange={(e) => setExpenseFormDate(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-300 rounded-xl font-bold text-stone-700 focus:outline-none focus:border-spicy-ember focus:bg-white transition text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-matcha-leaf mb-1">
+                    Nominal Belanja (Rp): <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-2.5 font-black text-stone-400">Rp</span>
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      placeholder="Contoh: 150000"
+                      value={expenseFormAmount}
+                      onChange={(e) => setExpenseFormAmount(e.target.value)}
+                      className="w-full pl-11 pr-3.5 py-2.5 bg-stone-50 border border-stone-300 rounded-xl font-mono font-black text-matcha-leaf focus:outline-none focus:border-spicy-ember focus:bg-white transition text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Nominal Suggestions */}
+              <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                <span className="text-[10px] text-stone-400 font-semibold mr-1">Nominal Cepat:</span>
+                {[22000, 50000, 100000, 150000, 250000, 500000].map((amt) => (
+                  <button
+                    key={amt}
+                    type="button"
+                    onClick={() => setExpenseFormAmount(amt.toString())}
+                    className="px-2 py-0.5 bg-stone-100 hover:bg-stone-200 text-stone-600 rounded-md font-mono text-[10px] font-bold transition cursor-pointer"
+                  >
+                    Rp{amt.toLocaleString('id-ID')}
+                  </button>
+                ))}
+              </div>
+
+              {/* Catatan / Keterangan */}
+              <div>
+                <label className="block font-bold text-matcha-leaf mb-1">
+                  Catatan Toko / Tempat Belanja (Opsional):
+                </label>
+                <input
+                  type="text"
+                  placeholder="Misal: Beli di Pasar Pariaman, Toko Beras Bu Ani..."
+                  value={expenseFormNotes}
+                  onChange={(e) => setExpenseFormNotes(e.target.value)}
+                  className="w-full px-3.5 py-2 bg-stone-50 border border-stone-300 rounded-xl text-stone-700 focus:outline-none focus:border-spicy-ember focus:bg-white transition"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setIsExpenseModalOpen(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-stone-300 text-stone-600 hover:text-stone-800 font-bold transition hover:bg-stone-50 cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 rounded-xl bg-spicy-ember hover:bg-spicy-hover text-white font-extrabold shadow-md transition cursor-pointer"
+                >
+                  Simpan Belanja
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* MODAL KONFIRMASI: RESET SELURUH KEUANGAN & GAJI KE 0 (SISTEM OWNER) */}
       {isResetFinancialModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
@@ -1719,7 +2287,7 @@ export function OwnerFinancialView() {
                 Reset Seluruh Keuangan ke 0?
               </h3>
               <p className="text-xs text-stone-500 mt-1 leading-relaxed">
-                Tindakan ini akan me-reset <strong>seluruh transaksi omzet</strong> dan menghapus <strong>seluruh daftar gaji karyawan</strong> kembali ke Rp 0.
+                Tindakan ini akan me-reset <strong>seluruh transaksi omzet</strong>, menghapus <strong>seluruh daftar belanja keluar</strong>, dan menghapus <strong>daftar gaji karyawan</strong> kembali ke Rp 0.
               </p>
             </div>
 
@@ -1727,9 +2295,10 @@ export function OwnerFinancialView() {
               <div className="font-bold text-matcha-leaf">Setelah di-reset:</div>
               <ul className="list-disc pl-4 space-y-0.5 text-stone-500">
                 <li>Total Omzet Penjualan = <strong>Rp 0</strong></li>
+                <li>Daftar Belanja Keluar &amp; Bahan Pokok = <strong>Rp 0 (Kosong)</strong></li>
                 <li>Daftar Gaji Karyawan = <strong>0 Orang (Kosong)</strong></li>
                 <li>Total Pengeluaran &amp; Laba = <strong>Rp 0</strong></li>
-                <li>Owner dapat menginput gaji karyawan riil secara manual dari awal.</li>
+                <li>Owner dapat menginput pengeluaran riil secara manual dari awal.</li>
               </ul>
             </div>
 

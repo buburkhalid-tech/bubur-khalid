@@ -1,8 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
-import { Product, Order, OrderStatus, PaymentMethod, TableInfo, AuditLog, FinancialSummary, StoreSettings, SystemUser, PromoBanner, UserRole, StaffSalary } from '../types';
-import { INITIAL_PRODUCTS, INITIAL_TABLES, CUP_FEE, INITIAL_STORE_SETTINGS, INITIAL_USERS, INITIAL_PROMO_BANNERS, INITIAL_STAFF_SALARIES } from '../constants';
+import { Product, Order, OrderStatus, PaymentMethod, TableInfo, AuditLog, FinancialSummary, StoreSettings, SystemUser, PromoBanner, UserRole, StaffSalary, OperationalExpense } from '../types';
+import { INITIAL_PRODUCTS, INITIAL_TABLES, CUP_FEE, INITIAL_STORE_SETTINGS, INITIAL_USERS, INITIAL_PROMO_BANNERS, INITIAL_STAFF_SALARIES, INITIAL_OPERATIONAL_EXPENSES } from '../constants';
 import { MOCK_ORDERS, MOCK_FINANCIAL_SUMMARY, MOCK_AUDIT_LOGS } from '../mock-data';
 import { supabase } from '../supabase/client';
 import { getJakartaDateStr, getJakartaMonthStr } from '../date-utils';
@@ -114,6 +114,13 @@ interface AppContextType {
   clearStaffSalaries: () => void;
   resetDefaultStaffSalaries: () => void;
 
+  // Operational Expenses & Belanja Keluar (Bahan Pokok, Gas, Minyak, dll)
+  operationalExpenses: OperationalExpense[];
+  addOperationalExpense: (expense: Omit<OperationalExpense, 'id' | 'created_at'>) => void;
+  updateOperationalExpense: (id: string, updated: Partial<OperationalExpense>) => void;
+  deleteOperationalExpense: (id: string) => void;
+  clearOperationalExpenses: () => void;
+
   // Financial Reset
   resetAllFinancialData: () => Promise<void>;
 
@@ -175,6 +182,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [users, setUsers] = useState<SystemUser[]>(INITIAL_USERS);
   const [currentUser, setCurrentUser] = useState<SystemUser | null>(null);
   const [staffSalaries, setStaffSalaries] = useState<StaffSalary[]>(INITIAL_STAFF_SALARIES);
+  const [operationalExpenses, setOperationalExpenses] = useState<OperationalExpense[]>(INITIAL_OPERATIONAL_EXPENSES);
 
   // Initialize and restore all data from localStorage on client mount
   useEffect(() => {
@@ -324,6 +332,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             setStaffSalaries(parsed);
           }
         }
+
+        // Operational Expenses (Belanja Bahan Pokok, Gas, Minyak, dll)
+        const savedExpenses = localStorage.getItem('bubur_khalid_operational_expenses');
+        if (savedExpenses) {
+          const parsed = JSON.parse(savedExpenses);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setOperationalExpenses(parsed);
+          }
+        }
       } catch (err) {
         console.error('Failed to load local storage:', err);
       } finally {
@@ -443,6 +460,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (cloudSettings.payment_methods?._salaries && Array.isArray(cloudSettings.payment_methods._salaries)) {
             setStaffSalaries(cloudSettings.payment_methods._salaries);
             localStorage.setItem('bubur_khalid_staff_salaries', JSON.stringify(cloudSettings.payment_methods._salaries));
+          }
+
+          if (cloudSettings.payment_methods?._expenses && Array.isArray(cloudSettings.payment_methods._expenses)) {
+            setOperationalExpenses(cloudSettings.payment_methods._expenses);
+            localStorage.setItem('bubur_khalid_operational_expenses', JSON.stringify(cloudSettings.payment_methods._expenses));
           }
         }
 
@@ -598,6 +620,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       } catch (e) {}
     }
   }, [staffSalaries, isHydrated]);
+
+  // Auto-sync Operational Expenses (Belanja Bahan Pokok, Gas, Minyak) ke LocalStorage
+  useEffect(() => {
+    if (isHydrated && typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('bubur_khalid_operational_expenses', JSON.stringify(operationalExpenses));
+      } catch (e) {}
+    }
+  }, [operationalExpenses, isHydrated]);
 
   const addPromoBanner = (newBanner: Omit<PromoBanner, 'id'>) => {
     const banner: PromoBanner = {
@@ -1500,6 +1531,80 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     showToast('Gaji karyawan di-reset ke 0.');
   };
 
+  // Operational Expenses & Belanja Keluar (Bahan Pokok, Gas, Minyak, dll)
+  const syncExpensesToCloud = (nextExpenses: OperationalExpense[]) => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('bubur_khalid_operational_expenses', JSON.stringify(nextExpenses));
+      } catch (e) {}
+    }
+    supabase
+      .from('store_settings')
+      .select('payment_methods')
+      .eq('id', 'store-config')
+      .maybeSingle()
+      .then(({ data }) => {
+        const existing = data?.payment_methods || {};
+        supabase
+          .from('store_settings')
+          .update({
+            payment_methods: {
+              ...existing,
+              _expenses: nextExpenses,
+            },
+          })
+          .eq('id', 'store-config')
+          .then(({ error }) => {
+            if (error) console.warn('Supabase expenses sync error:', error.message);
+          });
+      });
+  };
+
+  const addOperationalExpense = (expenseData: Omit<OperationalExpense, 'id' | 'created_at'>) => {
+    const newExpense: OperationalExpense = {
+      ...expenseData,
+      id: `exp-${Date.now()}`,
+      created_at: new Date().toISOString(),
+    };
+    setOperationalExpenses((prev) => {
+      const next = [newExpense, ...prev];
+      syncExpensesToCloud(next);
+      return next;
+    });
+    addAuditLog('ADD_EXPENSE', 'Financial', newExpense.id, `Input belanja keluar: ${newExpense.item_name} (Rp ${newExpense.amount.toLocaleString('id-ID')})`);
+    showToast(`Belanja keluar "${newExpense.item_name}" berhasil dicatat!`);
+  };
+
+  const updateOperationalExpense = (id: string, updated: Partial<OperationalExpense>) => {
+    setOperationalExpenses((prev) => {
+      const next = prev.map((e) => (e.id === id ? { ...e, ...updated } : e));
+      syncExpensesToCloud(next);
+      return next;
+    });
+    addAuditLog('UPDATE_EXPENSE', 'Financial', id, `Pembaruan data belanja operasional`);
+    showToast('Catatan belanja keluar berhasil diperbarui!');
+  };
+
+  const deleteOperationalExpense = (id: string) => {
+    const target = operationalExpenses.find((e) => e.id === id);
+    setOperationalExpenses((prev) => {
+      const next = prev.filter((e) => e.id !== id);
+      syncExpensesToCloud(next);
+      return next;
+    });
+    if (target) {
+      addAuditLog('DELETE_EXPENSE', 'Financial', id, `Hapus catatan belanja ${target.item_name}`);
+      showToast(`Catatan belanja "${target.item_name}" telah dihapus.`);
+    }
+  };
+
+  const clearOperationalExpenses = () => {
+    setOperationalExpenses([]);
+    syncExpensesToCloud([]);
+    addAuditLog('CLEAR_EXPENSES', 'Financial', 'all', 'Daftar belanja bahan pokok & modal keluar dikosongkan (reset ke Rp 0)');
+    showToast('Seluruh catatan belanja keluar telah di-reset ke Rp 0.');
+  };
+
   // User Authentication & Session Management
   const login = async (
     identifier: string,
@@ -1996,8 +2101,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('bubur_khalid_staff_salaries', JSON.stringify([]));
       } catch (e) {}
 
-      addAuditLog('RESET_FINANCIAL_ALL', 'Financial', 'all', 'Owner mereset seluruh omzet penjualan dan daftar gaji karyawan ke Rp 0');
-      showToast('✅ Seluruh transaksi & gaji berhasil di-reset ke Rp 0.');
+      // 3. Reset operational expenses (modal belanja keluar) ke [] (kosong / Rp 0)
+      setOperationalExpenses([]);
+      syncExpensesToCloud([]);
+      try {
+        localStorage.setItem('bubur_khalid_operational_expenses', JSON.stringify([]));
+      } catch (e) {}
+
+      addAuditLog('RESET_FINANCIAL_ALL', 'Financial', 'all', 'Owner mereset seluruh omzet penjualan, daftar gaji, dan belanja keluar ke Rp 0');
+      showToast('✅ Seluruh transaksi, gaji, & belanja bahan berhasil di-reset ke Rp 0.');
     } catch (err: any) {
       showToast('Gagal mereset data keuangan: ' + err.message);
     }
@@ -2074,6 +2186,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         toggleStaffSalaryStatus,
         clearStaffSalaries,
         resetDefaultStaffSalaries,
+        operationalExpenses,
+        addOperationalExpense,
+        updateOperationalExpense,
+        deleteOperationalExpense,
+        clearOperationalExpenses,
         resetAllFinancialData,
         auditLogs,
         addAuditLog,

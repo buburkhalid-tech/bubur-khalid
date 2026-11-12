@@ -163,6 +163,18 @@ export interface StaffSalary {
   created_at: string;
 }
 
+export type ExpenseCategory = 'BAHAN_BAKU' | 'GAS_LPG' | 'MINYAK_BUMBU' | 'KEMASAN_CUP' | 'OPERASIONAL_LAIN';
+
+export interface OperationalExpense {
+  id: string;
+  category: ExpenseCategory;
+  item_name: string;
+  amount: number;
+  date: string;
+  notes?: string;
+  created_at: string;
+}
+
 export interface StoreSettings {
   storeName: string;
   storeTagline: string;

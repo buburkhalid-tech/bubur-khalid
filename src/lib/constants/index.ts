@@ -1,4 +1,4 @@
-import { Product, TableInfo, StoreSettings, SystemUser, PromoBanner, StaffSalary } from '../types';
+import { Product, TableInfo, StoreSettings, SystemUser, PromoBanner, StaffSalary, OperationalExpense } from '../types';
 
 export const INITIAL_PRODUCTS: Product[] = [
   {
@@ -219,3 +219,6 @@ export const INITIAL_USERS: SystemUser[] = [];
 
 // Data Default Gaji Staf Karyawan: Dimulai dari 0 (kosong) agar Owner memasukkan data riil secara manual
 export const INITIAL_STAFF_SALARIES: StaffSalary[] = [];
+
+// Data Default Belanja Keluar / Modal Bahan Pokok, Gas, Minyak: Dimulai dari 0 (hanya ada saat diinput manual ketika ada belanja keluar)
+export const INITIAL_OPERATIONAL_EXPENSES: OperationalExpense[] = [];
