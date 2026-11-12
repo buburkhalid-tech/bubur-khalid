@@ -1335,38 +1335,47 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return { success: false, message: 'Harap masukkan ID/Email dan kata sandi' };
     }
 
-    let target = users.find((u) => {
-      const uName = u.username.toLowerCase();
-      const uEmail = (u.email || '').toLowerCase();
-      return uName === cleanId || uEmail === cleanId;
-    });
+    const matchesUser = (u: SystemUser) => {
+      const uUsername = (u.username || '').trim().toLowerCase();
+      const uEmail = (u.email || '').trim().toLowerCase();
+      const uName = (u.name || '').trim().toLowerCase();
+      const uPhone = (u.phone || '').trim().replace(/[^0-9]/g, '');
+      const idPhone = cleanId.replace(/[^0-9]/g, '');
 
-    // If not found in local memory (e.g. newly registered from another device/browser), check Supabase directly
-    if (!target) {
-      try {
-        const { data: cloudUsers, error: fetchErr } = await supabase
-          .from('users')
-          .select('*');
-        if (!fetchErr && cloudUsers && cloudUsers.length > 0) {
-          const freshUsers = cloudUsers.filter(
-            (u: SystemUser) =>
-              !['usr-1', 'usr-2', 'usr-3', 'usr-4'].includes(u.id) &&
-              !['khalid_owner', 'ahmad_admin', 'siska_kasir', 'budi_kitchen'].includes(u.username)
-          );
-          setUsers(freshUsers);
-          try {
-            localStorage.setItem('bubur_khalid_users', JSON.stringify(freshUsers));
-          } catch (e) {}
+      return (
+        uUsername === cleanId ||
+        uEmail === cleanId ||
+        uName === cleanId ||
+        (Boolean(uPhone) && Boolean(idPhone) && uPhone === idPhone)
+      );
+    };
 
-          target = freshUsers.find((u) => {
-            const uName = u.username.toLowerCase();
-            const uEmail = (u.email || '').toLowerCase();
-            return uName === cleanId || uEmail === cleanId;
-          });
+    // 1. Try local memory match
+    let target = users.find(matchesUser);
+
+    // 2. Always query Supabase directly to guarantee latest database state
+    try {
+      const { data: cloudUsers, error: fetchErr } = await supabase
+        .from('users')
+        .select('*');
+      if (!fetchErr && cloudUsers && cloudUsers.length > 0) {
+        const freshUsers = cloudUsers.filter(
+          (u: SystemUser) =>
+            !['usr-1', 'usr-2', 'usr-3', 'usr-4'].includes(u.id) &&
+            !['khalid_owner', 'ahmad_admin', 'siska_kasir', 'budi_kitchen'].includes(u.username)
+        );
+        setUsers(freshUsers);
+        try {
+          localStorage.setItem('bubur_khalid_users', JSON.stringify(freshUsers));
+        } catch (e) {}
+
+        const cloudMatch = freshUsers.find(matchesUser);
+        if (cloudMatch) {
+          target = cloudMatch;
         }
-      } catch (err) {
-        console.warn('Direct cloud login check error:', err);
       }
+    } catch (err) {
+      console.warn('Direct cloud login check error:', err);
     }
 
     if (!target) {
@@ -1377,9 +1386,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return { success: false, message: 'Akun Anda sedang dinonaktifkan oleh Owner' };
     }
 
+    const userPass = (target.password || '').trim();
+    const userPin = (target.pin || '').trim();
+
     const isValidPassword =
-      (target.pin && cleanPass === target.pin) ||
-      (target.password && cleanPass === target.password);
+      (userPass && cleanPass === userPass) ||
+      (userPin && cleanPass === userPin) ||
+      (userPass && cleanPass.endsWith('.') && cleanPass.slice(0, -1) === userPass) ||
+      (userPass && !cleanPass.endsWith('.') && cleanPass + '.' === userPass);
 
     if (!isValidPassword) {
       return { success: false, message: 'Kata sandi atau PIN salah' };
@@ -1507,7 +1521,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const targetIndex = users.findIndex(
       (u) =>
         (u.email && u.email.toLowerCase() === cleanIdentifier) ||
-        u.username.toLowerCase() === cleanIdentifier
+        (u.username && u.username.toLowerCase() === cleanIdentifier) ||
+        (u.name && u.name.toLowerCase() === cleanIdentifier)
     );
 
     if (targetIndex === -1) {

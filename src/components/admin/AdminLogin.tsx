@@ -112,7 +112,10 @@ export function AdminLogin() {
       return;
     }
     const found = users.find(
-      (u) => (u.email && u.email.toLowerCase() === cleanMail) || u.username.toLowerCase() === cleanMail
+      (u) =>
+        (u.email && u.email.toLowerCase() === cleanMail) ||
+        (u.username && u.username.toLowerCase() === cleanMail) ||
+        (u.name && u.name.toLowerCase() === cleanMail)
     );
     if (!found) {
       setErrorMessage('Akun dengan email / username tersebut tidak ditemukan di perangkat ini.');
