@@ -1292,73 +1292,73 @@ export function AdminView() {
       {/* MAIN CONTENT AREA (Scrolls independently on desktop while sidebar stays locked) */}
       <main className="flex-1 h-auto md:h-screen p-6 md:p-8 overflow-y-auto">
         
-        {/* Top bar */}
-        <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-stone-200">
-          <div>
-            <h1 className="text-xl font-extrabold text-matcha-leaf">
-              {activeTab === 'dashboard'
-                ? 'Dashboard Operasional'
-                : activeTab === 'menu'
-                ? 'Manajemen Menu & Harga'
-                : activeTab === 'tables'
-                ? 'Pengaturan Meja & QR Code'
-                : activeTab === 'settings'
-                ? currentUser?.role === 'OWNER'
+        {/* Top bar (Hanya tampil pada Dashboard, Menu, Meja, dan Pengaturan; disembunyikan pada Tong Sampah) */}
+        {activeTab !== 'trash' && (
+          <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-stone-200">
+            <div>
+              <h1 className="text-xl font-extrabold text-matcha-leaf">
+                {activeTab === 'dashboard'
+                  ? 'Dashboard Operasional'
+                  : activeTab === 'menu'
+                  ? 'Manajemen Menu & Harga'
+                  : activeTab === 'tables'
+                  ? 'Pengaturan Meja & QR Code'
+                  : currentUser?.role === 'OWNER'
                   ? 'Pengaturan Toko, Banner & Metode Pembayaran'
-                  : 'Pengaturan Toko & Banner'
-                : 'Tong Sampah'}
-            </h1>
-            <p className="text-xs text-stone-500">{liveTodayIndo} • Zona Waktu Asia/Padang Pariaman (WIB)</p>
-          </div>
+                  : 'Pengaturan Toko & Banner'}
+              </h1>
+              <p className="text-xs text-stone-500">{liveTodayIndo} • Zona Waktu Asia/Padang Pariaman (WIB)</p>
+            </div>
 
-          <div className="flex items-center space-x-2 md:space-x-3">
-            {/* Quick Cloud Sync Button */}
-            <button
-              type="button"
-              onClick={() => syncFromCloud()}
-              className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-white border border-stone-200 text-stone-700 hover:text-matcha-leaf hover:bg-noodle-cream text-xs font-bold shadow-xs transition active:scale-95"
-              title="Sinkronkan data dengan database Supabase Cloud"
-            >
-              <RefreshCw className="w-3.5 h-3.5 text-spicy-ember" />
-              <span className="hidden sm:inline">Sinkron Data</span>
-            </button>
+            <div className="flex items-center space-x-2 md:space-x-3">
+              {/* Quick Cloud Sync Button */}
+              <button
+                type="button"
+                onClick={() => syncFromCloud()}
+                className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-white border border-stone-200 text-stone-700 hover:text-matcha-leaf hover:bg-noodle-cream text-xs font-bold shadow-xs transition active:scale-95"
+                title="Sinkronkan data dengan database Supabase Cloud"
+              >
+                <RefreshCw className="w-3.5 h-3.5 text-spicy-ember" />
+                <span className="hidden sm:inline">Sinkron Data</span>
+              </button>
 
-            <button className="w-9 h-9 rounded-xl bg-white border border-stone-200 flex items-center justify-center text-matcha-leaf shadow-sm hover:bg-noodle-cream transition">
-              <Bell className="w-4 h-4" />
-            </button>
-            {/* Interactive Store Status & Operating Hours Pill (Click to edit & auto-save) */}
-            <button
-              type="button"
-              onClick={() => setIsStoreHoursModalOpen(true)}
-              className={`flex items-center space-x-2 px-3 py-1.5 rounded-xl border shadow-xs transition cursor-pointer active:scale-95 group ${
-                storeSettings.isStoreHoliday
-                  ? 'bg-amber-50 hover:bg-amber-100 border-amber-300 text-amber-900'
-                  : !storeSettings.isStoreOpen
-                  ? 'bg-red-50 hover:bg-red-100 border-red-300 text-red-900'
-                  : 'bg-white hover:bg-emerald-50 border-stone-200 hover:border-emerald-300 text-matcha-leaf'
-              }`}
-              title="Klik untuk ubah Jam Buka & Status Toko (Libur/Tutup)"
-            >
-              <span
-                className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
+              <button className="w-9 h-9 rounded-xl bg-white border border-stone-200 flex items-center justify-center text-matcha-leaf shadow-sm hover:bg-noodle-cream transition">
+                <Bell className="w-4 h-4" />
+              </button>
+              {/* Interactive Store Status & Operating Hours Pill (Click to edit & auto-save) */}
+              <button
+                type="button"
+                onClick={() => setIsStoreHoursModalOpen(true)}
+                className={`flex items-center space-x-2 px-3 py-1.5 rounded-xl border shadow-xs transition cursor-pointer active:scale-95 group ${
                   storeSettings.isStoreHoliday
-                    ? 'bg-amber-500 animate-ping'
-                    : storeSettings.isStoreOpen
-                    ? 'bg-emerald-500 animate-pulse'
-                    : 'bg-red-500'
+                    ? 'bg-amber-50 hover:bg-amber-100 border-amber-300 text-amber-900'
+                    : !storeSettings.isStoreOpen
+                    ? 'bg-red-50 hover:bg-red-100 border-red-300 text-red-900'
+                    : 'bg-white hover:bg-emerald-50 border-stone-200 hover:border-emerald-300 text-matcha-leaf'
                 }`}
-              />
-              <span className="text-xs font-bold whitespace-nowrap">
-                {storeSettings.isStoreHoliday
-                  ? `Toko Libur (${storeSettings.operatingHours || '16:00 - 22:00'})`
-                  : storeSettings.isStoreOpen
-                  ? `Toko Buka (${storeSettings.operatingHours || '16:00 - 22:00'})`
-                  : `Toko Tutup (${storeSettings.operatingHours || '16:00 - 22:00'})`}
-              </span>
-              <ChevronDown className="w-3 h-3 text-stone-400 group-hover:text-matcha-leaf transition flex-shrink-0" />
-            </button>
+                title="Klik untuk ubah Jam Buka & Status Toko (Libur/Tutup)"
+              >
+                <span
+                  className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
+                    storeSettings.isStoreHoliday
+                      ? 'bg-amber-500 animate-ping'
+                      : storeSettings.isStoreOpen
+                      ? 'bg-emerald-500 animate-pulse'
+                      : 'bg-red-500'
+                  }`}
+                />
+                <span className="text-xs font-bold whitespace-nowrap">
+                  {storeSettings.isStoreHoliday
+                    ? `Toko Libur (${storeSettings.operatingHours || '16:00 - 22:00'})`
+                    : storeSettings.isStoreOpen
+                    ? `Toko Buka (${storeSettings.operatingHours || '16:00 - 22:00'})`
+                    : `Toko Tutup (${storeSettings.operatingHours || '16:00 - 22:00'})`}
+                </span>
+                <ChevronDown className="w-3 h-3 text-stone-400 group-hover:text-matcha-leaf transition flex-shrink-0" />
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* TAB 1: OPERATIONAL DASHBOARD */}
         {activeTab === 'dashboard' && (
@@ -3109,7 +3109,7 @@ export function AdminView() {
 
         {/* TAB 4: TONG SAMPAH (Hanya Restore & Hapus Permanen) */}
         {activeTab === 'trash' && (
-          <div className="mt-6 space-y-4">
+          <div className="space-y-4">
             {trashProducts.length === 0 ? (
               <div className="p-10 md:p-14 text-center bg-white rounded-3xl border border-stone-200 shadow-soft space-y-3">
                 <div className="w-16 h-16 rounded-2xl bg-stone-100 text-stone-400 mx-auto flex items-center justify-center shadow-inner">
