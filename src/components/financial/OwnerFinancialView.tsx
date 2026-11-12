@@ -701,12 +701,12 @@ export function OwnerFinancialView() {
             </div>
           </div>
 
-          <div className="flex items-center space-x-2.5">
+          <div className="flex flex-wrap items-center gap-2 mt-2 sm:mt-0">
             {/* Tombol Khusus Reset Keuangan & Gaji ke 0 */}
             <button
               type="button"
               onClick={() => setIsResetFinancialModalOpen(true)}
-              className="bg-red-500/20 hover:bg-red-500 text-white hover:text-white px-3 py-2 rounded-xl text-xs font-black flex items-center space-x-1.5 border border-red-400/40 transition cursor-pointer"
+              className="bg-red-600 hover:bg-red-700 text-white px-3.5 py-2 rounded-xl text-xs font-black flex items-center space-x-1.5 shadow-sm transition cursor-pointer active:scale-95"
               title="Reset seluruh transaksi dan gaji ke Rp 0"
             >
               <RotateCcw className="w-3.5 h-3.5" />
@@ -715,14 +715,14 @@ export function OwnerFinancialView() {
 
             <button
               onClick={handleExportCSV}
-              className="bg-matcha-surface hover:bg-matcha-leaf text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center space-x-1.5 border border-matcha-surface transition cursor-pointer"
+              className="bg-matcha-surface hover:bg-matcha-leaf text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center space-x-1.5 border border-matcha-surface transition cursor-pointer active:scale-95"
             >
               <FileSpreadsheet className="w-4 h-4 text-yolk-blaze" />
               <span>Ekspor CSV</span>
             </button>
             <button
               onClick={lockFinancialGate}
-              className="bg-spicy-ember hover:bg-spicy-hover text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center space-x-1.5 shadow-sm transition cursor-pointer"
+              className="bg-spicy-ember hover:bg-spicy-hover text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center space-x-1.5 shadow-sm transition cursor-pointer active:scale-95"
             >
               <Lock className="w-4 h-4" />
               <span>Kunci Sekarang</span>
@@ -823,11 +823,23 @@ export function OwnerFinancialView() {
               </p>
             </div>
 
-            <div className="flex items-center space-x-2">
-              <span className="text-xs font-bold text-stone-500">Bulan:</span>
-              <span className="px-3 py-1 bg-stone-100 rounded-xl text-xs font-black text-matcha-leaf">
-                {currentMonthStr} (Berjalan)
-              </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center space-x-1.5 bg-stone-100 px-3 py-1.5 rounded-xl">
+                <span className="text-xs font-bold text-stone-500">Bulan:</span>
+                <span className="text-xs font-black text-matcha-leaf">
+                  {currentMonthStr} (Berjalan)
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsResetFinancialModalOpen(true)}
+                className="bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 px-3 py-1.5 rounded-xl text-xs font-extrabold flex items-center space-x-1.5 border border-red-200 transition cursor-pointer active:scale-95 shadow-sm"
+                title="Reset seluruh pemasukan omzet, beban gaji, dan laba bersih ke Rp 0"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-red-600" />
+                <span>Reset Arus Kas ke Rp 0</span>
+              </button>
             </div>
           </div>
 
