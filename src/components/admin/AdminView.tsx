@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import QRCode from 'qrcode';
 import { useApp } from '@/lib/store/AppContext';
@@ -702,6 +702,90 @@ export function AdminView() {
   // Pop-Slide Collapsible Sidebar State (Default: only icons visible; slides open on touch/hover)
   const [isSidebarHovered, setIsSidebarHovered] = useState<boolean>(false);
   const [isSidebarPinned, setIsSidebarPinned] = useState<boolean>(false);
+
+  // Floating Dashboard Icon Position & Drag State (Bisa digeser bebas agar tidak mengganggu UI)
+  const [floatingPos, setFloatingPos] = useState<{ x: number; y: number } | null>(null);
+  const [isFloatingDragging, setIsFloatingDragging] = useState<boolean>(false);
+  const floatingDragRef = useRef<{
+    startX: number;
+    startY: number;
+    initialX: number;
+    initialY: number;
+    hasMoved: boolean;
+  }>({
+    startX: 0,
+    startY: 0,
+    initialX: 0,
+    initialY: 0,
+    hasMoved: false,
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const saved = localStorage.getItem('bubur_khalid_admin_floating_pos');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (typeof parsed.x === 'number' && typeof parsed.y === 'number') {
+          const clampedX = Math.min(Math.max(16, parsed.x), window.innerWidth - 64);
+          const clampedY = Math.min(Math.max(16, parsed.y), window.innerHeight - 64);
+          setFloatingPos({ x: clampedX, y: clampedY });
+          return;
+        }
+      } catch (_) {}
+    }
+    // Default kanan bawah agar tidak menghalangi tabel/kartu utama
+    setFloatingPos({
+      x: Math.max(16, window.innerWidth - 68),
+      y: Math.max(16, window.innerHeight - 90),
+    });
+
+    const handleResize = () => {
+      setFloatingPos((prev) => {
+        if (!prev) return null;
+        return {
+          x: Math.min(Math.max(16, prev.x), window.innerWidth - 64),
+          y: Math.min(Math.max(16, prev.y), window.innerHeight - 64),
+        };
+      });
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const handleFloatingPointerDown = (clientX: number, clientY: number) => {
+    if (!floatingPos) return;
+    floatingDragRef.current = {
+      startX: clientX,
+      startY: clientY,
+      initialX: floatingPos.x,
+      initialY: floatingPos.y,
+      hasMoved: false,
+    };
+    setIsFloatingDragging(true);
+  };
+
+  const handleFloatingPointerMove = (clientX: number, clientY: number) => {
+    if (!isFloatingDragging || !floatingPos) return;
+    const dx = clientX - floatingDragRef.current.startX;
+    const dy = clientY - floatingDragRef.current.startY;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+      floatingDragRef.current.hasMoved = true;
+    }
+    const nextX = Math.min(Math.max(12, floatingDragRef.current.initialX + dx), window.innerWidth - 60);
+    const nextY = Math.min(Math.max(12, floatingDragRef.current.initialY + dy), window.innerHeight - 60);
+    setFloatingPos({ x: nextX, y: nextY });
+  };
+
+  const handleFloatingPointerUp = () => {
+    if (!isFloatingDragging) return;
+    setIsFloatingDragging(false);
+    if (floatingDragRef.current.hasMoved && floatingPos) {
+      localStorage.setItem('bubur_khalid_admin_floating_pos', JSON.stringify(floatingPos));
+    } else {
+      setIsMobileMenuOpen((prev) => !prev);
+    }
+  };
   const isSidebarOpen = isSidebarHovered || isSidebarPinned;
 
   // Live dynamic today date formatted in Asia/Jakarta (id-ID)
@@ -855,8 +939,8 @@ export function AdminView() {
   return (
     <div className="min-h-screen md:h-screen md:overflow-hidden bg-tofu-silkblaze flex flex-col md:flex-row text-matcha-leaf">
       
-      {/* MOBILE TOP BAR (With 🍔 Hamburger Menu Button) */}
-      <div className="flex md:hidden items-center justify-between bg-matcha-leaf text-tofu-silkblaze px-4 py-3 sticky top-0 z-40 border-b border-matcha-surface shadow-md">
+      {/* TOP HEADER BAR (With 🍔 Hamburger Menu Button) */}
+      <div className="flex items-center justify-between bg-matcha-leaf text-tofu-silkblaze px-4 py-3 sticky top-0 z-40 border-b border-matcha-surface shadow-md">
         <div className="flex items-center space-x-3">
           {/* 🍔 Hamburger Button */}
           <button
@@ -899,7 +983,7 @@ export function AdminView() {
 
       {/* MOBILE SLIDE-OUT DRAWER OVERLAY */}
       {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-50 md:hidden animate-fadeIn">
+        <div className="fixed inset-0 z-50 animate-fadeIn">
           {/* Backdrop (tap to close) */}
           <div
             onClick={() => setIsMobileMenuOpen(false)}
@@ -1095,243 +1179,7 @@ export function AdminView() {
         </div>
       )}
 
-      {/* LEFT SIDEBAR (Desktop Only: hidden on mobile, md:flex on desktop, sticky & fixed on scroll) */}
-      <aside
-        onMouseEnter={() => setIsSidebarHovered(true)}
-        onMouseLeave={() => setIsSidebarHovered(false)}
-        className={`hidden md:flex ${
-          isSidebarOpen ? 'md:w-64' : 'md:w-20'
-        } bg-matcha-leaf text-tofu-silkblaze p-3 md:p-4 flex-col justify-between border-r border-matcha-surface flex-shrink-0 transition-all duration-300 ease-in-out z-40 sticky top-0 h-screen overflow-y-auto hide-scrollbar group shadow-xl`}
-      >
-        <div>
-          {/* Brand Logo & Header with Pin Toggle */}
-          <div className="flex items-center justify-between pb-4 border-b border-matcha-surface">
-            <div className="flex items-center space-x-3 overflow-hidden">
-              <div
-                onClick={() => setIsSidebarPinned(!isSidebarPinned)}
-                className="w-10 h-10 rounded-full overflow-hidden bg-spicy-ember flex items-center justify-center text-xl shadow-md border-2 border-noodle-cream relative flex-shrink-0 cursor-pointer hover:scale-105 transition-transform"
-                title={isSidebarPinned ? 'Sidebar Terkunci (Klik untuk Auto-Slide)' : 'Klik untuk Kunci Sidebar Terbuka'}
-              >
-                {storeSettings.storeLogo ? (
-                  <Image src={storeSettings.storeLogo} alt="Logo Bubur Khalid" fill className="object-cover" />
-                ) : (
-                  <span>🥣</span>
-                )}
-              </div>
-              
-              {/* Text fades and slides in when open */}
-              <div
-                className={`transition-all duration-300 whitespace-nowrap overflow-hidden ${
-                  isSidebarOpen ? 'opacity-100 max-w-[180px]' : 'opacity-0 max-w-0'
-                }`}
-              >
-                <h1 className="font-extrabold text-base text-noodle-cream tracking-tight truncate">
-                  {storeSettings.storeName || 'Bubur Khalid'}
-                </h1>
-                <span className="text-[10px] text-noodle-dark block font-medium">Admin & Operasional</span>
-              </div>
-            </div>
-
-            {/* Pin Toggle Button (Only visible when open on desktop) */}
-            {isSidebarOpen && (
-              <button
-                type="button"
-                onClick={() => setIsSidebarPinned(!isSidebarPinned)}
-                className={`p-1.5 rounded-lg transition text-xs hidden md:flex items-center justify-center ${
-                  isSidebarPinned
-                    ? 'bg-spicy-ember text-white'
-                    : 'text-noodle-dark hover:text-white hover:bg-matcha-surface'
-                }`}
-                title={isSidebarPinned ? 'Lepas Pin (Kembali ke Mini Icon)' : 'Kunci Sidebar Terbuka'}
-              >
-                <Pin className={`w-3.5 h-3.5 ${isSidebarPinned ? 'rotate-45' : ''}`} />
-              </button>
-            )}
-          </div>
-
-          {/* Navigation Items */}
-          <nav className="mt-5 space-y-1.5 text-xs font-semibold">
-            {/* Dashboard */}
-            <button
-              onClick={() => setActiveTab('dashboard')}
-              className={`w-full flex items-center ${
-                isSidebarOpen ? 'justify-start space-x-3 px-3 py-2.5' : 'justify-center p-2.5'
-              } rounded-xl transition-all duration-200 relative group/btn ${
-                activeTab === 'dashboard'
-                  ? 'bg-spicy-ember text-white shadow-md font-bold'
-                  : 'text-noodle-cream hover:bg-matcha-surface'
-              }`}
-              title="Dashboard"
-            >
-              <LayoutDashboard className="w-5 h-5 flex-shrink-0" />
-              <span
-                className={`whitespace-nowrap overflow-hidden transition-all duration-200 ${
-                  isSidebarOpen ? 'opacity-100 max-w-[160px]' : 'opacity-0 max-w-0 hidden'
-                }`}
-              >
-                Dashboard
-              </span>
-              {/* Floating Tooltip in Icon-only mode */}
-              {!isSidebarOpen && (
-                <div className="absolute left-full ml-3 px-2.5 py-1 bg-stone-900 text-white text-[11px] rounded-lg shadow-xl whitespace-nowrap opacity-0 group-hover/btn:opacity-100 pointer-events-none transition z-50">
-                  Dashboard
-                </div>
-              )}
-            </button>
-
-            {/* Menu & Harga: Hanya Owner & Admin */}
-            {(!currentUser || isAdminOrOwner) && (
-              <button
-                onClick={() => setActiveTab('menu')}
-                className={`w-full flex items-center ${
-                  isSidebarOpen ? 'justify-start space-x-3 px-3 py-2.5' : 'justify-center p-2.5'
-                } rounded-xl transition-all duration-200 relative group/btn ${
-                  activeTab === 'menu'
-                    ? 'bg-spicy-ember text-white shadow-md font-bold'
-                    : 'text-noodle-cream hover:bg-matcha-surface'
-                }`}
-                title="Menu & Harga"
-              >
-                <UtensilsCrossed className="w-5 h-5 flex-shrink-0" />
-                <span
-                  className={`whitespace-nowrap overflow-hidden transition-all duration-200 ${
-                    isSidebarOpen ? 'opacity-100 max-w-[160px]' : 'opacity-0 max-w-0 hidden'
-                  }`}
-                >
-                  Menu & Harga
-                </span>
-                {!isSidebarOpen && (
-                  <div className="absolute left-full ml-3 px-2.5 py-1 bg-stone-900 text-white text-[11px] rounded-lg shadow-xl whitespace-nowrap opacity-0 group-hover/btn:opacity-100 pointer-events-none transition z-50">
-                    Menu & Harga
-                  </div>
-                )}
-              </button>
-            )}
-
-            {/* Meja & QR: Hanya Owner & Admin */}
-            {(!currentUser || isAdminOrOwner) && (
-              <button
-                onClick={() => setActiveTab('tables')}
-                className={`w-full flex items-center ${
-                  isSidebarOpen ? 'justify-start space-x-3 px-3 py-2.5' : 'justify-center p-2.5'
-                } rounded-xl transition-all duration-200 relative group/btn ${
-                  activeTab === 'tables'
-                    ? 'bg-spicy-ember text-white shadow-md font-bold'
-                    : 'text-noodle-cream hover:bg-matcha-surface'
-                }`}
-                title="Meja & QR"
-              >
-                <QrCode className="w-5 h-5 flex-shrink-0" />
-                <span
-                  className={`whitespace-nowrap overflow-hidden transition-all duration-200 ${
-                    isSidebarOpen ? 'opacity-100 max-w-[160px]' : 'opacity-0 max-w-0 hidden'
-                  }`}
-                >
-                  Meja & QR
-                </span>
-                {!isSidebarOpen && (
-                  <div className="absolute left-full ml-3 px-2.5 py-1 bg-stone-900 text-white text-[11px] rounded-lg shadow-xl whitespace-nowrap opacity-0 group-hover/btn:opacity-100 pointer-events-none transition z-50">
-                    Meja & QR Code
-                  </div>
-                )}
-              </button>
-            )}
-
-            {/* Pengaturan & Security */}
-            <button
-              onClick={() => {
-                setStoreForm(storeSettings);
-                setActiveTab('settings');
-              }}
-              className={`w-full flex items-center ${
-                isSidebarOpen ? 'justify-start space-x-3 px-3 py-2.5' : 'justify-center p-2.5'
-              } rounded-xl transition-all duration-200 relative group/btn ${
-                activeTab === 'settings'
-                  ? 'bg-spicy-ember text-white shadow-md font-bold'
-                  : 'text-noodle-cream hover:bg-matcha-surface'
-              }`}
-              title={isCashier || isKitchen ? 'Akun & Ganti Sandi' : 'Security & Pengguna'}
-            >
-              <Shield className="w-5 h-5 text-yolk-blaze flex-shrink-0" />
-              <span
-                className={`whitespace-nowrap overflow-hidden transition-all duration-200 ${
-                  isSidebarOpen ? 'opacity-100 max-w-[160px]' : 'opacity-0 max-w-0 hidden'
-                }`}
-              >
-                {isCashier || isKitchen ? 'Akun & Sandi' : 'Security & Pengguna'}
-              </span>
-              {!isSidebarOpen && (
-                <div className="absolute left-full ml-3 px-2.5 py-1 bg-stone-900 text-white text-[11px] rounded-lg shadow-xl whitespace-nowrap opacity-0 group-hover/btn:opacity-100 pointer-events-none transition z-50">
-                  {isCashier || isKitchen ? 'Akun & Sandi' : 'Security & Pengguna'}
-                </div>
-              )}
-            </button>
-
-            {/* Laporan Keuangan: HANYA TAMPIL UNTUK ROLE OWNER */}
-            {isOwner && (
-              <button
-                onClick={() => setActiveView('owner-financial')}
-                className={`w-full flex items-center ${
-                  isSidebarOpen ? 'justify-start space-x-3 px-3 py-2.5' : 'justify-center p-2.5'
-                } rounded-xl text-noodle-cream hover:bg-matcha-surface transition-all duration-200 relative group/btn whitespace-nowrap`}
-                title="Laporan Keuangan"
-              >
-                <FileText className="w-5 h-5 text-yolk-blaze flex-shrink-0" />
-                <span
-                  className={`whitespace-nowrap overflow-hidden transition-all duration-200 ${
-                    isSidebarOpen ? 'opacity-100 max-w-[160px]' : 'opacity-0 max-w-0 hidden'
-                  }`}
-                >
-                  Laporan Keuangan
-                </span>
-                {!isSidebarOpen && (
-                  <div className="absolute left-full ml-3 px-2.5 py-1 bg-stone-900 text-white text-[11px] rounded-lg shadow-xl whitespace-nowrap opacity-0 group-hover/btn:opacity-100 pointer-events-none transition z-50">
-                    Laporan Keuangan
-                  </div>
-                )}
-              </button>
-            )}
-
-            {/* Tong Sampah: Hanya Owner & Admin */}
-            {(!currentUser || isAdminOrOwner) && (
-              <button
-                onClick={() => setActiveTab('trash')}
-                className={`w-full flex items-center ${
-                  isSidebarOpen ? 'justify-between px-3 py-2.5' : 'justify-center p-2.5'
-                } rounded-xl transition-all duration-200 relative group/btn ${
-                  activeTab === 'trash'
-                    ? 'bg-spicy-ember text-white shadow-md font-bold'
-                    : 'text-noodle-cream hover:bg-matcha-surface'
-                }`}
-                title="Tong Sampah"
-              >
-                <div className="flex items-center space-x-3 overflow-hidden">
-                  <Trash2 className="w-5 h-5 flex-shrink-0" />
-                  <span
-                    className={`whitespace-nowrap overflow-hidden transition-all duration-200 ${
-                      isSidebarOpen ? 'opacity-100 max-w-[160px]' : 'opacity-0 max-w-0 hidden'
-                    }`}
-                  >
-                    Tong Sampah
-                  </span>
-                </div>
-                {trashProducts.length > 0 && (
-                  <span className={`rounded-full bg-spicy-ember text-white font-bold flex items-center justify-center flex-shrink-0 ${
-                    isSidebarOpen ? 'w-5 h-5 text-[10px]' : 'absolute -top-1 -right-1 w-4 h-4 text-[9px] border border-white'
-                  }`}>
-                    {trashProducts.length}
-                  </span>
-                )}
-                {!isSidebarOpen && (
-                  <div className="absolute left-full ml-3 px-2.5 py-1 bg-stone-900 text-white text-[11px] rounded-lg shadow-xl whitespace-nowrap opacity-0 group-hover/btn:opacity-100 pointer-events-none transition z-50">
-                    Tong Sampah ({trashProducts.length})
-                  </div>
-                )}
-              </button>
-            )}
-          </nav>
-        </div>
-      </aside>
+      
 
       {/* MAIN CONTENT AREA (Scrolls independently on desktop while sidebar stays locked) */}
       <main className="flex-1 h-auto md:h-screen p-6 md:p-8 overflow-y-auto">
@@ -5788,6 +5636,60 @@ export function AdminView() {
             </div>
 
           </div>
+        </div>
+      )}
+
+      {/* FLOATING DASHBOARD BUTTON (Draggable anywhere on screen, click to open slide menu) */}
+      {floatingPos && (
+        <div
+          style={{ left: `${floatingPos.x}px`, top: `${floatingPos.y}px` }}
+          className="fixed z-50 pointer-events-auto touch-none select-none"
+        >
+          <button
+            type="button"
+            onMouseDown={(e) => {
+              handleFloatingPointerDown(e.clientX, e.clientY);
+              const onMouseMove = (moveEvent: MouseEvent) => {
+                handleFloatingPointerMove(moveEvent.clientX, moveEvent.clientY);
+              };
+              const onMouseUp = () => {
+                handleFloatingPointerUp();
+                window.removeEventListener('mousemove', onMouseMove);
+                window.removeEventListener('mouseup', onMouseUp);
+              };
+              window.addEventListener('mousemove', onMouseMove);
+              window.addEventListener('mouseup', onMouseUp);
+            }}
+            onTouchStart={(e) => {
+              if (e.touches.length > 0) {
+                handleFloatingPointerDown(e.touches[0].clientX, e.touches[0].clientY);
+              }
+            }}
+            onTouchMove={(e) => {
+              if (e.touches.length > 0) {
+                handleFloatingPointerMove(e.touches[0].clientX, e.touches[0].clientY);
+              }
+            }}
+            onTouchEnd={() => {
+              handleFloatingPointerUp();
+            }}
+            className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-floating border-2 transition-transform cursor-grab active:cursor-grabbing active:scale-95 ${
+              isMobileMenuOpen
+                ? 'bg-spicy-ember text-white border-white ring-4 ring-spicy-ember/30 rotate-90 scale-105'
+                : 'bg-matcha-deep/95 hover:bg-matcha-deep text-noodle-cream border-matcha-surface hover:scale-105'
+            }`}
+            title="Menu Navigasi Toko (Klik untuk Buka Slide Menu / Geser untuk Pindahkan Posisi)"
+            aria-label="Buka Slide Menu"
+          >
+            {isMobileMenuOpen ? (
+              <X className="w-5 h-5 text-white" />
+            ) : (
+              <div className="relative flex items-center justify-center">
+                <LayoutDashboard className="w-5 h-5 text-yolk-blaze" />
+                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-400 animate-pulse ring-1 ring-black/40" />
+              </div>
+            )}
+          </button>
         </div>
       )}
 
