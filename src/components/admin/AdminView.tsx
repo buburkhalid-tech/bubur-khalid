@@ -1309,7 +1309,7 @@ export function AdminView() {
                   : 'Pengaturan Toko & Banner'
                 : 'Tong Sampah (Soft Delete)'}
             </h1>
-            <p className="text-xs text-stone-500">{liveTodayIndo} • Zona Waktu Asia/Jakarta (WIB)</p>
+            <p className="text-xs text-stone-500">{liveTodayIndo} • Zona Waktu Asia/Padang Pariaman (WIB)</p>
           </div>
 
           <div className="flex items-center space-x-2 md:space-x-3">
