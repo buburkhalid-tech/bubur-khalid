@@ -20,7 +20,6 @@ import {
   Coffee,
   QrCode,
   X,
-  LayoutDashboard,
   MessageCircle,
   Share2,
 } from 'lucide-react';
@@ -166,24 +165,21 @@ Simpan struk ini untuk mengambil pesanan.`;
             {/* Brand Header Row */}
             <div className="p-3 sm:p-4 flex items-center justify-between gap-3">
               <div className="flex items-center space-x-3 min-w-0">
-                {/* Logo Dashboard Button (Tanpa Panah dan Tanpa Tulisan) */}
+                {/* Logo Bubur Khalid sekaligus Tombol Home ke Dashboard Admin */}
                 <button
                   type="button"
                   onClick={() => setActiveView('admin')}
-                  className="w-10 h-10 rounded-xl bg-matcha-leaf hover:bg-matcha-surface text-tofu-silkblaze flex items-center justify-center transition active:scale-95 shadow-sm flex-shrink-0"
-                  title="Kembali ke Dashboard Admin"
+                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-white border border-stone-200 overflow-hidden relative shadow-sm flex-shrink-0 p-0.5 cursor-pointer hover:scale-105 hover:border-spicy-ember active:scale-95 transition"
+                  title="Kembali ke Beranda Dashboard Admin"
+                  aria-label="Kembali ke Dashboard Admin"
                 >
-                  <LayoutDashboard className="w-5 h-5 text-noodle-cream" />
-                </button>
-
-                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-white border border-stone-200 overflow-hidden relative shadow-sm flex-shrink-0 p-0.5">
                   <Image
                     src={storeSettings.storeLogo || '/images/logo/bubur-khalid-logo.png'}
-                    alt="Logo Bubur Khalid"
+                    alt="Home Dashboard Bubur Khalid"
                     fill
                     className="object-cover"
                   />
-                </div>
+                </button>
                 <div className="min-w-0">
                   <h1 className="font-extrabold text-sm sm:text-base text-matcha-leaf truncate">POS Kasir Bubur Khalid</h1>
                   <p className="text-[11px] sm:text-xs text-stone-500 truncate">Mode Tablet Touchscreen • Antrean Order di Tempat (OT)</p>

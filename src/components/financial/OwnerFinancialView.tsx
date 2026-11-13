@@ -1,20 +1,19 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import Image from 'next/image';
 import { useApp } from '@/lib/store/AppContext';
 import { getJakartaDateStr, getJakartaMonthStr, formatJakartaTime } from '@/lib/date-utils';
 import { StaffSalary, OperationalExpense, ExpenseCategory } from '@/lib/types';
 import {
   ShieldAlert,
   Lock,
-  Unlock,
   KeyRound,
   FileSpreadsheet,
   CheckCircle2,
   AlertOctagon,
   CreditCard,
   Banknote,
-  LayoutDashboard,
   X,
   Send,
   RefreshCw,
@@ -836,15 +835,17 @@ export function OwnerFinancialView() {
             <button
               type="button"
               onClick={() => setActiveView('admin')}
-              className="w-10 h-10 rounded-xl bg-matcha-surface hover:bg-matcha-leaf text-white flex items-center justify-center active:scale-95 transition shadow-sm flex-shrink-0"
-              title="Kembali ke Dashboard Admin"
+              className="w-11 h-11 rounded-xl bg-white border border-white/40 overflow-hidden relative shadow-md flex-shrink-0 p-0.5 cursor-pointer hover:scale-105 hover:border-yolk-blaze active:scale-95 transition"
+              title="Kembali ke Beranda Dashboard Admin"
+              aria-label="Kembali ke Dashboard Admin"
             >
-              <LayoutDashboard className="w-5 h-5 text-noodle-cream" />
+              <Image
+                src={storeSettings.storeLogo || '/images/logo/bubur-khalid-logo.png'}
+                alt="Home Dashboard Bubur Khalid"
+                fill
+                className="object-cover"
+              />
             </button>
-
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center">
-              <Unlock className="w-5 h-5" />
-            </div>
             <div>
               <div className="flex items-center space-x-2">
                 <span className="font-extrabold text-sm text-white">Sesi Laporan Finansial Aktif (Owner Khalid)</span>

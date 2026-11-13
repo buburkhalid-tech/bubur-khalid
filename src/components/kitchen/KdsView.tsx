@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useApp } from '@/lib/store/AppContext';
 import { Order, OrderStatus } from '@/lib/types';
 import {
@@ -13,11 +14,10 @@ import {
   ArrowRight,
   Filter,
   Check,
-  LayoutDashboard,
 } from 'lucide-react';
 
 export function KdsView() {
-  const { orders, updateOrderStatus, setActiveView } = useApp();
+  const { orders, updateOrderStatus, setActiveView, storeSettings } = useApp();
   const [filterStatus, setFilterStatus] = useState<'NEW' | 'PREPARING' | 'READY'>('NEW');
 
   // Kitchen queue strictly requires paid orders that are not yet completed/cancelled
@@ -40,15 +40,17 @@ export function KdsView() {
           <button
             type="button"
             onClick={() => setActiveView('admin')}
-            className="w-10 h-10 rounded-xl bg-stone-700 hover:bg-stone-600 text-stone-200 flex items-center justify-center active:scale-95 transition shadow-sm flex-shrink-0"
-            title="Kembali ke Dashboard Admin"
+            className="w-11 h-11 rounded-xl bg-white border border-stone-600 overflow-hidden relative shadow-md flex-shrink-0 p-0.5 cursor-pointer hover:scale-105 hover:border-spicy-ember active:scale-95 transition"
+            title="Kembali ke Beranda Dashboard Admin"
+            aria-label="Kembali ke Dashboard Admin"
           >
-            <LayoutDashboard className="w-5 h-5 text-noodle-cream" />
+            <Image
+              src={storeSettings.storeLogo || '/images/logo/bubur-khalid-logo.png'}
+              alt="Home Dashboard Bubur Khalid"
+              fill
+              className="object-cover"
+            />
           </button>
-
-          <div className="w-11 h-11 rounded-xl bg-spicy-ember flex items-center justify-center text-xl shadow-md">
-            👨‍🍳
-          </div>
           <div>
             <div className="flex items-center space-x-2">
               <h1 className="text-lg font-black tracking-wide text-noodle-cream">KDS Bubur Khalid</h1>
