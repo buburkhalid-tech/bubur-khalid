@@ -969,7 +969,7 @@ export function CustomerView() {
             ) : null}
 
             {/* Quick Action Category Pills */}
-            <div className="grid grid-cols-4 gap-2 text-center">
+            <div className="grid grid-cols-3 gap-2 text-center">
               <button
                 type="button"
                 onClick={() => setCustomerServiceType('DINE_IN')}
@@ -1000,18 +1000,6 @@ export function CustomerView() {
                 </div>
                 <span className="text-[11px] font-bold text-matcha-leaf block leading-tight">Bungkus</span>
                 <span className="text-[9px] text-stone-500 block">Takeaway</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                className="p-2 rounded-2xl border bg-white border-stone-200 hover:border-amber-300 flex flex-col items-center justify-center transition"
-              >
-                <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mb-1">
-                  <Flame className="w-4 h-4 text-yolk-blaze" />
-                </div>
-                <span className="text-[11px] font-bold text-matcha-leaf block leading-tight">Andalan</span>
-                <span className="text-[9px] text-stone-500 block">Terlaris</span>
               </button>
 
               {/* Lacak Struk Quick Action (Satu-satunya tombol Lacak Struk di beranda) */}
@@ -1060,13 +1048,9 @@ export function CustomerView() {
             <div className="relative">
               <div className="flex justify-between items-center mb-2">
                 <div className="flex items-center space-x-1.5">
-                  <h3 className="font-black text-sm text-matcha-leaf flex items-center space-x-1">
-                    <Sparkles className="w-4 h-4 text-yolk-blaze" />
-                    <span>Menu Andalan</span>
+                  <h3 className="font-black text-sm text-matcha-leaf">
+                    Menu Andalan
                   </h3>
-                  <span className="text-[10px] bg-amber-100 text-amber-800 font-extrabold px-2 py-0.5 rounded-full select-none">
-                    Geser 👈 👉
-                  </span>
                 </div>
                 
                 {/* Carousel Left/Right Slide Buttons */}
@@ -2015,9 +1999,6 @@ export function CustomerView() {
                         {transferConfirmationOrder.transfer_proof_image || transferProof
                           ? '✓ Screenshot M-Banking Terlampir'
                           : 'Lampirkan Screenshot M-Banking'}
-                      </div>
-                      <div className="text-[10px] text-stone-500">
-                        Otomatis digabung ke dalam struk PNG anti-edit
                       </div>
                     </div>
                   </div>

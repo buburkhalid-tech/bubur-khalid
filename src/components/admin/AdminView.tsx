@@ -1162,18 +1162,6 @@ export function AdminView() {
           </div>
 
           <div className="flex items-center space-x-2 md:space-x-3">
-            {/* Tombol Menu Navigasi Toko */}
-            <button
-              type="button"
-              onClick={() => setIsMobileMenuOpen(true)}
-              className="flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-matcha-leaf hover:bg-matcha-surface text-white text-xs font-bold shadow-sm transition active:scale-95 cursor-pointer"
-              title="Buka Menu Navigasi"
-              aria-label="Buka Menu Navigasi"
-            >
-              <Menu className="w-4 h-4 text-yolk-blaze" />
-              <span className="font-bold">Menu</span>
-            </button>
-
             {/* Tombol Notifikasi Interaktif dengan Bunyi Lonceng & Popover */}
             <div className="relative" ref={notificationRef}>
               <button
@@ -3720,17 +3708,11 @@ export function AdminView() {
                 {/* Header Action Card */}
                 <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-stone-200 shadow-soft">
                   <div>
-                    <div className="flex items-center space-x-2">
-                      <Sparkles className="w-5 h-5 text-yolk-blaze" />
-                      <h3 className="font-extrabold text-base text-matcha-leaf">
-                        Manajemen Banner Promosi Berjalan (Carousel Looping)
-                      </h3>
-                      <span className="bg-spicy-light text-spicy-ember text-[10px] font-black px-2.5 py-0.5 rounded-full border border-spicy-ember/30">
-                        {promoBanners?.length || 0} Banner Terdaftar
-                      </span>
-                    </div>
+                    <h3 className="font-extrabold text-base text-matcha-leaf">
+                      Manajemen Banner Promosi
+                    </h3>
                     <p className="text-xs text-stone-500 mt-1 max-w-2xl leading-relaxed">
-                      Banner ini tampil tepat di bawah menu unggulan pada web mobile pelanggan. Berjalan otomatis secara looping (minimal 3 banner disarankan). Mendukung foto dari <strong>Google Drive</strong> dan foto menu lokal.
+                      Banner ini tampil tepat di bawah menu unggulan pada web mobile pelanggan. Mendukung foto dari link share Google Drive dan foto menu lokal.
                     </p>
                   </div>
                   <button
@@ -3891,16 +3873,6 @@ export function AdminView() {
                       </div>
                     </div>
                   ))}
-                </div>
-
-                {/* Google Drive Instruction Guide for Promo Banners */}
-                <div className="bg-amber-50/80 p-4 rounded-2xl border border-amber-200 text-xs text-amber-900 space-y-1.5">
-                  <div className="font-extrabold flex items-center space-x-1.5 text-amber-950">
-                    <span>💡 Tips Menggunakan Foto dari Google Drive:</span>
-                  </div>
-                  <p className="leading-relaxed">
-                    Anda dapat langsung menyalin (copy) link share foto dari Google Drive Anda. Pastikan akses file Google Drive diatur ke <strong>&quot;Siapa saja yang memiliki link&quot; (Anyone with the link)</strong> agar pelanggan dapat melihat foto promosi secara lancar.
-                  </p>
                 </div>
 
               </div>
@@ -4155,18 +4127,6 @@ export function AdminView() {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block font-bold text-matcha-leaf mb-1">
-                    Teks Jam Operasional:
-                  </label>
-                  <input
-                    type="text"
-                    value={storeForm.operatingHours}
-                    onChange={(e) => setStoreForm({ ...storeForm, operatingHours: e.target.value })}
-                    className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-matcha-leaf focus:outline-none focus:border-spicy-ember"
-                  />
-                </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="bg-emerald-50/60 p-3.5 rounded-xl border border-emerald-200">
                     <label className="block font-bold text-xs text-matcha-leaf mb-1.5 flex items-center justify-between">
@@ -4210,32 +4170,6 @@ export function AdminView() {
                     <p className="text-[10px] text-stone-500 mt-1">
                       *Menerima kode OTP keamanan laporan finansial &amp; otorisasi penting pemilik toko.
                     </p>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block font-bold text-matcha-leaf mb-1">
-                    Status Toko:
-                  </label>
-                  <div className="flex items-center space-x-3 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const nextOpen = !storeForm.isStoreOpen;
-                        setStoreForm((prev) => ({ ...prev, isStoreOpen: nextOpen }));
-                        updateStoreSettings({ isStoreOpen: nextOpen });
-                      }}
-                      className={`px-4 py-2 rounded-xl font-bold text-xs transition ${
-                        storeForm.isStoreOpen
-                          ? 'bg-emerald-600 text-white shadow-sm'
-                          : 'bg-red-600 text-white shadow-sm'
-                      }`}
-                    >
-                      {storeForm.isStoreOpen ? '✓ Toko Buka Menerima Pesanan' : '✕ Toko Tutup'}
-                    </button>
-                    <span className="text-[11px] text-stone-500">
-                      {storeForm.isStoreOpen ? 'Pelanggan dapat melakukan checkout' : 'Pemesanan dinonaktifkan sementara'}
-                    </span>
                   </div>
                 </div>
               </div>
