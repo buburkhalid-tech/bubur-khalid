@@ -1220,7 +1220,7 @@ export function AdminView() {
                   ? 'Pengaturan Toko, Banner & Metode Pembayaran'
                   : 'Pengaturan Akun & Keamanan'}
               </h1>
-              <p className="text-xs text-stone-500">{liveTodayIndo} • Zona Waktu Asia/Padang Pariaman (WIB)</p>
+              <p className="text-xs text-stone-500">{liveTodayIndo} • Padang Pariaman</p>
             </div>
 
             <div className="flex items-center space-x-2 md:space-x-3">
@@ -1253,7 +1253,7 @@ export function AdminView() {
                   {storeSettings.isStoreHoliday
                     ? `Toko Libur (${storeSettings.operatingHours || '16:00 - 22:00'})`
                     : storeSettings.isStoreOpen
-                    ? `Toko Buka (${storeSettings.operatingHours || '16:00 - 22:00'})`
+                    ? `Toko Buka (${(storeSettings.operatingHours || '16:00 - 22:00').replace(/^buka\s*:\s*/i, '')})`
                     : `Toko Tutup (${storeSettings.operatingHours || '16:00 - 22:00'})`}
                 </span>
                 <ChevronDown className="w-3 h-3 text-stone-400 group-hover:text-matcha-leaf transition flex-shrink-0" />
@@ -1693,7 +1693,7 @@ export function AdminView() {
                     <div className="flex items-center space-x-2">
                       <span className="w-2.5 h-2.5 rounded-full bg-spicy-ember animate-pulse" />
                       <h3 className="font-extrabold text-base text-stone-900 tracking-tight">
-                        {donutViewMode === 'cost' ? 'Alokasi & Rasio Keuangan' : 'Kanal Penjualan Toko'}
+                        {donutViewMode === 'cost' ? 'Rasio Keuangan' : 'Penjualan Toko'}
                       </h3>
                     </div>
                     <p className="text-xs text-stone-500 mt-0.5">
@@ -2281,7 +2281,7 @@ export function AdminView() {
                 className="bg-spicy-ember hover:bg-spicy-hover active:scale-95 text-white px-4 py-2.5 rounded-xl text-xs font-black flex items-center justify-center space-x-1.5 shadow-sm transition cursor-pointer flex-shrink-0"
               >
                 <Plus className="w-4 h-4" />
-                <span>Tambah Menu Baru</span>
+                <span>Tambah Menu</span>
               </button>
             </div>
 
@@ -2487,7 +2487,7 @@ export function AdminView() {
                       </div>
                       <div>
                         <h3 className="font-extrabold text-sm text-matcha-leaf">
-                          {isAddMode ? 'Tambah Menu Baru' : `Edit Menu: ${editingProduct?.name}`}
+                          {isAddMode ? 'Tambah Menu' : `Edit Menu: ${editingProduct?.name}`}
                         </h3>
                         <p className="text-[10px] text-stone-500">
                           Ubah nama, foto produk, harga, kategori, dan deskripsi
