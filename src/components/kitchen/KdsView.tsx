@@ -259,7 +259,7 @@ export function KdsView() {
                       className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-xl font-extrabold text-xs shadow-md flex items-center justify-center space-x-2 transition"
                     >
                       <Check className="w-4 h-4" />
-                      <span>Tandai Siap Saji</span>
+                      <span>Siap Saji</span>
                     </button>
                   )}
 
