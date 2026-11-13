@@ -1188,9 +1188,16 @@ export function AdminView() {
                 )}
               </button>
 
-              {/* Popover Dropdown Notifikasi */}
+              {/* Popover Dropdown Notifikasi (Responsif Mobile & Desktop) */}
               {isNotificationOpen && (
-                <div className="absolute right-0 top-11 z-50 w-80 sm:w-96 bg-white rounded-2xl shadow-floating border border-stone-200 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+                <>
+                  {/* Backdrop gelap di layar mobile agar fokus dan mudah ditutup saat tap di luar */}
+                  <div
+                    className="fixed inset-0 bg-black/40 z-40 sm:hidden"
+                    onClick={() => setIsNotificationOpen(false)}
+                  />
+
+                  <div className="fixed sm:absolute inset-x-3 sm:inset-x-auto top-28 sm:top-11 sm:right-0 z-50 w-auto sm:w-96 max-w-[calc(100vw-24px)] bg-white rounded-2xl shadow-2xl border border-stone-200 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
                   {/* Header Popover */}
                   <div className="p-3.5 bg-matcha-leaf text-white flex items-center justify-between">
                     <div className="flex items-center space-x-2">
@@ -1351,41 +1358,52 @@ export function AdminView() {
                     </button>
                   </div>
                 </div>
+                </>
               )}
             </div>
-              {/* Interactive Store Status & Operating Hours Pill (Click to edit & auto-save) */}
-              <button
-                type="button"
-                onClick={() => setIsStoreHoursModalOpen(true)}
-                className={`flex items-center space-x-2 px-3 py-1.5 rounded-xl border shadow-xs transition cursor-pointer active:scale-95 group ${
+
+            {/* Interactive Store Status & Operating Hours Pill (Click to edit & auto-save) */}
+            <button
+              type="button"
+              onClick={() => setIsStoreHoursModalOpen(true)}
+              className={`flex items-center space-x-1.5 sm:space-x-2 px-2.5 sm:px-3 py-1.5 rounded-xl border shadow-xs transition cursor-pointer active:scale-95 group shrink-0 ${
+                storeSettings.isStoreHoliday
+                  ? 'bg-amber-50 hover:bg-amber-100 border-amber-300 text-amber-900'
+                  : !storeSettings.isStoreOpen
+                  ? 'bg-red-50 hover:bg-red-100 border-red-300 text-red-900'
+                  : 'bg-white hover:bg-emerald-50 border-stone-200 hover:border-emerald-300 text-matcha-leaf'
+              }`}
+              title="Klik untuk ubah Jam Buka & Status Toko (Libur/Tutup)"
+            >
+              <span
+                className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
                   storeSettings.isStoreHoliday
-                    ? 'bg-amber-50 hover:bg-amber-100 border-amber-300 text-amber-900'
-                    : !storeSettings.isStoreOpen
-                    ? 'bg-red-50 hover:bg-red-100 border-red-300 text-red-900'
-                    : 'bg-white hover:bg-emerald-50 border-stone-200 hover:border-emerald-300 text-matcha-leaf'
+                    ? 'bg-amber-500 animate-ping'
+                    : storeSettings.isStoreOpen
+                    ? 'bg-emerald-500 animate-pulse'
+                    : 'bg-red-500'
                 }`}
-                title="Klik untuk ubah Jam Buka & Status Toko (Libur/Tutup)"
-              >
-                <span
-                  className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
-                    storeSettings.isStoreHoliday
-                      ? 'bg-amber-500 animate-ping'
-                      : storeSettings.isStoreOpen
-                      ? 'bg-emerald-500 animate-pulse'
-                      : 'bg-red-500'
-                  }`}
-                />
-                <span className="text-xs font-bold whitespace-nowrap">
+              />
+              <span className="text-xs font-bold whitespace-nowrap">
+                <span className="sm:hidden">
+                  {storeSettings.isStoreHoliday
+                    ? 'Toko Libur'
+                    : storeSettings.isStoreOpen
+                    ? 'Toko Buka'
+                    : 'Toko Tutup'}
+                </span>
+                <span className="hidden sm:inline">
                   {storeSettings.isStoreHoliday
                     ? `Toko Libur (${storeSettings.operatingHours || '16:00 - 22:00'})`
                     : storeSettings.isStoreOpen
                     ? `Toko Buka (${(storeSettings.operatingHours || '16:00 - 22:00').replace(/^buka\s*:\s*/i, '')})`
                     : `Toko Tutup (${storeSettings.operatingHours || '16:00 - 22:00'})`}
                 </span>
-                <ChevronDown className="w-3 h-3 text-stone-400 group-hover:text-matcha-leaf transition flex-shrink-0" />
-              </button>
-            </div>
+              </span>
+              <ChevronDown className="w-3 h-3 text-stone-400 group-hover:text-matcha-leaf transition flex-shrink-0" />
+            </button>
           </div>
+        </div>
 
         {/* TAB 1: OPERATIONAL DASHBOARD */}
         {activeTab === 'dashboard' && (
