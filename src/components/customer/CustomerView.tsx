@@ -1970,10 +1970,10 @@ export function CustomerView() {
                   Pesanan Berhasil Dibuat
                 </span>
                 <h3 className="font-black text-xl text-matcha-leaf">
-                  Transfer ke Rekening Owner
+                  Konfirmasi Pembayaran
                 </h3>
                 <p className="text-xs text-stone-500">
-                  Silakan selesaikan pembayaran dan kirimkan bukti bayar ke WhatsApp Owner
+                  Lampirkan bukti transfer m-banking untuk verifikasi pesanan Anda
                 </p>
               </div>
 
@@ -1990,66 +1990,6 @@ export function CustomerView() {
                     ? `Makan di Tempat (${transferConfirmationOrder.table_number || 'Meja'})`
                     : 'Bungkus / Takeaway'}
                 </span>
-              </div>
-
-              {/* Owner Bank Account Box */}
-              <div className="bg-emerald-50 rounded-2xl p-4 border border-emerald-300 space-y-3">
-                <div className="flex items-center justify-between pb-2 border-b border-emerald-200">
-                  <span className="text-xs font-extrabold text-emerald-950 flex items-center space-x-1.5">
-                    <span>🏛️</span>
-                    <span>Rekening Resmi Owner Khalid:</span>
-                  </span>
-                  <span className="text-xs bg-emerald-200 text-emerald-900 font-black px-2 py-0.5 rounded">
-                    {storeSettings?.paymentMethods?.transfer?.bankName || 'BCA'}
-                  </span>
-                </div>
-
-                <div className="bg-white p-3 rounded-xl border border-emerald-200 flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] text-stone-400 font-semibold uppercase block">Nomor Rekening</span>
-                    <div className="text-base font-mono font-black text-matcha-leaf">
-                      {storeSettings?.paymentMethods?.transfer?.accountNumber || '8920192831'}
-                    </div>
-                    <span className="text-[11px] text-stone-600 font-bold block mt-0.5">
-                      a.n {storeSettings?.paymentMethods?.transfer?.accountHolder || 'BUBUR KHALID'}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (typeof navigator !== 'undefined') {
-                        navigator.clipboard.writeText(storeSettings?.paymentMethods?.transfer?.accountNumber || '8920192831');
-                        triggerToast('Nomor rekening berhasil disalin! 📋');
-                      }
-                    }}
-                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center space-x-1 shadow-xs transition active:scale-95"
-                  >
-                    <Copy className="w-3.5 h-3.5" />
-                    <span>Salin</span>
-                  </button>
-                </div>
-
-                <div className="bg-white p-3 rounded-xl border border-emerald-200 flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] text-stone-400 font-semibold uppercase block">Total Nominal Transfer</span>
-                    <div className="text-lg font-black text-spicy-ember">
-                      Rp {transferConfirmationOrder.total_amount.toLocaleString('id-ID')}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (typeof navigator !== 'undefined') {
-                        navigator.clipboard.writeText(String(transferConfirmationOrder.total_amount));
-                        triggerToast('Nominal transfer berhasil disalin! 📋');
-                      }
-                    }}
-                    className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg text-xs font-bold flex items-center space-x-1 transition active:scale-95"
-                  >
-                    <Copy className="w-3.5 h-3.5" />
-                    <span>Salin</span>
-                  </button>
-                </div>
               </div>
 
               {/* Upload Screenshot M-Banking */}
