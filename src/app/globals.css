@@ -45,37 +45,68 @@ html, body {
   scrollbar-width: none;
 }
 
-/* Print optimization for thermal receipt (Bluetooth / USB / WiFi 58mm & 80mm) */
+/* Print optimization for thermal receipt (auto-fit 1 page, no blank pages/spaces) */
 @media print {
-  body * {
-    visibility: hidden;
+  @page {
+    size: auto;
+    margin: 3mm;
   }
-  #thermal-receipt-print,
-  #thermal-receipt-print * {
-    visibility: visible;
+
+  html,
+  body {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #ffffff !important;
   }
+
+  body *:not(#thermal-receipt-print):not(#thermal-receipt-print *):not(:has(#thermal-receipt-print)) {
+    display: none !important;
+  }
+
+  *:has(#thermal-receipt-print) {
+    position: static !important;
+    inset: auto !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: transparent !important;
+    display: block !important;
+  }
+
   #thermal-receipt-print {
-    position: fixed;
-    left: 0;
-    top: 0;
-    width: 58mm; /* Ukuran standar kertas thermal kasir (58mm) */
-    max-width: 100%;
-    margin: 0;
-    padding: 3mm;
+    position: static !important;
+    width: 100% !important;
+    max-width: 80mm !important;
+    margin: 0 auto !important;
+    padding: 2mm !important;
     background: #ffffff !important;
     color: #000000 !important;
     font-family: 'Courier New', Courier, monospace;
-    font-size: 11px;
-    line-height: 1.3;
+    font-size: 11px !important;
+    line-height: 1.25 !important;
     border: none !important;
     box-shadow: none !important;
     border-radius: 0 !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
+
+  #thermal-receipt-print > div {
+    margin-top: 4px !important;
+    margin-bottom: 4px !important;
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+  }
+
   #thermal-receipt-print .no-print {
     display: none !important;
-  }
-  @page {
-    size: auto;
-    margin: 0mm;
   }
 }
