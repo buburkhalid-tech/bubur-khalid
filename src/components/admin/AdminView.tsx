@@ -63,7 +63,6 @@ import {
   AlertOctagon,
   Volume2,
   VolumeX,
-  BellRing,
 } from 'lucide-react';
 import { playNotificationSound } from '@/lib/utils/sound';
 
@@ -1224,17 +1223,6 @@ export function AdminView() {
                         ) : (
                           <VolumeX className="w-3.5 h-3.5 text-stone-400" />
                         )}
-                      </button>
-
-                      {/* Tes Bunyi Lonceng (Icon Only) */}
-                      <button
-                        type="button"
-                        onClick={() => playNotificationSound()}
-                        className="w-7 h-7 rounded-lg bg-yolk-blaze hover:bg-yolk-dark text-black flex items-center justify-center transition shadow-xs cursor-pointer active:scale-95"
-                        title="Tes Bunyikan Lonceng"
-                        aria-label="Tes Bunyikan Lonceng"
-                      >
-                        <BellRing className="w-3.5 h-3.5 text-stone-900" />
                       </button>
                     </div>
                   </div>
