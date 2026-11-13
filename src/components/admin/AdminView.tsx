@@ -1298,7 +1298,7 @@ export function AdminView() {
                 {financialSummary.month_revenue > 0 ? (
                   <div className="text-[11px] text-emerald-700 font-bold mt-1 flex items-center">
                     <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" />
-                    <span>Akumulasi Bulan Berjalan</span>
+                    <span>Akumulasi Bulanan</span>
                   </div>
                 ) : (
                   <div className="text-[11px] text-stone-400 font-medium mt-1">
