@@ -22,7 +22,6 @@ import {
   X,
   MessageCircle,
   Share2,
-  Download,
 } from 'lucide-react';
 
 export function PosView() {
@@ -57,6 +56,8 @@ export function PosView() {
   const [lastCompletedOrder, setLastCompletedOrder] = useState<Order | null>(null);
   const [lastChange, setLastChange] = useState<number>(0);
   const [customerWhatsapp, setCustomerWhatsapp] = useState<string>('');
+  const [isSharingWA, setIsSharingWA] = useState<boolean>(false);
+  const [waShareNotice, setWaShareNotice] = useState<string>('');
 
   const handlePrintReceipt = () => {
     if (typeof window !== 'undefined') {
@@ -64,184 +65,209 @@ export function PosView() {
     }
   };
 
-  const handleDownloadReceiptPNG = () => {
-    if (!lastCompletedOrder || typeof document === 'undefined') return;
-    const width = 440;
-    const scale = 2;
-    const padding = 28;
-    const itemCount = lastCompletedOrder.items.length + (lastCompletedOrder.cup_fee > 0 ? 1 : 0);
-    const qrisExtra = lastCompletedOrder.payment_method === 'QRIS' ? 44 : 0;
-    const cashExtra = lastCompletedOrder.payment_method === 'CASH' ? 44 : 0;
-    const height = 430 + itemCount * 24 + qrisExtra + cashExtra;
+  const generateReceiptPNGBlob = (): Promise<Blob | null> => {
+    return new Promise((resolve) => {
+      if (!lastCompletedOrder || typeof document === 'undefined') {
+        resolve(null);
+        return;
+      }
+      const width = 440;
+      const scale = 2;
+      const padding = 28;
+      const itemCount = lastCompletedOrder.items.length + (lastCompletedOrder.cup_fee > 0 ? 1 : 0);
+      const qrisExtra = lastCompletedOrder.payment_method === 'QRIS' ? 44 : 0;
+      const cashExtra = lastCompletedOrder.payment_method === 'CASH' ? 44 : 0;
+      const height = 430 + itemCount * 24 + qrisExtra + cashExtra;
 
-    const canvas = document.createElement('canvas');
-    canvas.width = width * scale;
-    canvas.height = height * scale;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+      const canvas = document.createElement('canvas');
+      canvas.width = width * scale;
+      canvas.height = height * scale;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        resolve(null);
+        return;
+      }
 
-    ctx.scale(scale, scale);
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, width, height);
+      ctx.scale(scale, scale);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, width, height);
 
-    let y = 38;
-    const center = width / 2;
+      let y = 38;
+      const center = width / 2;
 
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#1b4332';
-    ctx.font = '900 18px sans-serif';
-    ctx.fillText((storeSettings.storeName || 'BUBUR KHALID').toUpperCase(), center, y);
-    y += 18;
-
-    ctx.fillStyle = '#78716c';
-    ctx.font = '11px monospace';
-    const telp = storeSettings.adminWhatsapp && storeSettings.adminWhatsapp !== '6281234567890' ? storeSettings.adminWhatsapp : '0852-7428-1819';
-    ctx.fillText(`${storeSettings.storeAddress || 'Jl. Zaini No. 1c'} • Telp: ${telp}`, center, y);
-    y += 16;
-    ctx.fillText(storeSettings.operatingHours || 'Buka: Senin-Sabtu 16.00-22.00 WIB', center, y);
-    y += 16;
-
-    // Dashed divider
-    ctx.strokeStyle = '#d6d3d1';
-    ctx.setLineDash([4, 4]);
-    ctx.beginPath();
-    ctx.moveTo(padding, y);
-    ctx.lineTo(width - padding, y);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    y += 16;
-
-    // Queue box
-    ctx.fillStyle = '#fef3c7';
-    ctx.strokeStyle = '#fde68a';
-    ctx.lineWidth = 1;
-    ctx.fillRect(padding, y, width - padding * 2, 74);
-    ctx.strokeRect(padding, y, width - padding * 2, 74);
-
-    ctx.fillStyle = '#57534e';
-    ctx.font = 'bold 10px sans-serif';
-    ctx.fillText('NOMOR ANTREAN TOKO', center, y + 18);
-    ctx.fillStyle = '#e11d48';
-    ctx.font = '900 28px sans-serif';
-    ctx.fillText(lastCompletedOrder.queue_number, center, y + 48);
-    ctx.fillStyle = '#57534e';
-    ctx.font = '10px sans-serif';
-    ctx.fillText(`Urutan Dapur: #${lastCompletedOrder.global_queue_sequence} (FIFO)`, center, y + 64);
-    y += 94;
-
-    const drawRow = (label: string, val: string, bold = false, color = '#1b4332') => {
-      ctx.textAlign = 'left';
-      ctx.fillStyle = bold ? '#1b4332' : '#44403c';
-      ctx.font = `${bold ? 'bold ' : ''}11px monospace`;
-      ctx.fillText(label, padding, y);
-      ctx.textAlign = 'right';
-      ctx.fillStyle = color;
-      ctx.fillText(val, width - padding, y);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#1b4332';
+      ctx.font = '900 18px sans-serif';
+      ctx.fillText((storeSettings.storeName || 'BUBUR KHALID').toUpperCase(), center, y);
       y += 18;
-    };
 
-    drawRow('Waktu:', `${new Date().toLocaleTimeString('id-ID')} WIB`);
-    drawRow('Kasir:', currentUser ? `${currentUser.name} (${currentUser.role})` : 'Kasir Toko');
-    drawRow('Pelanggan:', lastCompletedOrder.customer_name || 'Pelanggan Toko');
-    drawRow('Pembayaran:', `${lastCompletedOrder.payment_method} (LUNAS)`, true, '#047857');
-    if (lastCompletedOrder.payment_method === 'QRIS') {
-      drawRow('Provider:', lastCompletedOrder.qris_provider || 'BCA / QRIS');
-      drawRow('No. Ref/RRN:', lastCompletedOrder.qris_reference || '-');
-    }
+      ctx.fillStyle = '#78716c';
+      ctx.font = '11px monospace';
+      const telp = storeSettings.adminWhatsapp && storeSettings.adminWhatsapp !== '6281234567890' ? storeSettings.adminWhatsapp : '0852-7428-1819';
+      ctx.fillText(`${storeSettings.storeAddress || 'Jl. Zaini No. 1c'} • Telp: ${telp}`, center, y);
+      y += 16;
+      ctx.fillText(storeSettings.operatingHours || 'Buka: Senin-Sabtu 16.00-22.00 WIB', center, y);
+      y += 16;
 
-    y += 4;
-    ctx.strokeStyle = '#e7e5e4';
-    ctx.beginPath();
-    ctx.moveTo(padding, y);
-    ctx.lineTo(width - padding, y);
-    ctx.stroke();
-    y += 18;
+      // Dashed divider
+      ctx.strokeStyle = '#d6d3d1';
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(padding, y);
+      ctx.lineTo(width - padding, y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      y += 16;
 
-    lastCompletedOrder.items.forEach((it) => {
-      const name = `${it.quantity}x ${it.product_name_snapshot}${it.use_cup ? ' (Cup)' : ''}`;
-      drawRow(name, `Rp${it.line_total.toLocaleString('id-ID')}`);
+      // Queue box
+      ctx.fillStyle = '#fef3c7';
+      ctx.strokeStyle = '#fde68a';
+      ctx.lineWidth = 1;
+      ctx.fillRect(padding, y, width - padding * 2, 74);
+      ctx.strokeRect(padding, y, width - padding * 2, 74);
+
+      ctx.fillStyle = '#57534e';
+      ctx.font = 'bold 10px sans-serif';
+      ctx.fillText('NOMOR ANTREAN TOKO', center, y + 18);
+      ctx.fillStyle = '#e11d48';
+      ctx.font = '900 28px sans-serif';
+      ctx.fillText(lastCompletedOrder.queue_number, center, y + 48);
+      ctx.fillStyle = '#57534e';
+      ctx.font = '10px sans-serif';
+      ctx.fillText(`Urutan Dapur: #${lastCompletedOrder.global_queue_sequence} (FIFO)`, center, y + 64);
+      y += 94;
+
+      const drawRow = (label: string, val: string, bold = false, color = '#1b4332') => {
+        ctx.textAlign = 'left';
+        ctx.fillStyle = bold ? '#1b4332' : '#44403c';
+        ctx.font = `${bold ? 'bold ' : ''}11px monospace`;
+        ctx.fillText(label, padding, y);
+        ctx.textAlign = 'right';
+        ctx.fillStyle = color;
+        ctx.fillText(val, width - padding, y);
+        y += 18;
+      };
+
+      drawRow('Waktu:', `${new Date().toLocaleTimeString('id-ID')} WIB`);
+      drawRow('Kasir:', currentUser ? `${currentUser.name} (${currentUser.role})` : 'Kasir Toko');
+      drawRow('Pelanggan:', lastCompletedOrder.customer_name || 'Pelanggan Toko');
+      drawRow('Pembayaran:', `${lastCompletedOrder.payment_method} (LUNAS)`, true, '#047857');
+      if (lastCompletedOrder.payment_method === 'QRIS') {
+        drawRow('Provider:', lastCompletedOrder.qris_provider || 'BCA / QRIS');
+        drawRow('No. Ref/RRN:', lastCompletedOrder.qris_reference || '-');
+      }
+
+      y += 4;
+      ctx.strokeStyle = '#e7e5e4';
+      ctx.beginPath();
+      ctx.moveTo(padding, y);
+      ctx.lineTo(width - padding, y);
+      ctx.stroke();
+      y += 18;
+
+      lastCompletedOrder.items.forEach((it) => {
+        const name = `${it.quantity}x ${it.product_name_snapshot}${it.use_cup ? ' (Cup)' : ''}`;
+        drawRow(name, `Rp${it.line_total.toLocaleString('id-ID')}`);
+      });
+      if (lastCompletedOrder.cup_fee > 0) {
+        drawRow('Biaya Bungkus Cup', `Rp${lastCompletedOrder.cup_fee.toLocaleString('id-ID')}`, false, '#78716c');
+      }
+
+      y += 4;
+      ctx.strokeStyle = '#d6d3d1';
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(padding, y);
+      ctx.lineTo(width - padding, y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      y += 20;
+
+      drawRow('TOTAL:', `Rp${lastCompletedOrder.total_amount.toLocaleString('id-ID')}`, true, '#1b4332');
+      if (lastCompletedOrder.payment_method === 'CASH') {
+        drawRow('Tunai:', `Rp${(lastCompletedOrder.total_amount + lastChange).toLocaleString('id-ID')}`, false, '#78716c');
+        drawRow('Kembalian:', `Rp${lastChange.toLocaleString('id-ID')}`, true, '#047857');
+      }
+
+      y += 12;
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#78716c';
+      ctx.font = '10px sans-serif';
+      ctx.fillText('Terima Kasih Atas Kunjungan Anda!', center, y);
+      y += 14;
+      ctx.fillText('Harap simpan struk ini untuk mengambil pesanan.', center, y);
+
+      canvas.toBlob((blob) => resolve(blob), 'image/png');
     });
-    if (lastCompletedOrder.cup_fee > 0) {
-      drawRow('Biaya Bungkus Cup', `Rp${lastCompletedOrder.cup_fee.toLocaleString('id-ID')}`, false, '#78716c');
-    }
-
-    y += 4;
-    ctx.strokeStyle = '#d6d3d1';
-    ctx.setLineDash([4, 4]);
-    ctx.beginPath();
-    ctx.moveTo(padding, y);
-    ctx.lineTo(width - padding, y);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    y += 20;
-
-    drawRow('TOTAL:', `Rp${lastCompletedOrder.total_amount.toLocaleString('id-ID')}`, true, '#1b4332');
-    if (lastCompletedOrder.payment_method === 'CASH') {
-      drawRow('Tunai:', `Rp${(lastCompletedOrder.total_amount + lastChange).toLocaleString('id-ID')}`, false, '#78716c');
-      drawRow('Kembalian:', `Rp${lastChange.toLocaleString('id-ID')}`, true, '#047857');
-    }
-
-    y += 12;
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#78716c';
-    ctx.font = '10px sans-serif';
-    ctx.fillText('Terima Kasih Atas Kunjungan Anda!', center, y);
-    y += 14;
-    ctx.fillText('Harap simpan struk ini untuk mengambil pesanan.', center, y);
-
-    const link = document.createElement('a');
-    link.download = `Struk-${lastCompletedOrder.queue_number}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
   };
 
-  const handleShareToWhatsApp = () => {
-    if (!lastCompletedOrder) return;
+  const handleShareToWhatsApp = async () => {
+    if (!lastCompletedOrder || isSharingWA) return;
+    setIsSharingWA(true);
+    setWaShareNotice('');
 
-    const itemsText = lastCompletedOrder.items
-      .map(
-        (it) =>
-          `• ${it.quantity}x ${it.product_name_snapshot}${it.use_cup ? ' (+Cup)' : ''} : Rp${it.line_total.toLocaleString('id-ID')}`
-      )
-      .join('\n');
+    try {
+      const pngBlob = await generateReceiptPNGBlob();
+      if (!pngBlob) {
+        setWaShareNotice('Gagal membuat gambar struk PNG.');
+        return;
+      }
 
-    const cupFeeText =
-      lastCompletedOrder.cup_fee > 0
-        ? `\nBiaya Kemasan Cup: Rp${lastCompletedOrder.cup_fee.toLocaleString('id-ID')}`
-        : '';
+      const fileName = `Struk-${lastCompletedOrder.queue_number}.png`;
+      const pngFile = new File([pngBlob], fileName, { type: 'image/png' });
 
-    const paymentInfo =
-      lastCompletedOrder.payment_method === 'CASH'
-        ? `Tunai: Rp${(lastCompletedOrder.total_amount + lastChange).toLocaleString('id-ID')}\nKembalian: Rp${lastChange.toLocaleString('id-ID')}`
-        : `Metode: QRIS Lunas\nRef: ${lastCompletedOrder.qris_reference || '-'}`;
+      // Utama (Tablet/HP): Share langsung file gambar PNG ke WhatsApp via Web Share API
+      if (
+        typeof navigator !== 'undefined' &&
+        typeof navigator.canShare === 'function' &&
+        navigator.canShare({ files: [pngFile] })
+      ) {
+        try {
+          await navigator.share({
+            files: [pngFile],
+            title: `Struk ${storeSettings.storeName || 'Bubur Khalid'} - ${lastCompletedOrder.queue_number}`,
+          });
+          return;
+        } catch (err) {
+          if (err instanceof DOMException && err.name === 'AbortError') {
+            return;
+          }
+        }
+      }
 
-    const text = `🧾 *STRUK PEMBELIAN - ${storeSettings.storeName || 'BUBUR KHALID'}*
-${storeSettings.storeAddress || 'Jl. Zaini No. 1c'} • Telp: ${storeSettings.adminWhatsapp && storeSettings.adminWhatsapp !== '6281234567890' ? storeSettings.adminWhatsapp : '0852-7428-1819'}
-------------------------------------------
-*Nomor Antrean: ${lastCompletedOrder.queue_number}*
-Urutan Dapur: #${lastCompletedOrder.global_queue_sequence} (FIFO)
-Waktu: ${new Date().toLocaleTimeString('id-ID')} WIB
-Kasir: ${currentUser ? currentUser.name : 'Kasir Toko'}
-Pelanggan: ${lastCompletedOrder.customer_name || 'Pelanggan Toko'}
-------------------------------------------
-*DETAIL PESANAN:*
-${itemsText}${cupFeeText}
-------------------------------------------
-*TOTAL TAGIHAN: Rp${lastCompletedOrder.total_amount.toLocaleString('id-ID')}*
-${paymentInfo}
-------------------------------------------
-Terima kasih atas kunjungan Anda di Bubur Khalid!
-Simpan struk ini untuk mengambil pesanan.`;
+      // Fallback (Desktop/browser tanpa file share): Salin PNG ke clipboard & buka chat WhatsApp tanpa teks
+      let copiedToClipboard = false;
+      if (typeof navigator !== 'undefined' && navigator.clipboard && typeof ClipboardItem !== 'undefined') {
+        try {
+          await navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob })]);
+          copiedToClipboard = true;
+        } catch (_) {}
+      }
 
-    const encoded = encodeURIComponent(text);
-    let cleanPhone = customerWhatsapp.replace(/\D/g, '');
-    if (cleanPhone.startsWith('0')) {
-      cleanPhone = '62' + cleanPhone.slice(1);
+      if (!copiedToClipboard) {
+        const blobUrl = URL.createObjectURL(pngBlob);
+        const link = document.createElement('a');
+        link.download = fileName;
+        link.href = blobUrl;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+      }
+
+      let cleanPhone = customerWhatsapp.replace(/\D/g, '');
+      if (cleanPhone.startsWith('0')) {
+        cleanPhone = '62' + cleanPhone.slice(1);
+      }
+      const waUrl = cleanPhone ? `https://wa.me/${cleanPhone}` : 'https://wa.me/';
+      window.open(waUrl, '_blank');
+
+      setWaShareNotice(
+        copiedToClipboard
+          ? 'Gambar PNG struk disalin. Tinggal Paste (Tempel) di chat WhatsApp.'
+          : 'Gambar PNG struk siap dilampirkan di chat WhatsApp.'
+      );
+    } finally {
+      setIsSharingWA(false);
     }
-    const waUrl = cleanPhone
-      ? `https://wa.me/${cleanPhone}?text=${encoded}`
-      : `https://wa.me/?text=${encoded}`;
-    window.open(waUrl, '_blank');
   };
 
   const filteredProducts = products.filter((p) => {
@@ -867,26 +893,23 @@ Simpan struk ini untuk mengambil pesanan.`;
                 <button
                   type="button"
                   onClick={handleShareToWhatsApp}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center space-x-1 shadow-sm transition active:scale-95 cursor-pointer flex-shrink-0"
-                  title="Bagikan teks struk ke WhatsApp"
+                  disabled={isSharingWA}
+                  className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center space-x-1 shadow-sm transition active:scale-95 cursor-pointer flex-shrink-0"
+                  title="Kirim struk gambar PNG ke WhatsApp"
                 >
                   <Share2 className="w-3.5 h-3.5" />
-                  <span>Kirim WA</span>
+                  <span>{isSharingWA ? 'Menyiapkan...' : 'Kirim WA'}</span>
                 </button>
               </div>
+              {waShareNotice && (
+                <p className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1.5">
+                  {waShareNotice}
+                </p>
+              )}
             </div>
 
             {/* Action Buttons (no-print) */}
-            <div className="no-print flex flex-wrap sm:flex-nowrap gap-2 mt-5 font-sans">
-              <button
-                type="button"
-                onClick={handleDownloadReceiptPNG}
-                className="bg-amber-500 hover:bg-amber-600 text-white py-3 px-3.5 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition cursor-pointer flex-shrink-0"
-                title="Simpan struk sebagai gambar PNG"
-              >
-                <Download className="w-4 h-4 flex-shrink-0" />
-                <span className="whitespace-nowrap">Download PNG</span>
-              </button>
+            <div className="no-print flex flex-col sm:flex-row gap-2.5 mt-5 font-sans">
               <button
                 type="button"
                 onClick={handlePrintReceipt}
@@ -901,6 +924,7 @@ Simpan struk ini untuk mengambil pesanan.`;
                 onClick={() => {
                   setIsReceiptOpen(false);
                   setCustomerWhatsapp('');
+                  setWaShareNotice('');
                 }}
                 className="bg-stone-100 hover:bg-stone-200 text-stone-700 py-3 px-4 rounded-xl text-xs font-bold transition cursor-pointer active:scale-95 flex-shrink-0"
               >
