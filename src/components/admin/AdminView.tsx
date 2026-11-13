@@ -1074,7 +1074,7 @@ export function AdminView() {
                   >
                     <div className="flex items-center space-x-3">
                       <FileText className="w-4 h-4 text-yolk-blaze" />
-                      <span>Laporan Keuangan (Owner)</span>
+                      <span>Laporan Keuangan</span>
                     </div>
                   </button>
                 )}
