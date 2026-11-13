@@ -894,7 +894,7 @@ Simpan struk ini untuk mengambil pesanan.`;
                 title="Cetak struk ke printer thermal Bluetooth / USB / WiFi"
               >
                 <Printer className="w-4 h-4 text-yolk-blaze flex-shrink-0" />
-                <span className="whitespace-nowrap tracking-wide">Cetak Printer (Bluetooth/USB)</span>
+                <span className="whitespace-nowrap tracking-wide">Cetak</span>
               </button>
               <button
                 type="button"
@@ -904,7 +904,7 @@ Simpan struk ini untuk mengambil pesanan.`;
                 }}
                 className="bg-stone-100 hover:bg-stone-200 text-stone-700 py-3 px-4 rounded-xl text-xs font-bold transition cursor-pointer active:scale-95 flex-shrink-0"
               >
-                Tutup / Selesai
+                Selesai
               </button>
             </div>
 
