@@ -1146,22 +1146,20 @@ export function AdminView() {
                   </button>
                 )}
 
-                {/* Data Pesanan: Owner, Admin, dan Tim Dapur */}
-                {!isCashier && (
-                  <button
-                    type="button"
-                    onClick={() => handleDrawerNavClick(() => setActiveView('kds'))}
-                    className={`w-full flex items-center rounded-2xl text-xs font-bold text-noodle-cream hover:bg-matcha-surface transition ${
-                      isDrawerExpanded ? 'justify-between px-3.5 py-3' : 'justify-center p-3'
-                    }`}
-                    title="Data Pesanan"
-                  >
-                    <div className={`flex items-center ${isDrawerExpanded ? 'space-x-3' : ''}`}>
-                      <ChefHat className="w-5 h-5 text-yolk-blaze flex-shrink-0" />
-                      {isDrawerExpanded && <span className="whitespace-nowrap">Data Pesanan</span>}
-                    </div>
-                  </button>
-                )}
+                {/* Data Pesanan: Tersedia untuk semua role (Owner, Admin, Kasir, dan Tim Dapur) */}
+                <button
+                  type="button"
+                  onClick={() => handleDrawerNavClick(() => setActiveView('kds'))}
+                  className={`w-full flex items-center rounded-2xl text-xs font-bold text-noodle-cream hover:bg-matcha-surface transition ${
+                    isDrawerExpanded ? 'justify-between px-3.5 py-3' : 'justify-center p-3'
+                  }`}
+                  title="Data Pesanan"
+                >
+                  <div className={`flex items-center ${isDrawerExpanded ? 'space-x-3' : ''}`}>
+                    <ChefHat className="w-5 h-5 text-yolk-blaze flex-shrink-0" />
+                    {isDrawerExpanded && <span className="whitespace-nowrap">Data Pesanan</span>}
+                  </div>
+                </button>
 
                 {/* Tong Sampah: Hanya Owner & Admin */}
                 {(!currentUser || isAdminOrOwner) && (
