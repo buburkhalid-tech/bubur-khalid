@@ -200,6 +200,65 @@ export function CustomerView() {
     setTrackingError(`Pesanan dengan kode "${raw}" tidak ditemukan. Pastikan kode sesuai struk (contoh: OT-001 atau WB-002).`);
   };
 
+  // Sinkronisasi otomatis Live Tracking dengan Data Pesanan (AppContext + Supabase)
+  useEffect(() => {
+    if (!activeTrackingOrder) return;
+    const matched = (orders || []).find(
+      (o) => o.id === activeTrackingOrder.id || o.queue_number === activeTrackingOrder.queue_number
+    );
+    if (
+      matched &&
+      (matched.order_status !== activeTrackingOrder.order_status ||
+        matched.payment_status !== activeTrackingOrder.payment_status ||
+        matched.transfer_proof_image !== activeTrackingOrder.transfer_proof_image)
+    ) {
+      setActiveTrackingOrder(matched);
+    }
+  }, [orders, activeTrackingOrder]);
+
+  useEffect(() => {
+    if (!activeTrackingOrder) return;
+    const orderId = activeTrackingOrder.id;
+    let isMounted = true;
+
+    const fetchLatestOrder = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('id', orderId)
+          .maybeSingle();
+        if (!error && data && isMounted) {
+          setActiveTrackingOrder((prev) => {
+            if (!prev || prev.id !== data.id) return prev;
+            if (
+              prev.order_status === data.order_status &&
+              prev.payment_status === data.payment_status &&
+              prev.transfer_proof_image === data.transfer_proof_image
+            ) {
+              return prev;
+            }
+            return {
+              ...prev,
+              ...data,
+              subtotal: Number(data.subtotal),
+              total_amount: Number(data.total_amount),
+              cup_fee: Number(data.cup_fee || 0),
+              discount: Number(data.discount || 0),
+            };
+          });
+        }
+      } catch (_) {}
+    };
+
+    fetchLatestOrder();
+    const interval = setInterval(fetchLatestOrder, 4000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [activeTrackingOrder?.id]);
+
   const getProductImage = (img?: string, id?: string) => {
     if (id && brokenImages[id]) return '/images/menu/bubur-kampiun.png';
     if (!img) return '/images/menu/bubur-kampiun.png';
@@ -2401,15 +2460,29 @@ export function CustomerView() {
                 </div>
                 
                 {/* Status Badge */}
-                <div className="inline-flex items-center space-x-1.5 bg-yolk-blaze text-white font-extrabold text-xs px-3 py-1 rounded-full shadow-sm">
+                <div
+                  className={`inline-flex items-center space-x-1.5 text-white font-extrabold text-xs px-3 py-1 rounded-full shadow-sm ${
+                    activeTrackingOrder.order_status === 'CANCELLED'
+                      ? 'bg-red-600'
+                      : activeTrackingOrder.order_status === 'COMPLETED' || activeTrackingOrder.order_status === 'READY'
+                      ? 'bg-emerald-600'
+                      : 'bg-yolk-blaze'
+                  }`}
+                >
                   <Clock className="w-3.5 h-3.5" />
                   <span>
-                    {activeTrackingOrder.order_status === 'PREPARING'
+                    {activeTrackingOrder.order_status === 'CANCELLED'
+                      ? 'Pesanan Dibatalkan'
+                      : activeTrackingOrder.order_status === 'COMPLETED'
+                      ? 'Pesanan Selesai'
+                      : activeTrackingOrder.order_status === 'READY'
+                      ? 'Siap Diambil / Disajikan'
+                      : activeTrackingOrder.order_status === 'PREPARING'
                       ? 'Sedang Disiapkan'
                       : activeTrackingOrder.order_status === 'CONFIRMED'
                       ? 'Pesanan Dikonfirmasi'
-                      : activeTrackingOrder.order_status === 'READY'
-                      ? 'Siap Diambil / Disajikan'
+                      : activeTrackingOrder.payment_status === 'PAID'
+                      ? 'Pesanan Diterima (Antre Dapur)'
                       : 'Pesanan Diterima'}
                   </span>
                 </div>
@@ -2422,7 +2495,11 @@ export function CustomerView() {
                       : 'Takeaway'}
                   </span>
                   <span className="bg-white/80 px-2.5 py-0.5 rounded-full font-medium">
-                    Hari ini, 16:20 WIB
+                    {new Date(activeTrackingOrder.created_at).toLocaleTimeString('id-ID', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}{' '}
+                    WIB
                   </span>
                   <span
                     className={`px-2.5 py-0.5 rounded-full font-bold flex items-center space-x-1 ${
@@ -2537,79 +2614,168 @@ export function CustomerView() {
                 </div>
               </div>
 
-              {/* Progress Pesanan (Vertical Timeline Stepper) */}
-              <div className="mt-5">
-                <h4 className="font-extrabold text-xs text-matcha-leaf mb-3">Progress Pesanan</h4>
-                <div className="space-y-4 relative pl-6 before:content-[''] before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-stone-200">
-                  
-                  {/* Step 1: Pembayaran Berhasil */}
-                  <div className="relative flex items-start space-x-3">
-                    <span className="absolute -left-6 top-0.5 w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold">
-                      ✓
-                    </span>
-                    <div>
-                      <div className="font-bold text-xs text-matcha-leaf">Pembayaran Berhasil</div>
-                      <div className="text-[10px] text-stone-500">16:20 WIB • Transaksi terverifikasi otomatis</div>
-                    </div>
-                  </div>
+              {/* Progress Pesanan (Dynamic Vertical Timeline Stepper Synced with Data Pesanan) */}
+              {(() => {
+                const isPaid = activeTrackingOrder.payment_status === 'PAID';
+                const status = activeTrackingOrder.order_status;
+                const isCancelled = status === 'CANCELLED';
+                const orderTimeStr = `${new Date(activeTrackingOrder.created_at).toLocaleTimeString('id-ID', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })} WIB`;
 
-                  {/* Step 2: Pesanan Diterima */}
-                  <div className="relative flex items-start space-x-3">
-                    <span className="absolute -left-6 top-0.5 w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold">
-                      ✓
-                    </span>
-                    <div>
-                      <div className="font-bold text-xs text-matcha-leaf">Pesanan Diterima</div>
-                      <div className="text-[10px] text-stone-500">16:21 WIB • Pesanan masuk ke sistem kasir</div>
-                    </div>
-                  </div>
+                const isStep1Done = isPaid && !isCancelled;
+                const isStep2Done = isPaid && !isCancelled;
+                const isStep3Done = isPaid && ['CONFIRMED', 'PREPARING', 'READY', 'COMPLETED'].includes(status);
+                const isStep4Active = isPaid && status === 'PREPARING';
+                const isStep4Done = isPaid && ['READY', 'COMPLETED'].includes(status);
+                const isStep5Active = isPaid && status === 'READY';
+                const isStep5Done = isPaid && status === 'COMPLETED';
+                const isStep6Done = isPaid && status === 'COMPLETED';
 
-                  {/* Step 3: Pesanan Dikonfirmasi */}
-                  <div className="relative flex items-start space-x-3">
-                    <span className="absolute -left-6 top-0.5 w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold">
-                      ✓
-                    </span>
-                    <div>
-                      <div className="font-bold text-xs text-matcha-leaf">Pesanan Dikonfirmasi</div>
-                      <div className="text-[10px] text-stone-500">16:22 WIB • Diteruskan ke dapur Bubur Khalid</div>
-                    </div>
-                  </div>
+                return (
+                  <div className="mt-5">
+                    <h4 className="font-extrabold text-xs text-matcha-leaf mb-3">Progress Pesanan</h4>
+                    {isCancelled ? (
+                      <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 font-bold">
+                        ✕ Pesanan ini telah dibatalkan oleh kasir/admin.
+                      </div>
+                    ) : (
+                      <div className="space-y-4 relative pl-6 before:content-[''] before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-stone-200">
+                        {/* Step 1: Pembayaran */}
+                        <div className={`relative flex items-start space-x-3 ${!isPaid ? '' : ''}`}>
+                          <span
+                            className={`absolute -left-6 top-0.5 w-5 h-5 rounded-full text-white flex items-center justify-center text-[10px] font-bold ${
+                              isStep1Done ? 'bg-emerald-600' : 'bg-amber-500 animate-pulse'
+                            }`}
+                          >
+                            {isStep1Done ? '✓' : '●'}
+                          </span>
+                          <div>
+                            <div className={`font-bold text-xs ${isStep1Done ? 'text-matcha-leaf' : 'text-amber-700'}`}>
+                              {isStep1Done ? 'Pembayaran Berhasil' : 'Menunggu Konfirmasi Pembayaran'}
+                            </div>
+                            <div className="text-[10px] text-stone-500">
+                              {isStep1Done
+                                ? `${orderTimeStr} • Pembayaran terkonfirmasi`
+                                : `${orderTimeStr} • Menunggu verifikasi kasir/admin`}
+                            </div>
+                          </div>
+                        </div>
 
-                  {/* Step 4: Sedang Disiapkan (Active) */}
-                  <div className="relative flex items-start space-x-3">
-                    <span className="absolute -left-6 top-0.5 w-5 h-5 rounded-full bg-spicy-ember text-white flex items-center justify-center text-[10px] font-bold animate-pulse">
-                      ●
-                    </span>
-                    <div>
-                      <div className="font-bold text-xs text-spicy-ember">Sedang Disiapkan</div>
-                      <div className="text-[10px] text-stone-600">Sedang dimasak hangat oleh tim dapur</div>
-                    </div>
-                  </div>
+                        {/* Step 2: Pesanan Diterima */}
+                        <div className={`relative flex items-start space-x-3 ${isStep2Done ? '' : 'opacity-45'}`}>
+                          <span
+                            className={`absolute -left-6 top-0.5 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                              isStep2Done ? 'bg-emerald-600 text-white' : 'bg-stone-200 text-stone-500'
+                            }`}
+                          >
+                            {isStep2Done ? '✓' : '2'}
+                          </span>
+                          <div>
+                            <div className="font-bold text-xs text-matcha-leaf">Pesanan Diterima</div>
+                            <div className="text-[10px] text-stone-500">
+                              {isStep2Done ? `${orderTimeStr} • Masuk antrean dapur` : 'Menunggu pembayaran terverifikasi'}
+                            </div>
+                          </div>
+                        </div>
 
-                  {/* Step 5: Siap Diambil */}
-                  <div className="relative flex items-start space-x-3 opacity-60">
-                    <span className="absolute -left-6 top-0.5 w-5 h-5 rounded-full bg-stone-300 text-stone-600 flex items-center justify-center text-[10px]">
-                      5
-                    </span>
-                    <div>
-                      <div className="font-bold text-xs text-matcha-leaf">Siap Diambil / Disajikan</div>
-                      <div className="text-[10px] text-stone-500">Estimasi ± 5 menit</div>
-                    </div>
-                  </div>
+                        {/* Step 3: Pesanan Dikonfirmasi */}
+                        <div className={`relative flex items-start space-x-3 ${isPaid ? '' : 'opacity-45'}`}>
+                          <span
+                            className={`absolute -left-6 top-0.5 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                              isStep3Done
+                                ? 'bg-emerald-600 text-white'
+                                : isPaid
+                                ? 'bg-spicy-ember text-white animate-pulse'
+                                : 'bg-stone-200 text-stone-500'
+                            }`}
+                          >
+                            {isStep3Done ? '✓' : isPaid ? '●' : '3'}
+                          </span>
+                          <div>
+                            <div className={`font-bold text-xs ${isPaid && !isStep3Done ? 'text-spicy-ember' : 'text-matcha-leaf'}`}>
+                              Pesanan Dikonfirmasi
+                            </div>
+                            <div className="text-[10px] text-stone-500">
+                              {isStep3Done ? 'Diteruskan ke dapur Bubur Khalid' : 'Menunggu tim dapur memproses'}
+                            </div>
+                          </div>
+                        </div>
 
-                  {/* Step 6: Selesai */}
-                  <div className="relative flex items-start space-x-3 opacity-40">
-                    <span className="absolute -left-6 top-0.5 w-5 h-5 rounded-full bg-stone-200 text-stone-400 flex items-center justify-center text-[10px]">
-                      6
-                    </span>
-                    <div>
-                      <div className="font-bold text-xs text-matcha-leaf">Pesanan Selesai</div>
-                      <div className="text-[10px] text-stone-400">Terima kasih atas kunjungan Anda</div>
-                    </div>
-                  </div>
+                        {/* Step 4: Sedang Disiapkan */}
+                        <div className={`relative flex items-start space-x-3 ${isStep4Done || isStep4Active ? '' : 'opacity-50'}`}>
+                          <span
+                            className={`absolute -left-6 top-0.5 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                              isStep4Done
+                                ? 'bg-emerald-600 text-white'
+                                : isStep4Active
+                                ? 'bg-spicy-ember text-white animate-pulse'
+                                : 'bg-stone-300 text-stone-600'
+                            }`}
+                          >
+                            {isStep4Done ? '✓' : isStep4Active ? '●' : '4'}
+                          </span>
+                          <div>
+                            <div className={`font-bold text-xs ${isStep4Active ? 'text-spicy-ember' : 'text-matcha-leaf'}`}>
+                              Sedang Disiapkan
+                            </div>
+                            <div className="text-[10px] text-stone-600">
+                              {isStep4Done
+                                ? 'Selesai dimasak oleh tim dapur'
+                                : isStep4Active
+                                ? 'Sedang dimasak hangat oleh tim dapur'
+                                : 'Menunggu giliran dimasak'}
+                            </div>
+                          </div>
+                        </div>
 
-                </div>
-              </div>
+                        {/* Step 5: Siap Diambil */}
+                        <div className={`relative flex items-start space-x-3 ${isStep5Done || isStep5Active ? '' : 'opacity-45'}`}>
+                          <span
+                            className={`absolute -left-6 top-0.5 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                              isStep5Done
+                                ? 'bg-emerald-600 text-white'
+                                : isStep5Active
+                                ? 'bg-emerald-600 text-white animate-pulse'
+                                : 'bg-stone-300 text-stone-600'
+                            }`}
+                          >
+                            {isStep5Done ? '✓' : isStep5Active ? '●' : '5'}
+                          </span>
+                          <div>
+                            <div className={`font-bold text-xs ${isStep5Active ? 'text-emerald-700' : 'text-matcha-leaf'}`}>
+                              Siap Diambil / Disajikan
+                            </div>
+                            <div className="text-[10px] text-stone-500">
+                              {isStep5Active
+                                ? 'Pesanan Anda sudah siap! Silakan diambil'
+                                : isStep5Done
+                                ? 'Pesanan telah diserahkan'
+                                : 'Estimasi ± 5 menit setelah dimasak'}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Step 6: Selesai */}
+                        <div className={`relative flex items-start space-x-3 ${isStep6Done ? '' : 'opacity-40'}`}>
+                          <span
+                            className={`absolute -left-6 top-0.5 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                              isStep6Done ? 'bg-emerald-600 text-white' : 'bg-stone-200 text-stone-400'
+                            }`}
+                          >
+                            {isStep6Done ? '✓' : '6'}
+                          </span>
+                          <div>
+                            <div className="font-bold text-xs text-matcha-leaf">Pesanan Selesai</div>
+                            <div className="text-[10px] text-stone-400">Terima kasih atas kunjungan Anda</div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Items Summary */}
               <div className="mt-5 p-3 bg-tofu-silkblaze rounded-xl border border-noodle-dark/50 text-xs">
