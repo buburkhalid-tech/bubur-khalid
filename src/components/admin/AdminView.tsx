@@ -1249,16 +1249,6 @@ export function AdminView() {
                         <span className="w-2 h-2 rounded-full bg-spicy-ember animate-ping" />
                         <span>{pendingOrdersCount} pesanan menunggu proses!</span>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveTab('dashboard');
-                          setIsNotificationOpen(false);
-                        }}
-                        className="text-[11px] text-spicy-ember hover:underline font-extrabold cursor-pointer"
-                      >
-                        Lihat Antrean &rarr;
-                      </button>
                     </div>
                   ) : (
                     <div className="px-3.5 py-2 bg-emerald-50/70 border-b border-emerald-100 flex items-center justify-between text-xs text-emerald-800 font-bold">
@@ -1335,27 +1325,6 @@ export function AdminView() {
                         );
                       })
                     )}
-                  </div>
-
-                  {/* Footer Popover */}
-                  <div className="p-2.5 bg-stone-50 border-t border-stone-200 flex items-center justify-between">
-                    <button
-                      type="button"
-                      onClick={() => setIsNotificationOpen(false)}
-                      className="px-3 py-1.5 rounded-lg text-xs font-bold text-stone-600 hover:text-stone-900 hover:bg-stone-200/60 transition cursor-pointer"
-                    >
-                      Tutup
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveTab('dashboard');
-                        setIsNotificationOpen(false);
-                      }}
-                      className="px-3 py-1.5 rounded-lg text-xs font-bold bg-matcha-leaf hover:bg-matcha-surface text-white transition shadow-xs cursor-pointer"
-                    >
-                      Buka Antrean &rarr;
-                    </button>
                   </div>
                 </div>
                 </>
