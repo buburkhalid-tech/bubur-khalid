@@ -135,6 +135,7 @@ export function CustomerView() {
   const [showProductInfo, setShowProductInfo] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [transferConfirmationOrder, setTransferConfirmationOrder] = useState<Order | null>(null);
+  const [isSharingOrderPNG, setIsSharingOrderPNG] = useState<boolean>(false);
   const [brokenImages, setBrokenImages] = useState<Record<string, boolean>>({});
 
   // Live Tracking Modal & Code Input States
@@ -256,47 +257,258 @@ export function CustomerView() {
     }
   };
 
-  const generateWhatsAppLink = (order: Order) => {
+  const getAdminWhatsappPhone = () => {
     let rawNumber = storeSettings.adminWhatsapp;
     if (!rawNumber || rawNumber === '6281234567890') {
       const ownerUser = (users || []).find((u) => u.role === 'OWNER' && u.phone);
       rawNumber = ownerUser?.phone || '6285274281819';
     }
     const cleanNumber = rawNumber.replace(/[^0-9]/g, '');
-    const phone = cleanNumber.startsWith('0') ? '62' + cleanNumber.slice(1) : cleanNumber;
+    return cleanNumber.startsWith('0') ? '62' + cleanNumber.slice(1) : cleanNumber;
+  };
 
-    const itemsSummary = order.items
-      .map((it) => `• ${it.quantity}x ${it.product_name_snapshot} (Rp${it.line_total.toLocaleString('id-ID')})`)
-      .join('\n');
+  const loadImageFromDataUrl = (src: string): Promise<HTMLImageElement | null> => {
+    return new Promise((resolve) => {
+      if (typeof window === 'undefined') {
+        resolve(null);
+        return;
+      }
+      const img = new window.Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = src;
+    });
+  };
 
+  const generateOrderReceiptPNGBlob = async (order: Order, proofImage?: string): Promise<Blob | null> => {
+    if (typeof document === 'undefined') return null;
+    const width = 460;
+    const scale = 2;
+    const padding = 28;
+    const proofSrc = proofImage || order.transfer_proof_image || '';
+    const proofImg = proofSrc ? await loadImageFromDataUrl(proofSrc) : null;
+
+    let proofDrawWidth = 0;
+    let proofDrawHeight = 0;
+    if (proofImg && proofImg.width > 0 && proofImg.height > 0) {
+      const maxImgW = width - padding * 2 - 16;
+      const ratio = Math.min(maxImgW / proofImg.width, 360 / proofImg.height);
+      proofDrawWidth = Math.round(proofImg.width * ratio);
+      proofDrawHeight = Math.round(proofImg.height * ratio);
+    }
+
+    const itemCount = order.items.length + (order.cup_fee > 0 ? 1 : 0);
+    const proofSectionHeight = proofImg ? proofDrawHeight + 52 : 48;
+    const height = 430 + itemCount * 22 + proofSectionHeight;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width * scale;
+    canvas.height = height * scale;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+
+    ctx.scale(scale, scale);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, height);
+
+    let y = 38;
+    const center = width / 2;
+
+    // Header
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#1b4332';
+    ctx.font = '900 18px sans-serif';
+    ctx.fillText((storeSettings.storeName || 'BUBUR KHALID').toUpperCase(), center, y);
+    y += 18;
+
+    ctx.fillStyle = '#57534e';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.fillText('STRUK KONFIRMASI PESANAN ONLINE', center, y);
+    y += 16;
+
+    ctx.fillStyle = '#78716c';
+    ctx.font = '10px monospace';
+    ctx.fillText(`${storeSettings.storeAddress || 'Jl. Zaini No. 1c'}`, center, y);
+    y += 16;
+
+    // Dashed divider
+    ctx.strokeStyle = '#d6d3d1';
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(padding, y);
+    ctx.lineTo(width - padding, y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    y += 14;
+
+    // Queue Box
+    ctx.fillStyle = '#143625';
+    ctx.fillRect(padding, y, width - padding * 2, 78);
+    ctx.fillStyle = '#d6d3d1';
+    ctx.font = 'bold 10px sans-serif';
+    ctx.fillText('NOMOR ANTREAN PESANAN', center, y + 19);
+    ctx.fillStyle = '#f59e0b';
+    ctx.font = '900 30px sans-serif';
+    ctx.fillText(order.queue_number, center, y + 51);
+    ctx.fillStyle = '#e7e5e4';
+    ctx.font = '10px sans-serif';
     const serviceLabel =
       order.service_type === 'DINE_IN'
         ? `Makan di Tempat (${order.table_number || 'Meja Toko'})`
         : 'Bungkus / Takeaway';
+    ctx.fillText(serviceLabel, center, y + 68);
+    y += 96;
 
-    const message = `*KONFIRMASI BUKTI BAYAR - BUBUR KHALID*
-----------------------------------------
-*Nomor Antrean:* *${order.queue_number}*
-*Nama Pelanggan:* ${order.customer_name || 'Pelanggan'}
-*No. WhatsApp:* ${order.customer_phone || '-'}
-*Layanan:* ${serviceLabel}
-*Waktu:* ${new Date(order.created_at).toLocaleTimeString('id-ID')} WIB
-*Metode:* ${
+    const drawRow = (label: string, val: string, bold = false, color = '#1b4332') => {
+      ctx.textAlign = 'left';
+      ctx.fillStyle = bold ? '#1b4332' : '#44403c';
+      ctx.font = `${bold ? 'bold ' : ''}11px monospace`;
+      ctx.fillText(label, padding, y);
+      ctx.textAlign = 'right';
+      ctx.fillStyle = color;
+      ctx.fillText(val, width - padding, y);
+      y += 18;
+    };
+
+    drawRow('Waktu:', `${new Date(order.created_at).toLocaleTimeString('id-ID')} WIB`);
+    drawRow('Pelanggan:', order.customer_name || 'Pelanggan Online');
+    drawRow('No. WA:', order.customer_phone || '-');
+    const methodLabel =
       order.payment_method === 'TRANSFER'
-        ? 'Transfer Bank Manual'
+        ? `TRANSFER (${storeSettings?.paymentMethods?.transfer?.bankName || 'BRI'})`
         : order.payment_method === 'QRIS'
-        ? 'QRIS Digital'
-        : 'Bayar Tunai Kasir'
+        ? 'QRIS DIGITAL'
+        : 'TUNAI KASIR';
+    drawRow('Pembayaran:', methodLabel, true, '#047857');
+    if (order.payment_method === 'TRANSFER') {
+      drawRow(
+        'Rek. Tujuan:',
+        `${storeSettings?.paymentMethods?.transfer?.accountNumber || '8920192831'} (${storeSettings?.paymentMethods?.transfer?.accountHolder || 'BUBUR KHALID'})`
+      );
     }
 
-*Rincian Menu:*
-${itemsSummary}
-${order.cup_fee > 0 ? `• Biaya Cup: Rp${order.cup_fee.toLocaleString('id-ID')}\n` : ''}
-*Total Tagihan:* *Rp${order.total_amount.toLocaleString('id-ID')}*
-----------------------------------------
-Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_number}*. Berikut saya kirimkan konfirmasi dan lampiran bukti transfer saya untuk diverifikasi. Mohon segera diproses ya. Terima kasih! 🙏`;
+    y += 4;
+    ctx.strokeStyle = '#e7e5e4';
+    ctx.beginPath();
+    ctx.moveTo(padding, y);
+    ctx.lineTo(width - padding, y);
+    ctx.stroke();
+    y += 18;
 
-    return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+    order.items.forEach((it) => {
+      const name = `${it.quantity}x ${it.product_name_snapshot}${it.use_cup ? ' (Cup)' : ''}`;
+      drawRow(name, `Rp${it.line_total.toLocaleString('id-ID')}`);
+    });
+    if (order.cup_fee > 0) {
+      drawRow('Biaya Bungkus Cup', `Rp${order.cup_fee.toLocaleString('id-ID')}`, false, '#78716c');
+    }
+
+    y += 4;
+    ctx.strokeStyle = '#d6d3d1';
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(padding, y);
+    ctx.lineTo(width - padding, y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    y += 20;
+
+    drawRow('TOTAL TAGIHAN:', `Rp${order.total_amount.toLocaleString('id-ID')}`, true, '#dc2626');
+    y += 8;
+
+    // Embedded M-Banking Screenshot Box
+    ctx.fillStyle = '#f8fafc';
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.lineWidth = 1;
+    const boxH = proofImg ? proofDrawHeight + 36 : 36;
+    ctx.fillRect(padding, y, width - padding * 2, boxH);
+    ctx.strokeRect(padding, y, width - padding * 2, boxH);
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#1b4332';
+    ctx.font = 'bold 10px sans-serif';
+    ctx.fillText('BUKTI TRANSFER / SCREENSHOT M-BANKING', center, y + 18);
+
+    if (proofImg) {
+      const imgX = Math.round((width - proofDrawWidth) / 2);
+      ctx.drawImage(proofImg, imgX, y + 26, proofDrawWidth, proofDrawHeight);
+    } else {
+      ctx.fillStyle = '#b45309';
+      ctx.font = '10px sans-serif';
+      ctx.fillText('Belum ada screenshot terlampir di struk', center, y + 31);
+    }
+
+    return new Promise((resolve) => {
+      canvas.toBlob((blob) => resolve(blob), 'image/png');
+    });
+  };
+
+  const handleShareOrderPNGToWhatsApp = async (order: Order) => {
+    if (isSharingOrderPNG) return;
+    const activeProof = order.transfer_proof_image || transferProof;
+    if (order.payment_method === 'TRANSFER' && !activeProof) {
+      triggerToast('Mohon pilih Screenshot M-Banking terlebih dahulu sebelum konfirmasi.');
+      return;
+    }
+
+    setIsSharingOrderPNG(true);
+    try {
+      const pngBlob = await generateOrderReceiptPNGBlob(order, activeProof);
+      if (!pngBlob) {
+        triggerToast('Gagal membuat gambar PNG konfirmasi.');
+        return;
+      }
+
+      const fileName = `Konfirmasi-${order.queue_number}.png`;
+      const pngFile = new File([pngBlob], fileName, { type: 'image/png' });
+
+      // Tablet/HP: Share langsung gambar PNG (bukan teks) ke WhatsApp Admin
+      if (
+        typeof navigator !== 'undefined' &&
+        typeof navigator.canShare === 'function' &&
+        navigator.canShare({ files: [pngFile] })
+      ) {
+        try {
+          await navigator.share({
+            files: [pngFile],
+            title: `Konfirmasi ${order.queue_number} - ${storeSettings.storeName || 'Bubur Khalid'}`,
+          });
+          return;
+        } catch (err) {
+          if (err instanceof DOMException && err.name === 'AbortError') {
+            return;
+          }
+        }
+      }
+
+      // Fallback Desktop/Browser tanpa file share: salin PNG / unduh PNG lalu buka chat WA tanpa teks
+      let copied = false;
+      if (typeof navigator !== 'undefined' && navigator.clipboard && typeof ClipboardItem !== 'undefined') {
+        try {
+          await navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob })]);
+          copied = true;
+        } catch (_) {}
+      }
+
+      if (!copied) {
+        const blobUrl = URL.createObjectURL(pngBlob);
+        const link = document.createElement('a');
+        link.download = fileName;
+        link.href = blobUrl;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+      }
+
+      const adminPhone = getAdminWhatsappPhone();
+      window.open(`https://wa.me/${adminPhone}`, '_blank');
+      triggerToast(
+        copied
+          ? 'Gambar PNG struk disalin! Tempel (Paste) langsung di WhatsApp Admin.'
+          : 'Gambar PNG struk diunduh! Lampirkan PNG tersebut di WhatsApp Admin.'
+      );
+    } finally {
+      setIsSharingOrderPNG(false);
+    }
   };
 
   // Cart item quantity helper
@@ -425,10 +637,6 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
       setIsCheckoutOpen(false);
 
       if (paymentMethod === 'TRANSFER') {
-        const waUrl = generateWhatsAppLink(newOrder);
-        if (typeof window !== 'undefined') {
-          window.open(waUrl, '_blank');
-        }
         setTransferConfirmationOrder(newOrder);
       } else {
         setActiveTrackingOrder(newOrder);
@@ -1785,25 +1993,81 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
                 </div>
               </div>
 
-              {/* WhatsApp Auto-Trigger Callout */}
+              {/* Upload Screenshot M-Banking */}
+              <div className="bg-stone-50 p-3 rounded-xl border border-stone-200 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center space-x-2.5">
+                    {transferConfirmationOrder.transfer_proof_image || transferProof ? (
+                      <div className="w-11 h-11 rounded-lg border border-emerald-400 overflow-hidden relative flex-shrink-0 bg-white">
+                        <Image
+                          src={transferConfirmationOrder.transfer_proof_image || transferProof}
+                          alt="Screenshot M-Banking"
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-10 h-10 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center flex-shrink-0">
+                        <ImageIcon className="w-5 h-5" />
+                      </div>
+                    )}
+                    <div>
+                      <div className="text-[11px] font-extrabold text-matcha-leaf">
+                        {transferConfirmationOrder.transfer_proof_image || transferProof
+                          ? '✓ Screenshot M-Banking Terlampir'
+                          : 'Lampirkan Screenshot M-Banking'}
+                      </div>
+                      <div className="text-[10px] text-stone-500">
+                        Otomatis digabung ke dalam struk PNG anti-edit
+                      </div>
+                    </div>
+                  </div>
+                  <label className="cursor-pointer px-2.5 py-1.5 bg-white hover:bg-emerald-50 rounded-lg text-[10px] font-bold text-emerald-900 flex items-center space-x-1 border border-emerald-300 transition flex-shrink-0">
+                    <Upload className="w-3 h-3 text-emerald-700" />
+                    <span>{transferConfirmationOrder.transfer_proof_image || transferProof ? 'Ganti' : 'Pilih SS'}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = () => {
+                            const proofUrl = reader.result as string;
+                            setTransferProof(proofUrl);
+                            attachTransferProof(transferConfirmationOrder.id, proofUrl);
+                            setTransferConfirmationOrder((prev) =>
+                              prev ? { ...prev, transfer_proof_image: proofUrl } : null
+                            );
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {/* PNG Confirmation Callout */}
               <div className="p-3 bg-emerald-100/70 rounded-xl border border-emerald-300 text-xs text-emerald-950 flex items-start space-x-2">
-                <span className="text-lg">💬</span>
+                <span className="text-lg">🖼️</span>
                 <div className="leading-snug">
-                  <strong>Pesan WhatsApp Terisi Otomatis:</strong> Aplikasi telah membuka WhatsApp Owner dengan nomor antrean <strong>{transferConfirmationOrder.queue_number}</strong> dan rincian pesanan Anda.
+                  <strong>Konfirmasi Struk PNG:</strong> Menekan tombol Konfirmasi akan mengirim gambar PNG berisi struk pesanan, nomor antrean <strong>{transferConfirmationOrder.queue_number}</strong>, dan screenshot M-Banking ke WhatsApp Admin (bukan teks agar tidak dapat diedit).
                 </div>
               </div>
 
               {/* Action Buttons */}
               <div className="space-y-2 pt-1">
-                <a
-                  href={generateWhatsAppLink(transferConfirmationOrder)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full bg-[#25D366] hover:bg-[#1ebd59] text-white py-3 rounded-xl font-black text-xs shadow-md flex items-center justify-center space-x-2 transition active:scale-98"
+                <button
+                  type="button"
+                  disabled={isSharingOrderPNG}
+                  onClick={() => handleShareOrderPNGToWhatsApp(transferConfirmationOrder)}
+                  className="w-full bg-[#25D366] hover:bg-[#1ebd59] disabled:opacity-60 text-white py-3 rounded-xl font-black text-xs shadow-md flex items-center justify-center space-x-2 transition active:scale-98 cursor-pointer"
                 >
                   <MessageCircle className="w-4 h-4" />
-                  <span>Konfirmasi</span>
-                </a>
+                  <span>{isSharingOrderPNG ? 'Menyiapkan Struk PNG...' : 'Konfirmasi'}</span>
+                </button>
 
                 <button
                   type="button"
@@ -2058,7 +2322,7 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
                           )}
                         </div>
                         <p className="text-[9px] text-emerald-800 mt-1 leading-tight">
-                          *Setelah order dibuat, Anda langsung diarahkan ke tombol WhatsApp Admin dengan pesan otomatis beserta Nomor Antrean.
+                          *Setelah order dibuat, Anda dapat mengirim konfirmasi berupa gambar PNG (struk, nomor antrean, &amp; SS M-Banking) langsung ke WhatsApp Admin.
                         </p>
                       </div>
                     </div>
@@ -2252,20 +2516,24 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
                   </label>
                 </div>
 
-                {/* Direct One-Click WhatsApp Action Button */}
-                <a
-                  href={generateWhatsAppLink(activeTrackingOrder)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full bg-[#25D366] hover:bg-[#20ba59] active:scale-[0.98] text-white py-3 px-4 rounded-xl font-black text-xs flex items-center justify-center space-x-2 shadow-md transition"
+                {/* Direct One-Click WhatsApp PNG Action Button */}
+                <button
+                  type="button"
+                  disabled={isSharingOrderPNG}
+                  onClick={() => handleShareOrderPNGToWhatsApp(activeTrackingOrder)}
+                  className="w-full bg-[#25D366] hover:bg-[#20ba59] disabled:opacity-60 active:scale-[0.98] text-white py-3 px-4 rounded-xl font-black text-xs flex items-center justify-center space-x-2 shadow-md transition cursor-pointer"
                 >
                   <MessageCircle className="w-4 h-4 fill-white" />
-                  <span>Kirim ke WhatsApp Admin ({activeTrackingOrder.queue_number})</span>
+                  <span>
+                    {isSharingOrderPNG
+                      ? 'Menyiapkan Struk PNG...'
+                      : `Kirim PNG ke WhatsApp Admin (${activeTrackingOrder.queue_number})`}
+                  </span>
                   <ExternalLink className="w-3.5 h-3.5" />
-                </a>
+                </button>
 
                 <div className="text-[10px] text-emerald-800 text-center leading-relaxed">
-                  Tombol di atas otomatis membuka WhatsApp ke nomor <strong>Admin Bubur Khalid ({storeSettings.adminWhatsapp && storeSettings.adminWhatsapp !== '6281234567890' ? storeSettings.adminWhatsapp : '0852-7428-1819'})</strong> dengan pesan berisi <strong>No. Antrean {activeTrackingOrder.queue_number}</strong> dan rincian pesanan. Cukup kirimkan pesan & lampirkan foto struk di WhatsApp.
+                  Konfirmasi dikirim sebagai <strong>gambar PNG</strong> berisi struk, nomor antrean <strong>{activeTrackingOrder.queue_number}</strong>, dan screenshot M-Banking ke <strong>Admin Bubur Khalid ({storeSettings.adminWhatsapp && storeSettings.adminWhatsapp !== '6281234567890' ? storeSettings.adminWhatsapp : '0852-7428-1819'})</strong> (tanpa teks yang bisa diedit).
                 </div>
               </div>
 
