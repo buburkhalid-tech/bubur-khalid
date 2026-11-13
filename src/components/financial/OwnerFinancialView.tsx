@@ -1677,14 +1677,6 @@ export function OwnerFinancialView() {
                 Data transaksi aktual yang terekam pada sistem database toko.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={handleExportCSV}
-              className="text-xs bg-emerald-50 text-emerald-800 font-bold px-3 py-1.5 rounded-xl border border-emerald-200 hover:bg-emerald-100 transition inline-flex items-center space-x-1 cursor-pointer"
-            >
-              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Unduh CSV Lengkap</span>
-            </button>
           </div>
 
           {todayOrders.length === 0 ? (
