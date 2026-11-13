@@ -972,9 +972,13 @@ export function AdminView() {
 
           {/* Drawer Body */}
           <div
-            onMouseEnter={() => setIsDrawerExpanded(true)}
-            onMouseLeave={() => setIsDrawerExpanded(false)}
-            onTouchStart={() => {
+            onPointerEnter={(e) => {
+              if (e.pointerType === 'mouse') setIsDrawerExpanded(true);
+            }}
+            onPointerLeave={(e) => {
+              if (e.pointerType === 'mouse') setIsDrawerExpanded(false);
+            }}
+            onClick={() => {
               if (!isDrawerExpanded) setIsDrawerExpanded(true);
             }}
             className={`relative h-full bg-matcha-leaf text-tofu-silkblaze flex flex-col justify-between shadow-2xl border-r border-matcha-surface animate-slideRight transition-all duration-200 overflow-hidden ${
@@ -986,7 +990,10 @@ export function AdminView() {
               <div className={`flex items-center pb-4 border-b border-matcha-surface ${isDrawerExpanded ? 'justify-between' : 'justify-center'}`}>
                 <div className={`flex items-center ${isDrawerExpanded ? 'space-x-2.5' : ''}`}>
                   <div
-                    onClick={() => setIsDrawerExpanded((prev) => !prev)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsDrawerExpanded((prev) => !prev);
+                    }}
                     className="w-9 h-9 rounded-full overflow-hidden relative border border-white/40 bg-white flex-shrink-0 cursor-pointer"
                     title="Sentuh untuk Perluas / Perkecil Menu"
                   >
