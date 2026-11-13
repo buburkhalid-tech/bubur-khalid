@@ -700,129 +700,9 @@ export function AdminView() {
   const [formImage, setFormImage] = useState<string>('');
   const [formAvailable, setFormAvailable] = useState<boolean>(true);
 
-  // Floating Logo Button Position & Drag State (Hanya 1 logo floating yang bisa digeser bebas)
-  const [floatingPos, setFloatingPos] = useState<{ x: number; y: number } | null>(null);
-  const [isDrawerExpanded, setIsDrawerExpanded] = useState<boolean>(false);
-
-  // Check if any modal is currently open so floating button does not overlap modal UI
-  const isAnyModalOpen = Boolean(
-    isStoreHoursModalOpen ||
-    isTableModalOpen ||
-    deletingTable ||
-    viewingQrTable ||
-    isPromoModalOpen ||
-    deletingPromo ||
-    deletingProduct ||
-    permanentDeletingProduct ||
-    isConfirmEmptyTrashOpen ||
-    isUserModalOpen ||
-    editingProduct ||
-    isAddMode ||
-    isMobileMenuOpen
-  );
-  const floatingDragRef = useRef<{
-    isDragging: boolean;
-    startX: number;
-    startY: number;
-    initialX: number;
-    initialY: number;
-    currentX: number;
-    currentY: number;
-    hasMoved: boolean;
-  }>({
-    isDragging: false,
-    startX: 0,
-    startY: 0,
-    initialX: 0,
-    initialY: 0,
-    currentX: 0,
-    currentY: 0,
-    hasMoved: false,
-  });
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    let initial = {
-      x: Math.max(16, window.innerWidth - 76),
-      y: Math.max(16, window.innerHeight - 92),
-    };
-    const saved = localStorage.getItem('bubur_khalid_admin_floating_pos');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (typeof parsed.x === 'number' && typeof parsed.y === 'number') {
-          initial = {
-            x: Math.min(Math.max(12, parsed.x), window.innerWidth - 68),
-            y: Math.min(Math.max(12, parsed.y), window.innerHeight - 68),
-          };
-        }
-      } catch (_) {}
-    }
-    setFloatingPos(initial);
-
-    const handleResize = () => {
-      setFloatingPos((prev) => {
-        if (!prev) return null;
-        return {
-          x: Math.min(Math.max(12, prev.x), window.innerWidth - 68),
-          y: Math.min(Math.max(12, prev.y), window.innerHeight - 68),
-        };
-      });
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  const handleFloatingPointerDown = (clientX: number, clientY: number) => {
-    if (!floatingPos) return;
-    floatingDragRef.current = {
-      isDragging: true,
-      startX: clientX,
-      startY: clientY,
-      initialX: floatingPos.x,
-      initialY: floatingPos.y,
-      currentX: floatingPos.x,
-      currentY: floatingPos.y,
-      hasMoved: false,
-    };
-  };
-
-  const handleFloatingPointerMove = (clientX: number, clientY: number) => {
-    if (!floatingDragRef.current.isDragging) return;
-    const dx = clientX - floatingDragRef.current.startX;
-    const dy = clientY - floatingDragRef.current.startY;
-    if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
-      floatingDragRef.current.hasMoved = true;
-    }
-    const nextX = Math.min(Math.max(12, floatingDragRef.current.initialX + dx), window.innerWidth - 68);
-    const nextY = Math.min(Math.max(12, floatingDragRef.current.initialY + dy), window.innerHeight - 68);
-    floatingDragRef.current.currentX = nextX;
-    floatingDragRef.current.currentY = nextY;
-    setFloatingPos({ x: nextX, y: nextY });
-  };
-
-  const handleFloatingPointerUp = () => {
-    if (!floatingDragRef.current.isDragging) return;
-    floatingDragRef.current.isDragging = false;
-    if (floatingDragRef.current.hasMoved) {
-      localStorage.setItem(
-        'bubur_khalid_admin_floating_pos',
-        JSON.stringify({ x: floatingDragRef.current.currentX, y: floatingDragRef.current.currentY })
-      );
-    } else {
-      setIsDrawerExpanded(false);
-      setIsMobileMenuOpen((prev) => !prev);
-    }
-  };
-
   const handleDrawerNavClick = (action: () => void) => {
-    if (!isDrawerExpanded) {
-      setIsDrawerExpanded(true);
-      return;
-    }
     action();
     setIsMobileMenuOpen(false);
-    setIsDrawerExpanded(false);
   };
 
   // Live dynamic today date formatted in Asia/Jakarta (id-ID)
@@ -976,68 +856,44 @@ export function AdminView() {
   return (
     <div className="min-h-screen md:h-screen md:overflow-hidden bg-tofu-silkblaze flex flex-col text-matcha-leaf">
       
-      {/* SLIDE-OUT DRAWER OVERLAY (Awal: Icon-only tanpa tulisan; Saat disentuh/hover baru muncul tulisan) */}
+      {/* SLIDE-OUT DRAWER OVERLAY (Icon dan Tulisan langsung muncul bersamaan) */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-50 animate-fadeIn">
           {/* Backdrop (tap to close) */}
           <div
-            onClick={() => {
-              setIsMobileMenuOpen(false);
-              setIsDrawerExpanded(false);
-            }}
+            onClick={() => setIsMobileMenuOpen(false)}
             className="absolute inset-0 bg-black/50 backdrop-blur-xs transition-opacity"
           />
 
           {/* Drawer Body */}
           <div
-            onPointerEnter={(e) => {
-              if (e.pointerType === 'mouse') setIsDrawerExpanded(true);
-            }}
-            onPointerLeave={(e) => {
-              if (e.pointerType === 'mouse') setIsDrawerExpanded(false);
-            }}
-            onClick={() => {
-              if (!isDrawerExpanded) setIsDrawerExpanded(true);
-            }}
-            className={`relative h-full bg-matcha-leaf text-tofu-silkblaze flex flex-col justify-between shadow-2xl border-r border-matcha-surface animate-slideRight transition-all duration-200 overflow-hidden ${
-              isDrawerExpanded ? 'w-72 max-w-[85vw] p-5' : 'w-20 p-3'
-            }`}
+            className="relative h-full w-72 max-w-[85vw] p-5 bg-matcha-leaf text-tofu-silkblaze flex flex-col justify-between shadow-2xl border-r border-matcha-surface animate-slideRight overflow-y-auto"
           >
             <div>
               {/* Drawer Header */}
-              <div className={`flex items-center pb-4 border-b border-matcha-surface ${isDrawerExpanded ? 'justify-between' : 'justify-center'}`}>
-                <div className={`flex items-center ${isDrawerExpanded ? 'space-x-2.5' : ''}`}>
+              <div className="flex items-center justify-between pb-4 border-b border-matcha-surface">
+                <div className="flex items-center space-x-2.5">
                   <div
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsDrawerExpanded((prev) => !prev);
-                    }}
-                    className="w-9 h-9 rounded-full overflow-hidden relative border border-white/40 bg-white flex-shrink-0 cursor-pointer"
-                    title="Sentuh untuk Perluas / Perkecil Menu"
+                    onClick={() => handleDrawerNavClick(() => setActiveTab('dashboard'))}
+                    className="w-10 h-10 rounded-xl overflow-hidden relative border border-white/40 bg-white flex-shrink-0 cursor-pointer shadow-sm hover:scale-105 transition"
+                    title="Kembali ke Dashboard Beranda"
                   >
                     <Image src={storeSettings.storeLogo || '/images/logo/bubur-khalid-logo.png'} alt="Logo" fill className="object-cover" />
                   </div>
-                  {isDrawerExpanded && (
-                    <div className="whitespace-nowrap">
-                      <div className="font-black text-sm text-white">{storeSettings.storeName}</div>
-                      <div className="text-[10px] text-noodle-cream">Menu Navigasi Admin</div>
-                    </div>
-                  )}
+                  <div className="whitespace-nowrap min-w-0">
+                    <div className="font-black text-sm text-white truncate">{storeSettings.storeName}</div>
+                    <div className="text-[10px] text-noodle-cream">Menu Navigasi Admin</div>
+                  </div>
                 </div>
 
-                {isDrawerExpanded && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsMobileMenuOpen(false);
-                      setIsDrawerExpanded(false);
-                    }}
-                    className="w-8 h-8 rounded-full bg-matcha-surface text-stone-300 hover:text-white flex items-center justify-center transition active:scale-90 flex-shrink-0"
-                    title="Tutup Menu"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="w-8 h-8 rounded-full bg-matcha-surface text-stone-300 hover:text-white flex items-center justify-center transition active:scale-90 flex-shrink-0 cursor-pointer"
+                  title="Tutup Menu"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
 
               {/* Navigation Items in Drawer */}
@@ -1045,18 +901,16 @@ export function AdminView() {
                 <button
                   type="button"
                   onClick={() => handleDrawerNavClick(() => setActiveTab('dashboard'))}
-                  className={`w-full flex items-center rounded-2xl text-xs font-bold transition ${
-                    isDrawerExpanded ? 'justify-between px-3.5 py-3' : 'justify-center p-3'
-                  } ${
+                  className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold transition cursor-pointer active:scale-98 ${
                     activeTab === 'dashboard'
                       ? 'bg-spicy-ember text-white shadow-md'
                       : 'text-noodle-cream hover:bg-matcha-surface'
                   }`}
                   title="Dashboard Operasional"
                 >
-                  <div className={`flex items-center ${isDrawerExpanded ? 'space-x-3' : ''}`}>
+                  <div className="flex items-center space-x-3">
                     <LayoutDashboard className="w-5 h-5 flex-shrink-0" />
-                    {isDrawerExpanded && <span className="whitespace-nowrap">Dashboard Operasional</span>}
+                    <span className="whitespace-nowrap font-bold">Dashboard Operasional</span>
                   </div>
                 </button>
 
@@ -1065,18 +919,16 @@ export function AdminView() {
                   <button
                     type="button"
                     onClick={() => handleDrawerNavClick(() => setActiveTab('menu'))}
-                    className={`w-full flex items-center rounded-2xl text-xs font-bold transition ${
-                      isDrawerExpanded ? 'justify-between px-3.5 py-3' : 'justify-center p-3'
-                    } ${
+                    className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold transition cursor-pointer active:scale-98 ${
                       activeTab === 'menu'
                         ? 'bg-spicy-ember text-white shadow-md'
                         : 'text-noodle-cream hover:bg-matcha-surface'
                     }`}
                     title="Menu & Harga"
                   >
-                    <div className={`flex items-center ${isDrawerExpanded ? 'space-x-3' : ''}`}>
+                    <div className="flex items-center space-x-3">
                       <UtensilsCrossed className="w-5 h-5 flex-shrink-0" />
-                      {isDrawerExpanded && <span className="whitespace-nowrap">Menu & Harga</span>}
+                      <span className="whitespace-nowrap font-bold">Menu &amp; Harga</span>
                     </div>
                   </button>
                 )}
@@ -1086,18 +938,16 @@ export function AdminView() {
                   <button
                     type="button"
                     onClick={() => handleDrawerNavClick(() => setActiveTab('tables'))}
-                    className={`w-full flex items-center rounded-2xl text-xs font-bold transition ${
-                      isDrawerExpanded ? 'justify-between px-3.5 py-3' : 'justify-center p-3'
-                    } ${
+                    className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold transition cursor-pointer active:scale-98 ${
                       activeTab === 'tables'
                         ? 'bg-spicy-ember text-white shadow-md'
                         : 'text-noodle-cream hover:bg-matcha-surface'
                     }`}
                     title="Meja & QR Code"
                   >
-                    <div className={`flex items-center ${isDrawerExpanded ? 'space-x-3' : ''}`}>
+                    <div className="flex items-center space-x-3">
                       <QrCode className="w-5 h-5 flex-shrink-0" />
-                      {isDrawerExpanded && <span className="whitespace-nowrap">Meja & QR Code</span>}
+                      <span className="whitespace-nowrap font-bold">Meja &amp; QR Code</span>
                     </div>
                   </button>
                 )}
@@ -1111,22 +961,18 @@ export function AdminView() {
                       setActiveTab('settings');
                     })
                   }
-                  className={`w-full flex items-center rounded-2xl text-xs font-bold transition ${
-                    isDrawerExpanded ? 'justify-between px-3.5 py-3' : 'justify-center p-3'
-                  } ${
+                  className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold transition cursor-pointer active:scale-98 ${
                     activeTab === 'settings'
                       ? 'bg-spicy-ember text-white shadow-md'
                       : 'text-noodle-cream hover:bg-matcha-surface'
                   }`}
                   title={isOwner ? 'Security & Pengaturan' : 'Akun & Ganti Sandi'}
                 >
-                  <div className={`flex items-center ${isDrawerExpanded ? 'space-x-3' : ''}`}>
+                  <div className="flex items-center space-x-3">
                     <Shield className="w-5 h-5 text-yolk-blaze flex-shrink-0" />
-                    {isDrawerExpanded && (
-                      <span className="whitespace-nowrap">
-                        {isOwner ? 'Security & Pengaturan' : 'Akun & Ganti Sandi'}
-                      </span>
-                    )}
+                    <span className="whitespace-nowrap font-bold">
+                      {isOwner ? 'Pengaturan Toko & Banner' : 'Akun & Keamanan'}
+                    </span>
                   </div>
                 </button>
 
@@ -1135,14 +981,12 @@ export function AdminView() {
                   <button
                     type="button"
                     onClick={() => handleDrawerNavClick(() => setActiveView('owner-financial'))}
-                    className={`w-full flex items-center rounded-2xl text-xs font-bold text-noodle-cream hover:bg-matcha-surface transition ${
-                      isDrawerExpanded ? 'justify-between px-3.5 py-3' : 'justify-center p-3'
-                    }`}
+                    className="w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold text-noodle-cream hover:bg-matcha-surface transition cursor-pointer active:scale-98"
                     title="Laporan Keuangan"
                   >
-                    <div className={`flex items-center ${isDrawerExpanded ? 'space-x-3' : ''}`}>
+                    <div className="flex items-center space-x-3">
                       <FileText className="w-5 h-5 text-yolk-blaze flex-shrink-0" />
-                      {isDrawerExpanded && <span className="whitespace-nowrap">Laporan Keuangan</span>}
+                      <span className="whitespace-nowrap font-bold">Laporan Keuangan</span>
                     </div>
                   </button>
                 )}
@@ -1152,14 +996,12 @@ export function AdminView() {
                   <button
                     type="button"
                     onClick={() => handleDrawerNavClick(() => setActiveView('pos'))}
-                    className={`w-full flex items-center rounded-2xl text-xs font-bold text-noodle-cream hover:bg-matcha-surface transition ${
-                      isDrawerExpanded ? 'justify-between px-3.5 py-3' : 'justify-center p-3'
-                    }`}
+                    className="w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold text-noodle-cream hover:bg-matcha-surface transition cursor-pointer active:scale-98"
                     title="POS Kasir"
                   >
-                    <div className={`flex items-center ${isDrawerExpanded ? 'space-x-3' : ''}`}>
+                    <div className="flex items-center space-x-3">
                       <Calculator className="w-5 h-5 text-yolk-blaze flex-shrink-0" />
-                      {isDrawerExpanded && <span className="whitespace-nowrap">POS Kasir</span>}
+                      <span className="whitespace-nowrap font-bold">POS Kasir</span>
                     </div>
                   </button>
                 )}
@@ -1168,14 +1010,12 @@ export function AdminView() {
                 <button
                   type="button"
                   onClick={() => handleDrawerNavClick(() => setActiveView('kds'))}
-                  className={`w-full flex items-center rounded-2xl text-xs font-bold text-noodle-cream hover:bg-matcha-surface transition ${
-                    isDrawerExpanded ? 'justify-between px-3.5 py-3' : 'justify-center p-3'
-                  }`}
+                  className="w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold text-noodle-cream hover:bg-matcha-surface transition cursor-pointer active:scale-98"
                   title="Data Pesanan"
                 >
-                  <div className={`flex items-center ${isDrawerExpanded ? 'space-x-3' : ''}`}>
+                  <div className="flex items-center space-x-3">
                     <ChefHat className="w-5 h-5 text-yolk-blaze flex-shrink-0" />
-                    {isDrawerExpanded && <span className="whitespace-nowrap">Data Pesanan</span>}
+                    <span className="whitespace-nowrap font-bold">Data Pesanan</span>
                   </div>
                 </button>
 
@@ -1184,27 +1024,19 @@ export function AdminView() {
                   <button
                     type="button"
                     onClick={() => handleDrawerNavClick(() => setActiveTab('trash'))}
-                    className={`w-full flex items-center rounded-2xl text-xs font-bold transition relative ${
-                      isDrawerExpanded ? 'justify-between px-3.5 py-3' : 'justify-center p-3'
-                    } ${
+                    className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold transition relative cursor-pointer active:scale-98 ${
                       activeTab === 'trash'
                         ? 'bg-spicy-ember text-white shadow-md'
                         : 'text-noodle-cream hover:bg-matcha-surface'
                     }`}
                     title="Tong Sampah"
                   >
-                    <div className={`flex items-center ${isDrawerExpanded ? 'space-x-3' : ''}`}>
+                    <div className="flex items-center space-x-3">
                       <Trash2 className="w-5 h-5 flex-shrink-0" />
-                      {isDrawerExpanded && <span className="whitespace-nowrap">Tong Sampah</span>}
+                      <span className="whitespace-nowrap font-bold">Tong Sampah</span>
                     </div>
                     {trashProducts.length > 0 && (
-                      <span
-                        className={`bg-spicy-ember text-white font-black rounded-full ${
-                          isDrawerExpanded
-                            ? 'text-[10px] px-2 py-0.5'
-                            : 'absolute top-1.5 right-1.5 w-4 h-4 text-[9px] flex items-center justify-center border border-matcha-leaf'
-                        }`}
-                      >
+                      <span className="bg-spicy-ember text-white font-black rounded-full text-[10px] px-2 py-0.5">
                         {trashProducts.length}
                       </span>
                     )}
@@ -1221,28 +1053,68 @@ export function AdminView() {
       {/* MAIN CONTENT AREA (Scrolls independently on desktop while sidebar stays locked) */}
       <main className="flex-1 h-auto md:h-screen p-6 md:p-8 overflow-y-auto">
         
-        {/* Top bar (Hanya tampil pada Dashboard, Menu, Meja, dan Pengaturan; disembunyikan pada Tong Sampah) */}
-        {activeTab !== 'trash' && (
-          <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-stone-200">
-            <div>
-              <h1 className="text-xl font-extrabold text-matcha-leaf">
+        {/* Top bar dengan Button Home Logo Bubur Khalid mengikuti layout Pos Kasir di semua menu */}
+        <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-stone-200">
+          <div className="flex items-center space-x-3 min-w-0">
+            {/* Logo Bubur Khalid sekaligus Tombol Home ke Dashboard Admin (Layout seragam POS Kasir) */}
+            <button
+              type="button"
+              onClick={() => {
+                if (activeTab !== 'dashboard') {
+                  setActiveTab('dashboard');
+                } else {
+                  setIsMobileMenuOpen(true);
+                }
+              }}
+              className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-white border border-stone-200 overflow-hidden relative shadow-sm flex-shrink-0 p-0.5 cursor-pointer hover:scale-105 hover:border-spicy-ember active:scale-95 transition ${
+                activeTab === 'dashboard' ? 'ring-2 ring-matcha-leaf/30' : ''
+              }`}
+              title={activeTab !== 'dashboard' ? 'Kembali ke Beranda Dashboard' : 'Buka Menu Navigasi'}
+              aria-label={activeTab !== 'dashboard' ? 'Kembali ke Beranda Dashboard' : 'Buka Menu Navigasi'}
+            >
+              <Image
+                src={storeSettings.storeLogo || '/images/logo/bubur-khalid-logo.png'}
+                alt="Home Dashboard Bubur Khalid"
+                fill
+                className="object-cover"
+                priority
+              />
+            </button>
+
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-xl font-extrabold text-matcha-leaf truncate">
                 {activeTab === 'dashboard'
                   ? 'Dashboard Operasional'
                   : activeTab === 'menu'
                   ? 'Manajemen Menu & Harga'
                   : activeTab === 'tables'
                   ? 'Pengaturan Meja & QR Code'
+                  : activeTab === 'trash'
+                  ? 'Tong Sampah Menu'
                   : isOwner
                   ? 'Pengaturan Toko, Banner & Metode Pembayaran'
                   : 'Pengaturan Akun & Keamanan'}
               </h1>
               <p className="text-xs text-stone-500">{liveTodayIndo} • Padang Pariaman</p>
             </div>
+          </div>
 
-            <div className="flex items-center space-x-2 md:space-x-3">
-              <button className="w-9 h-9 rounded-xl bg-white border border-stone-200 flex items-center justify-center text-matcha-leaf shadow-sm hover:bg-noodle-cream transition">
-                <Bell className="w-4 h-4" />
-              </button>
+          <div className="flex items-center space-x-2 md:space-x-3">
+            {/* Tombol Menu Navigasi Toko */}
+            <button
+              type="button"
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-matcha-leaf hover:bg-matcha-surface text-white text-xs font-bold shadow-sm transition active:scale-95 cursor-pointer"
+              title="Buka Menu Navigasi"
+              aria-label="Buka Menu Navigasi"
+            >
+              <Menu className="w-4 h-4 text-yolk-blaze" />
+              <span className="font-bold">Menu</span>
+            </button>
+
+            <button className="w-9 h-9 rounded-xl bg-white border border-stone-200 flex items-center justify-center text-matcha-leaf shadow-sm hover:bg-noodle-cream transition">
+              <Bell className="w-4 h-4" />
+            </button>
               {/* Interactive Store Status & Operating Hours Pill (Click to edit & auto-save) */}
               <button
                 type="button"
@@ -1276,7 +1148,6 @@ export function AdminView() {
               </button>
             </div>
           </div>
-        )}
 
         {/* TAB 1: OPERATIONAL DASHBOARD */}
         {activeTab === 'dashboard' && (
@@ -5727,60 +5598,6 @@ export function AdminView() {
             </div>
 
           </div>
-        </div>
-      )}
-
-      {/* FLOATING BUBUR KHALID LOGO (Hanya 1 logo bulat melayang, bisa digeser bebas, klik untuk buka slide menu, sembunyikan saat modal/drawer terbuka) */}
-      {!isAnyModalOpen && floatingPos && (
-        <div
-          style={{ left: `${floatingPos.x}px`, top: `${floatingPos.y}px` }}
-          className="fixed z-40 pointer-events-auto touch-none select-none"
-        >
-          <button
-            type="button"
-            onContextMenu={(e) => e.preventDefault()}
-            onPointerDown={(e) => {
-              if (e.pointerType === 'mouse' && e.button !== 0) return;
-              e.preventDefault();
-              try {
-                e.currentTarget.setPointerCapture(e.pointerId);
-              } catch (_) {}
-              handleFloatingPointerDown(e.clientX, e.clientY);
-            }}
-            onPointerMove={(e) => {
-              handleFloatingPointerMove(e.clientX, e.clientY);
-            }}
-            onPointerUp={(e) => {
-              e.preventDefault();
-              try {
-                if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-                  e.currentTarget.releasePointerCapture(e.pointerId);
-                }
-              } catch (_) {}
-              handleFloatingPointerUp();
-            }}
-            onPointerCancel={() => {
-              floatingDragRef.current.isDragging = false;
-              floatingDragRef.current.hasMoved = false;
-            }}
-            className={`w-14 h-14 rounded-full bg-white shadow-2xl border-2 flex items-center justify-center overflow-hidden transition-transform touch-none select-none cursor-grab active:cursor-grabbing active:scale-95 ${
-              isMobileMenuOpen
-                ? 'border-spicy-ember ring-4 ring-spicy-ember/30 scale-105'
-                : 'border-matcha-leaf/25 hover:scale-105 hover:border-spicy-ember/60'
-            }`}
-            title="Menu Navigasi Toko (Klik untuk Buka Menu / Geser untuk Pindahkan Posisi)"
-            aria-label="Buka Slide Menu"
-          >
-            <div className="relative w-12 h-12 rounded-full overflow-hidden pointer-events-none">
-              <Image
-                src={storeSettings.storeLogo || '/images/logo/bubur-khalid-logo.png'}
-                alt="Menu Navigasi Bubur Khalid"
-                fill
-                draggable={false}
-                className="object-contain p-0.5 select-none pointer-events-none"
-              />
-            </div>
-          </button>
         </div>
       )}
     </div>
