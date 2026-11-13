@@ -20,6 +20,23 @@ export function KdsView() {
   const { orders, updateOrderStatus, setActiveView, storeSettings } = useApp();
   const [filterStatus, setFilterStatus] = useState<'NEW' | 'PREPARING' | 'READY'>('NEW');
 
+  // Restore saved filter tab from localStorage so refresh stays on the same tab
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('bubur_khalid_kds_filter');
+      if (saved && ['NEW', 'PREPARING', 'READY'].includes(saved)) {
+        setFilterStatus(saved as any);
+      }
+    } catch {}
+  }, []);
+
+  const handleSetFilter = (status: 'NEW' | 'PREPARING' | 'READY') => {
+    setFilterStatus(status);
+    try {
+      localStorage.setItem('bubur_khalid_kds_filter', status);
+    } catch {}
+  };
+
   // Include active orders (including PENDING transfer orders awaiting confirmation)
   const activeKitchenOrders = orders
     .filter((o) => ['NEW', 'CONFIRMED', 'PREPARING', 'READY'].includes(o.order_status))
@@ -67,7 +84,7 @@ export function KdsView() {
         <div className="flex items-center space-x-1 sm:space-x-2 bg-stone-900/80 p-1.5 rounded-xl border border-stone-700">
           <button
             type="button"
-            onClick={() => setFilterStatus('NEW')}
+            onClick={() => handleSetFilter('NEW')}
             className={`px-3 py-1.5 rounded-lg text-xs font-black transition flex items-center space-x-1.5 ${
               filterStatus === 'NEW'
                 ? 'bg-spicy-ember text-white shadow-sm'
@@ -83,7 +100,7 @@ export function KdsView() {
           </button>
           <button
             type="button"
-            onClick={() => setFilterStatus('PREPARING')}
+            onClick={() => handleSetFilter('PREPARING')}
             className={`px-3 py-1.5 rounded-lg text-xs font-black transition flex items-center space-x-1.5 ${
               filterStatus === 'PREPARING'
                 ? 'bg-spicy-ember text-white shadow-sm'
@@ -99,7 +116,7 @@ export function KdsView() {
           </button>
           <button
             type="button"
-            onClick={() => setFilterStatus('READY')}
+            onClick={() => handleSetFilter('READY')}
             className={`px-3 py-1.5 rounded-lg text-xs font-black transition flex items-center space-x-1.5 ${
               filterStatus === 'READY'
                 ? 'bg-spicy-ember text-white shadow-sm'
@@ -120,8 +137,73 @@ export function KdsView() {
       {activeKitchenOrders.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-stone-500">
           <ChefHat className="w-16 h-16 stroke-1 text-stone-600 mb-3" />
-          <h2 className="text-lg font-bold text-stone-400">Semua Pesanan Dapur Selesai!</h2>
-          <p className="text-xs text-stone-500 mt-1">Tidak ada antrean tertunda saat ini.</p>
+          {orders.filter((o) => ['NEW', 'CONFIRMED', 'PREPARING', 'READY'].includes(o.order_status)).length === 0 ? (
+            <>
+              <h2 className="text-lg font-bold text-stone-400">Semua Pesanan Dapur Selesai!</h2>
+              <p className="text-xs text-stone-500 mt-1">Tidak ada antrean tertunda saat ini.</p>
+            </>
+          ) : filterStatus === 'NEW' ? (
+            <>
+              <h2 className="text-lg font-bold text-stone-300">Tidak Ada Antrean Menunggu</h2>
+              <p className="text-xs text-stone-400 mt-1 mb-4">Semua pesanan baru sudah diteruskan untuk dimasak atau disajikan.</p>
+              <div className="flex items-center gap-2">
+                {orders.filter((o) => o.order_status === 'PREPARING').length > 0 && (
+                  <button
+                    onClick={() => handleSetFilter('PREPARING')}
+                    className="px-4 py-2 bg-spicy-ember hover:bg-spicy-dark text-white rounded-xl text-xs font-bold transition shadow cursor-pointer"
+                  >
+                    Lihat {orders.filter((o) => o.order_status === 'PREPARING').length} Pesanan Diproses &rarr;
+                  </button>
+                )}
+                {orders.filter((o) => o.order_status === 'READY').length > 0 && (
+                  <button
+                    onClick={() => handleSetFilter('READY')}
+                    className="px-4 py-2 bg-emerald-700 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition shadow cursor-pointer"
+                  >
+                    Lihat {orders.filter((o) => o.order_status === 'READY').length} Pesanan Siap &rarr;
+                  </button>
+                )}
+              </div>
+            </>
+          ) : filterStatus === 'PREPARING' ? (
+            <>
+              <h2 className="text-lg font-bold text-stone-300">Tidak Ada Pesanan Sedang Dimasak</h2>
+              <p className="text-xs text-stone-400 mt-1 mb-4">Dapur tidak sedang memasak antrean saat ini.</p>
+              <div className="flex items-center gap-2">
+                {orders.filter((o) => o.order_status === 'NEW' || o.order_status === 'CONFIRMED').length > 0 && (
+                  <button
+                    onClick={() => handleSetFilter('NEW')}
+                    className="px-4 py-2 bg-spicy-ember hover:bg-spicy-dark text-white rounded-xl text-xs font-bold transition shadow cursor-pointer"
+                  >
+                    Lihat {orders.filter((o) => o.order_status === 'NEW' || o.order_status === 'CONFIRMED').length} Pesanan Menunggu &rarr;
+                  </button>
+                )}
+                {orders.filter((o) => o.order_status === 'READY').length > 0 && (
+                  <button
+                    onClick={() => handleSetFilter('READY')}
+                    className="px-4 py-2 bg-emerald-700 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition shadow cursor-pointer"
+                  >
+                    Lihat {orders.filter((o) => o.order_status === 'READY').length} Pesanan Siap &rarr;
+                  </button>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <h2 className="text-lg font-bold text-stone-300">Tidak Ada Pesanan Siap Saji</h2>
+              <p className="text-xs text-stone-400 mt-1 mb-4">Semua pesanan yang siap saji sudah diserahkan ke pelanggan.</p>
+              <div className="flex items-center gap-2">
+                {orders.filter((o) => o.order_status === 'PREPARING').length > 0 && (
+                  <button
+                    onClick={() => handleSetFilter('PREPARING')}
+                    className="px-4 py-2 bg-spicy-ember hover:bg-spicy-dark text-white rounded-xl text-xs font-bold transition shadow cursor-pointer"
+                  >
+                    Lihat {orders.filter((o) => o.order_status === 'PREPARING').length} Pesanan Sedang Dimasak &rarr;
+                  </button>
+                )}
+              </div>
+            </>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">

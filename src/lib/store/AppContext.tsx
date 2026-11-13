@@ -138,6 +138,47 @@ interface AppContextType {
   showToast: (msg: string) => void;
 }
 
+export const formatOrderForDb = (order: Order) => {
+  return {
+    id: order.id,
+    queue_number: order.queue_number,
+    queue_channel: order.queue_channel,
+    service_type: order.service_type,
+    global_queue_sequence: order.global_queue_sequence,
+    customer_name: order.customer_name || 'Pelanggan',
+    customer_phone: order.customer_phone || null,
+    table_id: order.table_id || null,
+    table_number: order.table_number || null,
+    order_status: order.order_status,
+    payment_status: order.payment_status,
+    payment_method: order.payment_method,
+    subtotal: Number(order.subtotal || 0),
+    cup_fee: Number(order.cup_fee || 0),
+    cup_count: Number(order.cup_count || 0),
+    discount: Number(order.discount || 0),
+    total_amount: Number(order.total_amount || 0),
+    qris_reference: order.qris_reference || null,
+    qris_provider: order.qris_provider || null,
+    transfer_proof_image: order.transfer_proof_image || null,
+    items: Array.isArray(order.items) ? order.items : [],
+    status_history: Array.isArray(order.status_history) ? order.status_history : [],
+    created_at: order.created_at || new Date().toISOString(),
+    paid_at: order.paid_at || null,
+  };
+};
+
+export const syncOrderToCloud = async (order: Order) => {
+  try {
+    const dbPayload = formatOrderForDb(order);
+    const { error } = await supabase.from('orders').upsert([dbPayload]);
+    if (error) {
+      console.warn('Supabase order sync error:', error.message);
+    }
+  } catch (err) {
+    console.warn('Failed to sync order to cloud:', err);
+  }
+};
+
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
@@ -261,15 +302,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           }
         }
 
-        // Orders: Bersihkan data dummy / test lama
+        // Orders: Bersihkan data dummy test spesifik lama jika ada
         const savedOrders = localStorage.getItem('bubur_khalid_orders');
         if (savedOrders) {
           const parsed = JSON.parse(savedOrders);
           if (Array.isArray(parsed)) {
             const cleanOrders = parsed.filter(
               (o: Order) =>
-                !['ord-on-025', 'ord-on-026', 'ord-on-027', 'ord-ot-012', 'ord-ot-013', 'ord-pos-1794416905553', 'ord-pos-1794440967709', 'ord-pos-1794416022064', 'ord-pos-1794416925451'].includes(o.id) &&
-                !['ON-025', 'ON-026', 'ON-027', 'OT-012', 'OT-013', 'OT-015', 'OT-016', 'OT-017'].includes(o.queue_number)
+                !['ord-on-025', 'ord-on-026', 'ord-on-027', 'ord-ot-012', 'ord-ot-013', 'ord-pos-1794416905553', 'ord-pos-1794440967709', 'ord-pos-1794416022064', 'ord-pos-1794416925451'].includes(o.id)
             );
             setOrders(cleanOrders);
             localStorage.setItem('bubur_khalid_orders', JSON.stringify(cleanOrders));
@@ -358,8 +398,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Sync Master Data from Supabase Cloud with Realtime Subscriptions & Auto-polling
   useEffect(() => {
     let isMounted = true;
+    let isFetchingCloudData = false;
 
     async function fetchCloudData() {
+      if (isFetchingCloudData || !isMounted) return;
+      isFetchingCloudData = true;
+
       try {
         // 1. Users
         const { data: cloudUsers, error: uErr } = await supabase.from('users').select('*');
@@ -396,17 +440,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           localStorage.setItem('bubur_khalid_trash_products', JSON.stringify(trashed));
         }
 
-        // 3. Orders
+        // 3. Orders: Smart Bidirectional Offline-First Sync
         const { data: cloudOrders, error: oErr } = await supabase
           .from('orders')
           .select('*')
           .order('created_at', { ascending: false });
+
         if (!oErr && cloudOrders && isMounted) {
-          const cleanCloudOrders = cloudOrders
+          const cleanCloudOrders: Order[] = cloudOrders
             .filter(
               (o: any) =>
-                !['ord-on-025', 'ord-on-026', 'ord-on-027', 'ord-ot-012', 'ord-ot-013', 'ord-pos-1794416905553', 'ord-pos-1794440967709', 'ord-pos-1794416022064', 'ord-pos-1794416925451'].includes(o.id) &&
-                !['ON-025', 'ON-026', 'ON-027', 'OT-012', 'OT-013', 'OT-015', 'OT-016', 'OT-017'].includes(o.queue_number)
+                !['ord-on-025', 'ord-on-026', 'ord-on-027', 'ord-ot-012', 'ord-ot-013', 'ord-pos-1794416905553', 'ord-pos-1794440967709', 'ord-pos-1794416022064', 'ord-pos-1794416925451'].includes(o.id)
             )
             .map((o: any) => ({
               ...o,
@@ -414,9 +458,71 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               total_amount: Number(o.total_amount || 0),
               cup_fee: Number(o.cup_fee || 0),
               discount: Number(o.discount || 0),
+              items: Array.isArray(o.items) ? o.items : [],
+              status_history: Array.isArray(o.status_history) ? o.status_history : [],
             }));
-          setOrders(cleanCloudOrders);
-          localStorage.setItem('bubur_khalid_orders', JSON.stringify(cleanCloudOrders));
+
+          setOrders((currentOrders) => {
+            const localMap = new Map<string, Order>();
+            currentOrders.forEach((o) => localMap.set(o.id, o));
+
+            const statusWeight: Record<OrderStatus, number> = {
+              NEW: 0,
+              CONFIRMED: 1,
+              PREPARING: 2,
+              READY: 3,
+              COMPLETED: 4,
+              REJECTED: 5,
+              CANCELLED: 5,
+            };
+
+            const mergedList: Order[] = [];
+            const processedIds = new Set<string>();
+
+            // Merge cloud orders with local state
+            for (const cloudOrd of cleanCloudOrders) {
+              processedIds.add(cloudOrd.id);
+              const localOrd = localMap.get(cloudOrd.id);
+
+              if (!localOrd) {
+                // Cloud order not present locally yet
+                mergedList.push(cloudOrd);
+              } else {
+                const localW = statusWeight[localOrd.order_status] ?? 0;
+                const cloudW = statusWeight[cloudOrd.order_status] ?? 0;
+                const localHistLen = localOrd.status_history?.length || 0;
+                const cloudHistLen = cloudOrd.status_history?.length || 0;
+
+                // If local order has more advanced status or newer history, retain local & re-sync to cloud
+                if (localW > cloudW || (localW === cloudW && localHistLen > cloudHistLen)) {
+                  mergedList.push(localOrd);
+                  syncOrderToCloud(localOrd);
+                } else {
+                  // Cloud is equal or ahead -> accept cloud
+                  mergedList.push(cloudOrd);
+                }
+              }
+            }
+
+            // Keep any local orders not yet in cloud (e.g. freshly created POS or online order)
+            for (const localOrd of currentOrders) {
+              if (!processedIds.has(localOrd.id)) {
+                mergedList.push(localOrd);
+                syncOrderToCloud(localOrd);
+              }
+            }
+
+            // Sort by created_at descending
+            mergedList.sort(
+              (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            );
+
+            try {
+              localStorage.setItem('bubur_khalid_orders', JSON.stringify(mergedList));
+            } catch (e) {}
+
+            return mergedList;
+          });
         }
 
         // 4. Store Settings
@@ -501,6 +607,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (e) {
         console.warn('Supabase sync error:', e);
+      } finally {
+        isFetchingCloudData = false;
       }
     }
 
@@ -527,10 +635,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         })
         .subscribe();
 
-      // High-reliability polling fallback (every 3.5 seconds)
+      // High-reliability polling fallback (every 7 seconds)
       const pollTimer = setInterval(() => {
         fetchCloudData();
-      }, 3500);
+      }, 7000);
 
       // Instant refresh on window focus / tab activation
       const handleFocus = () => fetchCloudData();
@@ -939,17 +1047,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ],
     };
 
-    setOrders((prev) => [newOrder, ...prev]);
+    setOrders((prev) => {
+      const next = [newOrder, ...prev.filter((o) => o.id !== newOrder.id)];
+      try {
+        localStorage.setItem('bubur_khalid_orders', JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
     clearCustomerCart();
 
-    // Sync order to Supabase Cloud (omit non-column `notes` so schema validation never rejects online orders)
-    const { notes: _omitNotes, ...dbOrder } = newOrder;
-    supabase
-      .from('orders')
-      .upsert([dbOrder])
-      .then(({ error }) => {
-        if (error) console.warn('Supabase online order sync error:', error.message);
-      });
+    // Sync order to Supabase Cloud with sanitized schema validation
+    syncOrderToCloud(newOrder);
 
     addAuditLog('CREATE_ONLINE_ORDER', 'Order', newOrder.id, `Pesanan Online ${queueNum} dibuat oleh ${newOrder.customer_name}`);
     showToast(`Pesanan berhasil! Nomor Antrean Anda: ${queueNum}`);
@@ -1038,16 +1146,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ],
     };
 
-    setOrders((prev) => [newOrder, ...prev]);
+    setOrders((prev) => {
+      const next = [newOrder, ...prev.filter((o) => o.id !== newOrder.id)];
+      try {
+        localStorage.setItem('bubur_khalid_orders', JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
     clearPosCart();
 
     // Sync POS order to Supabase Cloud
-    supabase
-      .from('orders')
-      .upsert([newOrder])
-      .then(({ error }) => {
-        if (error) console.warn('Supabase POS order sync error:', error.message);
-      });
+    syncOrderToCloud(newOrder);
 
     addAuditLog(
       'CREATE_POS_ORDER',
@@ -1087,37 +1196,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const nextPaymentStatus = shouldMarkPaid ? 'PAID' : currentOrder?.payment_status;
     const nextPaidAt = shouldMarkPaid ? new Date().toISOString() : currentOrder?.paid_at;
 
-    setOrders((prev) =>
-      prev.map((ord) => {
+    let updatedOrderObj: Order | null = null;
+
+    setOrders((prev) => {
+      const next = prev.map((ord) => {
         if (ord.id === orderId) {
-          return {
+          const updated: Order = {
             ...ord,
             order_status: newStatus,
             payment_status: nextPaymentStatus || ord.payment_status,
             paid_at: nextPaidAt ?? ord.paid_at,
             status_history: nextHistory,
           };
+          updatedOrderObj = updated;
+          return updated;
         }
         return ord;
-      })
-    );
+      });
+      try {
+        localStorage.setItem('bubur_khalid_orders', JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
 
     // Sync status change & fresh status_history to Supabase Cloud
-    const updatePayload: Record<string, any> = {
-      order_status: newStatus,
-      status_history: nextHistory,
-    };
-    if (shouldMarkPaid) {
-      updatePayload.payment_status = 'PAID';
-      updatePayload.paid_at = nextPaidAt;
+    if (updatedOrderObj) {
+      syncOrderToCloud(updatedOrderObj);
     }
-    supabase
-      .from('orders')
-      .update(updatePayload)
-      .eq('id', orderId)
-      .then(({ error }) => {
-        if (error) console.warn('Supabase status update error:', error.message);
-      });
 
     addAuditLog('UPDATE_ORDER_STATUS', 'Order', orderId, `Status diperbarui menjadi ${newStatus} oleh ${actor}`);
     showToast(`Status pesanan diperbarui: ${newStatus}`);
