@@ -61,7 +61,10 @@ import {
   FileSpreadsheet,
   AlertCircle,
   AlertOctagon,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
+import { playNotificationSound } from '@/lib/utils/sound';
 
 export function AdminView() {
   const {
@@ -319,6 +322,62 @@ export function AdminView() {
 
   // Store Operating Hours & Holiday Modal State (Auto-Save on edit/close)
   const [isStoreHoursModalOpen, setIsStoreHoursModalOpen] = useState<boolean>(false);
+
+  // Notification & Audio Chime States
+  const [isNotificationOpen, setIsNotificationOpen] = useState<boolean>(false);
+  const [isSoundEnabled, setIsSoundEnabled] = useState<boolean>(true);
+  const prevOrdersCountRef = useRef<number>(0);
+  const notificationRef = useRef<HTMLDivElement>(null);
+
+  // Restore sound preference from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('bubur_khalid_sound_enabled');
+      if (saved !== null) {
+        setIsSoundEnabled(saved === 'true');
+      }
+    } catch {}
+  }, []);
+
+  // Handle click outside notification dropdown
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+        setIsNotificationOpen(false);
+      }
+    }
+    if (isNotificationOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isNotificationOpen]);
+
+  // Auto-play sound when new orders arrive
+  useEffect(() => {
+    if (prevOrdersCountRef.current > 0 && orders.length > prevOrdersCountRef.current) {
+      if (isSoundEnabled) {
+        playNotificationSound();
+      }
+    }
+    prevOrdersCountRef.current = orders.length;
+  }, [orders.length, isSoundEnabled]);
+
+  const toggleSound = () => {
+    const next = !isSoundEnabled;
+    setIsSoundEnabled(next);
+    try {
+      localStorage.setItem('bubur_khalid_sound_enabled', String(next));
+    } catch {}
+    if (next) {
+      playNotificationSound();
+    }
+  };
+
+  const pendingOrdersCount = orders.filter(
+    (o) => o.order_status === 'NEW' || o.order_status === 'CONFIRMED'
+  ).length;
 
   // Table Management States (Tambah, Edit, Hapus, Preview QR, Cancel, Close)
   const [isTableModalOpen, setIsTableModalOpen] = useState<boolean>(false);
@@ -1115,9 +1174,197 @@ export function AdminView() {
               <span className="font-bold">Menu</span>
             </button>
 
-            <button className="w-9 h-9 rounded-xl bg-white border border-stone-200 flex items-center justify-center text-matcha-leaf shadow-sm hover:bg-noodle-cream transition">
-              <Bell className="w-4 h-4" />
-            </button>
+            {/* Tombol Notifikasi Interaktif dengan Bunyi Lonceng & Popover */}
+            <div className="relative" ref={notificationRef}>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsNotificationOpen((prev) => !prev);
+                  if (isSoundEnabled) {
+                    playNotificationSound();
+                  }
+                }}
+                className={`relative w-9 h-9 rounded-xl border flex items-center justify-center transition shadow-xs cursor-pointer active:scale-95 ${
+                  isNotificationOpen
+                    ? 'bg-matcha-leaf text-white border-matcha-leaf'
+                    : 'bg-white text-matcha-leaf border-stone-200 hover:bg-noodle-cream hover:border-matcha-leaf/40'
+                }`}
+                title={`Notifikasi Pesanan (${pendingOrdersCount} antrean aktif) - Suara: ${isSoundEnabled ? 'Aktif' : 'Senyap'}`}
+                aria-label="Notifikasi Pesanan"
+              >
+                <Bell className={`w-4 h-4 transition ${pendingOrdersCount > 0 ? 'text-spicy-ember' : ''}`} />
+                {pendingOrdersCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-spicy-ember text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-white shadow-xs animate-pulse">
+                    {pendingOrdersCount > 9 ? '9+' : pendingOrdersCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Popover Dropdown Notifikasi */}
+              {isNotificationOpen && (
+                <div className="absolute right-0 top-11 z-50 w-80 sm:w-96 bg-white rounded-2xl shadow-floating border border-stone-200 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+                  {/* Header Popover */}
+                  <div className="p-3.5 bg-matcha-leaf text-white flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Bell className="w-4 h-4 text-yolk-blaze" />
+                      <h3 className="font-extrabold text-xs tracking-wide">Notifikasi Pesanan</h3>
+                    </div>
+
+                    <div className="flex items-center space-x-1.5">
+                      {/* Toggle Suara */}
+                      <button
+                        type="button"
+                        onClick={toggleSound}
+                        className={`px-2 py-1 rounded-lg text-[10px] font-bold flex items-center space-x-1 transition cursor-pointer ${
+                          isSoundEnabled
+                            ? 'bg-emerald-500/30 text-emerald-100 border border-emerald-400/40 hover:bg-emerald-500/40'
+                            : 'bg-stone-800 text-stone-300 border border-stone-700 hover:bg-stone-700'
+                        }`}
+                        title={isSoundEnabled ? 'Suara Aktif (Klik untuk Matikan)' : 'Suara Senyap (Klik untuk Aktifkan)'}
+                      >
+                        {isSoundEnabled ? (
+                          <>
+                            <Volume2 className="w-3 h-3 text-emerald-300" />
+                            <span>Suara ON</span>
+                          </>
+                        ) : (
+                          <>
+                            <VolumeX className="w-3 h-3 text-stone-400" />
+                            <span>Suara OFF</span>
+                          </>
+                        )}
+                      </button>
+
+                      {/* Tes Bunyi Lonceng */}
+                      <button
+                        type="button"
+                        onClick={() => playNotificationSound()}
+                        className="px-2 py-1 rounded-lg bg-yolk-blaze hover:bg-yolk-dark text-black text-[10px] font-extrabold transition shadow-xs flex items-center space-x-1 cursor-pointer active:scale-95"
+                        title="Tes Bunyikan Lonceng"
+                      >
+                        <span>🔔 Tes Bunyi</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Sub-banner jika ada pesanan baru */}
+                  {pendingOrdersCount > 0 ? (
+                    <div className="px-3.5 py-2 bg-amber-50 border-b border-amber-200/70 flex items-center justify-between text-xs text-amber-900 font-bold">
+                      <div className="flex items-center space-x-1.5">
+                        <span className="w-2 h-2 rounded-full bg-spicy-ember animate-ping" />
+                        <span>{pendingOrdersCount} pesanan menunggu proses!</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('dashboard');
+                          setIsNotificationOpen(false);
+                        }}
+                        className="text-[11px] text-spicy-ember hover:underline font-extrabold cursor-pointer"
+                      >
+                        Lihat Antrean &rarr;
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="px-3.5 py-2 bg-emerald-50/70 border-b border-emerald-100 flex items-center justify-between text-xs text-emerald-800 font-bold">
+                      <span>Dapur santai, semua pesanan sudah ditangani.</span>
+                    </div>
+                  )}
+
+                  {/* Daftar Pesanan Terbaru */}
+                  <div className="max-h-80 overflow-y-auto divide-y divide-stone-100 p-2">
+                    {orders.length === 0 ? (
+                      <div className="py-8 text-center text-stone-400 text-xs">
+                        Belum ada riwayat pesanan.
+                      </div>
+                    ) : (
+                      orders.slice(0, 6).map((ord) => {
+                        const isNew = ord.order_status === 'NEW' || ord.order_status === 'CONFIRMED';
+                        const isPrep = ord.order_status === 'PREPARING';
+                        const isReady = ord.order_status === 'READY';
+
+                        return (
+                          <div
+                            key={ord.id}
+                            className={`p-2.5 rounded-xl transition flex items-start space-x-3 cursor-pointer ${
+                              isNew
+                                ? 'bg-amber-50/60 hover:bg-amber-100/60 border border-amber-200/50'
+                                : 'hover:bg-stone-50'
+                            }`}
+                            onClick={() => {
+                              setActiveTab('dashboard');
+                              setIsNotificationOpen(false);
+                            }}
+                          >
+                            <div className="shrink-0 w-8 h-8 rounded-lg bg-noodle-cream text-matcha-leaf font-mono font-black text-xs flex items-center justify-center border border-noodle-dark/40 shadow-2xs mt-0.5">
+                              {ord.queue_number}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center justify-between">
+                                <span className="font-bold text-xs text-matcha-leaf truncate">
+                                  {ord.customer_name}
+                                </span>
+                                <span className="text-[10px] text-stone-400 font-mono">
+                                  {ord.queue_channel === 'ONLINE' ? 'Online' : 'Kasir'}
+                                </span>
+                              </div>
+                              <div className="text-[11px] text-stone-600 truncate mt-0.5">
+                                {ord.items.map((i) => `${i.quantity}x ${i.product_name_snapshot}`).join(', ')}
+                              </div>
+                              <div className="flex items-center justify-between mt-1 text-[10px]">
+                                <span
+                                  className={`font-bold px-1.5 py-0.2 rounded ${
+                                    isNew
+                                      ? 'bg-amber-100 text-amber-800'
+                                      : isPrep
+                                      ? 'bg-yolk-light text-yolk-dark'
+                                      : isReady
+                                      ? 'bg-emerald-100 text-emerald-800'
+                                      : 'bg-stone-100 text-stone-600'
+                                  }`}
+                                >
+                                  {isNew
+                                    ? 'Menunggu Diproses'
+                                    : isPrep
+                                    ? 'Sedang Dimasak'
+                                    : isReady
+                                    ? 'Siap Saji'
+                                    : 'Selesai'}
+                                </span>
+                                <span className="font-bold text-spicy-ember">
+                                  Rp{ord.total_amount.toLocaleString('id-ID')}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  {/* Footer Popover */}
+                  <div className="p-2.5 bg-stone-50 border-t border-stone-200 flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => setIsNotificationOpen(false)}
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold text-stone-600 hover:text-stone-900 hover:bg-stone-200/60 transition cursor-pointer"
+                    >
+                      Tutup
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('dashboard');
+                        setIsNotificationOpen(false);
+                      }}
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold bg-matcha-leaf hover:bg-matcha-surface text-white transition shadow-xs cursor-pointer"
+                    >
+                      Buka Antrean &rarr;
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
               {/* Interactive Store Status & Operating Hours Pill (Click to edit & auto-save) */}
               <button
                 type="button"
