@@ -1091,7 +1091,7 @@ export function AdminView() {
                   >
                     <div className="flex items-center space-x-3">
                       <Calculator className="w-4 h-4 text-yolk-blaze" />
-                      <span>Buka POS Kasir Tablet</span>
+                      <span>POS Kasir</span>
                     </div>
                   </button>
                 )}
