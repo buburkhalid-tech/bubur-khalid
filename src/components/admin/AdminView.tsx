@@ -234,7 +234,7 @@ export function AdminView() {
     ] : ['Rp 2.0jt', 'Rp 1.5jt', 'Rp 1.0jt', 'Rp 500rb', 'Rp 0'];
 
     return {
-      title: financeRangeFilter === '30D' ? 'Pergerakan 30 Hari Terakhir' : financeRangeFilter === 'THIS_MONTH' ? 'Akumulasi Pemasukan Bulan Ini' : 'Arus Keuangan: Uang Masuk & Uang Keluar',
+      title: financeRangeFilter === '30D' ? 'Pergerakan 30 Hari Terakhir' : financeRangeFilter === 'THIS_MONTH' ? 'Akumulasi Pemasukan Bulan Ini' : 'Arus Keuangan',
       sub: financeRangeFilter === '30D' ? 'Tren omzet vs belanja operasional 30 hari kalender' : financeRangeFilter === 'THIS_MONTH' ? 'Pertumbuhan kumulatif omzet vs pengeluaran bulan berjalan' : 'Visualisasi perbandingan pendapatan omzet harian vs pengeluaran operasional & bahan baku',
       totalMasuk: `Rp ${totalMasukNum.toLocaleString('id-ID')}`,
       totalKeluar: `Rp ${totalKeluarNum.toLocaleString('id-ID')}`,
