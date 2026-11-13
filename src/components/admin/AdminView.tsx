@@ -3206,7 +3206,7 @@ export function AdminView() {
                   }`}
                 >
                   <Sparkles className="w-4 h-4 text-yolk-blaze" />
-                  <span className="whitespace-nowrap">Banner Promosi (Carousel)</span>
+                  <span className="whitespace-nowrap">Banner Promosi</span>
                   <span className="bg-yolk-blaze text-stone-950 text-[10px] px-1.5 py-0.2 rounded-full font-black">
                     {promoBanners?.length || 0}
                   </span>
