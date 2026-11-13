@@ -4489,36 +4489,42 @@ export function AdminView() {
 
       {/* Modal Tambah / Edit Pengguna (Admin, Kasir, Owner, Dapur) */}
       {isUserModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-floating border border-stone-200 relative">
-            <button
-              onClick={() => setIsUserModalOpen(false)}
-              className="absolute top-4 right-4 p-2 text-stone-400 hover:text-stone-700 rounded-full hover:bg-stone-100 transition"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-stone-100">
-              <div className="w-10 h-10 rounded-xl bg-spicy-ember text-white flex items-center justify-center text-lg font-bold shadow-sm">
-                👤
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full shadow-floating border border-stone-200 relative flex flex-col max-h-[92dvh] my-auto overflow-hidden animate-slideUp">
+            {/* Header: Fixed sticky at top so never cut off */}
+            <div className="p-5 pb-3.5 border-b border-stone-100 flex items-center justify-between flex-shrink-0 bg-white">
+              <div className="flex items-center space-x-3 pr-2 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-spicy-ember text-white flex items-center justify-center text-lg font-bold shadow-sm flex-shrink-0">
+                  👤
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-extrabold text-base text-matcha-leaf truncate">
+                    {!isOwner && editingUser?.id === currentUser?.id
+                      ? 'Ganti Kata Sandi & Profil Saya'
+                      : editingUser
+                      ? 'Edit Akun Pengguna'
+                      : `Tambah ${userRole === 'OWNER' ? 'Owner' : userRole === 'CASHIER' ? 'Kasir' : userRole === 'ADMIN' ? 'Admin' : 'Staf'} Baru`}
+                  </h3>
+                  <p className="text-xs text-stone-500 truncate">
+                    {!isOwner && editingUser?.id === currentUser?.id
+                      ? 'Ubah kata sandi login dan PIN akses keamanan akun Anda'
+                      : 'Atur kredensial login, PIN, dan hak akses operasional'}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-extrabold text-base text-matcha-leaf">
-                  {!isOwner && editingUser?.id === currentUser?.id
-                    ? 'Ganti Kata Sandi & Profil Saya'
-                    : editingUser
-                    ? 'Edit Akun Pengguna'
-                    : `Tambah ${userRole === 'OWNER' ? 'Owner' : userRole === 'CASHIER' ? 'Kasir' : userRole === 'ADMIN' ? 'Admin' : 'Staf'} Baru`}
-                </h3>
-                <p className="text-xs text-stone-500">
-                  {!isOwner && editingUser?.id === currentUser?.id
-                    ? 'Ubah kata sandi login dan PIN akses keamanan akun Anda'
-                    : 'Atur kredensial login, PIN, dan hak akses operasional'}
-                </p>
-              </div>
+              <button
+                type="button"
+                onClick={() => setIsUserModalOpen(false)}
+                className="p-2 text-stone-400 hover:text-stone-700 rounded-full hover:bg-stone-100 transition flex-shrink-0 cursor-pointer"
+                title="Tutup"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
-            <form onSubmit={handleSaveUser} className="space-y-3.5">
+            <form onSubmit={handleSaveUser} className="flex flex-col flex-1 min-h-0">
+              {/* Form Scrollable Body */}
+              <div className="p-5 overflow-y-auto space-y-3.5 flex-1 pr-4">
               {/* Nama Lengkap */}
               <div>
                 <label className="block text-xs font-bold text-matcha-leaf mb-1">
@@ -4704,11 +4710,13 @@ export function AdminView() {
                 </div>
               )}
 
-              {/* Action Buttons */}
-              <div className="flex space-x-2 pt-2 border-t border-stone-100">
+              </div>
+
+              {/* Action Buttons: Sticky at bottom, ALWAYS visible */}
+              <div className="p-4 bg-stone-50 border-t border-stone-100 flex space-x-2 flex-shrink-0">
                 <button
                   type="submit"
-                  className="flex-1 bg-spicy-ember hover:bg-spicy-hover text-white py-2.5 rounded-xl font-extrabold text-xs shadow-md transition cursor-pointer"
+                  className="flex-1 bg-spicy-ember hover:bg-spicy-hover text-white py-2.5 rounded-xl font-extrabold text-xs shadow-md transition cursor-pointer active:scale-98"
                 >
                   {!isOwner && editingUser?.id === currentUser?.id
                     ? 'Simpan Kata Sandi & Profil'
@@ -4719,7 +4727,7 @@ export function AdminView() {
                 <button
                   type="button"
                   onClick={() => setIsUserModalOpen(false)}
-                  className="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl font-bold text-xs transition"
+                  className="px-4 py-2.5 bg-stone-200 hover:bg-stone-300 text-stone-700 rounded-xl font-bold text-xs transition cursor-pointer active:scale-98"
                 >
                   Batal
                 </button>
