@@ -63,6 +63,7 @@ import {
   AlertOctagon,
   Volume2,
   VolumeX,
+  BellRing,
 } from 'lucide-react';
 import { playNotificationSound } from '@/lib/utils/sound';
 
@@ -1206,38 +1207,34 @@ export function AdminView() {
                     </div>
 
                     <div className="flex items-center space-x-1.5">
-                      {/* Toggle Suara */}
+                      {/* Toggle Suara (Icon Only) */}
                       <button
                         type="button"
                         onClick={toggleSound}
-                        className={`px-2 py-1 rounded-lg text-[10px] font-bold flex items-center space-x-1 transition cursor-pointer ${
+                        className={`w-7 h-7 rounded-lg flex items-center justify-center transition cursor-pointer active:scale-95 ${
                           isSoundEnabled
-                            ? 'bg-emerald-500/30 text-emerald-100 border border-emerald-400/40 hover:bg-emerald-500/40'
-                            : 'bg-stone-800 text-stone-300 border border-stone-700 hover:bg-stone-700'
+                            ? 'bg-emerald-500/30 text-emerald-200 border border-emerald-400/40 hover:bg-emerald-500/40'
+                            : 'bg-stone-800 text-stone-400 border border-stone-700 hover:bg-stone-700'
                         }`}
                         title={isSoundEnabled ? 'Suara Aktif (Klik untuk Matikan)' : 'Suara Senyap (Klik untuk Aktifkan)'}
+                        aria-label={isSoundEnabled ? 'Matikan Suara' : 'Aktifkan Suara'}
                       >
                         {isSoundEnabled ? (
-                          <>
-                            <Volume2 className="w-3 h-3 text-emerald-300" />
-                            <span>Suara ON</span>
-                          </>
+                          <Volume2 className="w-3.5 h-3.5 text-emerald-300" />
                         ) : (
-                          <>
-                            <VolumeX className="w-3 h-3 text-stone-400" />
-                            <span>Suara OFF</span>
-                          </>
+                          <VolumeX className="w-3.5 h-3.5 text-stone-400" />
                         )}
                       </button>
 
-                      {/* Tes Bunyi Lonceng */}
+                      {/* Tes Bunyi Lonceng (Icon Only) */}
                       <button
                         type="button"
                         onClick={() => playNotificationSound()}
-                        className="px-2 py-1 rounded-lg bg-yolk-blaze hover:bg-yolk-dark text-black text-[10px] font-extrabold transition shadow-xs flex items-center space-x-1 cursor-pointer active:scale-95"
+                        className="w-7 h-7 rounded-lg bg-yolk-blaze hover:bg-yolk-dark text-black flex items-center justify-center transition shadow-xs cursor-pointer active:scale-95"
                         title="Tes Bunyikan Lonceng"
+                        aria-label="Tes Bunyikan Lonceng"
                       >
-                        <span>🔔 Tes Bunyi</span>
+                        <BellRing className="w-3.5 h-3.5 text-stone-900" />
                       </button>
                     </div>
                   </div>
