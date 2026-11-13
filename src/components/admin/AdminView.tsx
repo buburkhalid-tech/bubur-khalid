@@ -1449,7 +1449,7 @@ export function AdminView() {
                       <div className="w-5 h-0.5 bg-[#F97316] relative flex items-center justify-center">
                         <div className="w-2.5 h-2.5 rounded-full bg-[#F97316] ring-2 ring-white" />
                       </div>
-                      <span className="text-xs font-bold text-stone-800">Uang Masuk (Omzet)</span>
+                      <span className="text-xs font-bold text-stone-800">Uang Masuk</span>
                       <span className="text-xs font-mono font-black text-spicy-ember">
                         {currentCashflowDataset.totalMasuk}
                       </span>
@@ -1458,7 +1458,7 @@ export function AdminView() {
                       <div className="w-5 h-0.5 bg-[#1E293B] relative flex items-center justify-center">
                         <div className="w-2.5 h-2.5 rounded-full bg-[#1E293B] ring-2 ring-white" />
                       </div>
-                      <span className="text-xs font-bold text-stone-800">Uang Keluar (Beban & Bahan)</span>
+                      <span className="text-xs font-bold text-stone-800">Uang Keluar</span>
                       <span className="text-xs font-mono font-bold text-stone-700">
                         {currentCashflowDataset.totalKeluar}
                       </span>
