@@ -1802,7 +1802,7 @@ Halo Admin Bubur Khalid, saya telah memesan dengan No. Antrean *${order.queue_nu
                   className="w-full bg-[#25D366] hover:bg-[#1ebd59] text-white py-3 rounded-xl font-black text-xs shadow-md flex items-center justify-center space-x-2 transition active:scale-98"
                 >
                   <MessageCircle className="w-4 h-4" />
-                  <span>Buka WhatsApp Owner ({storeSettings.adminWhatsapp && storeSettings.adminWhatsapp !== '6281234567890' ? storeSettings.adminWhatsapp : '0852-7428-1819'})</span>
+                  <span>Konfirmasi</span>
                 </a>
 
                 <button
