@@ -20,9 +20,8 @@ export function KdsView() {
   const { orders, updateOrderStatus, setActiveView, storeSettings } = useApp();
   const [filterStatus, setFilterStatus] = useState<'NEW' | 'PREPARING' | 'READY'>('NEW');
 
-  // Kitchen queue strictly requires paid orders that are not yet completed/cancelled
+  // Include active orders (including PENDING transfer orders awaiting confirmation)
   const activeKitchenOrders = orders
-    .filter((o) => o.payment_status === 'PAID')
     .filter((o) => ['NEW', 'CONFIRMED', 'PREPARING', 'READY'].includes(o.order_status))
     .filter((o) => {
       if (filterStatus === 'NEW') return o.order_status === 'NEW' || o.order_status === 'CONFIRMED';
@@ -79,7 +78,7 @@ export function KdsView() {
             <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
               filterStatus === 'NEW' ? 'bg-black/25 text-white' : 'bg-stone-800 text-stone-300'
             }`}>
-              {orders.filter((o) => o.payment_status === 'PAID' && (o.order_status === 'NEW' || o.order_status === 'CONFIRMED')).length}
+              {orders.filter((o) => o.order_status === 'NEW' || o.order_status === 'CONFIRMED').length}
             </span>
           </button>
           <button
@@ -95,7 +94,7 @@ export function KdsView() {
             <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
               filterStatus === 'PREPARING' ? 'bg-black/25 text-white' : 'bg-stone-800 text-stone-300'
             }`}>
-              {orders.filter((o) => o.payment_status === 'PAID' && o.order_status === 'PREPARING').length}
+              {orders.filter((o) => o.order_status === 'PREPARING').length}
             </span>
           </button>
           <button
@@ -111,7 +110,7 @@ export function KdsView() {
             <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
               filterStatus === 'READY' ? 'bg-black/25 text-white' : 'bg-stone-800 text-stone-300'
             }`}>
-              {orders.filter((o) => o.payment_status === 'PAID' && o.order_status === 'READY').length}
+              {orders.filter((o) => o.order_status === 'READY').length}
             </span>
           </button>
         </div>
@@ -249,7 +248,11 @@ export function KdsView() {
                       className="w-full bg-yolk-blaze hover:bg-yolk-dark text-black py-2.5 rounded-xl font-extrabold text-xs shadow-md flex items-center justify-center space-x-2 transition"
                     >
                       <Flame className="w-4 h-4" />
-                      <span>Mulai Masak / Diproses</span>
+                      <span>
+                        {order.payment_status !== 'PAID'
+                          ? 'Konfirmasi Lunas & Mulai Masak'
+                          : 'Mulai Masak / Diproses'}
+                      </span>
                     </button>
                   )}
 

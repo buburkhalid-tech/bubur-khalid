@@ -1070,7 +1070,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         actor,
       },
     ];
-    const shouldMarkPaid = newStatus === 'COMPLETED' && currentOrder?.payment_status === 'PENDING';
+    const shouldMarkPaid =
+      ['CONFIRMED', 'PREPARING', 'READY', 'COMPLETED'].includes(newStatus) &&
+      currentOrder?.payment_status === 'PENDING';
     const nextPaymentStatus = shouldMarkPaid ? 'PAID' : currentOrder?.payment_status;
     const nextPaidAt = shouldMarkPaid ? new Date().toISOString() : currentOrder?.paid_at;
 
