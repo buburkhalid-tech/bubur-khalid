@@ -24,6 +24,9 @@ import {
   Edit2,
   RotateCcw,
   CheckCircle,
+  Check,
+  Flame,
+  Paperclip,
   AlertTriangle,
   TrendingUp,
   Clock,
@@ -1995,66 +1998,86 @@ export function AdminView() {
                     (activeQueueTab === 'ONLINE' ? onlineOrders : inStoreOrders).map((ord) => (
                     <div
                       key={ord.id}
-                      className="p-3.5 rounded-xl border border-stone-200 hover:border-noodle-dark bg-stone-50 flex items-center justify-between transition"
+                      className="p-3.5 rounded-xl border border-stone-200 hover:border-noodle-dark bg-stone-50 flex items-start justify-between gap-3 transition"
                     >
-                      <div className="flex items-center space-x-3 min-w-0">
-                        <div className="shrink-0 h-11 px-3 min-w-[72px] rounded-xl bg-gradient-to-br from-noodle-cream to-amber-100/60 border border-noodle-dark/60 flex items-center justify-center shadow-xs">
+                      <div className="flex items-start space-x-3 min-w-0 flex-1">
+                        <div className="shrink-0 h-11 px-3 min-w-[70px] sm:min-w-[76px] rounded-xl bg-gradient-to-br from-noodle-cream to-amber-100/60 border border-noodle-dark/60 flex items-center justify-center shadow-xs mt-0.5">
                           <span className="font-black font-mono text-xs sm:text-sm text-matcha-leaf tracking-wider whitespace-nowrap">
                             {ord.queue_number}
                           </span>
                         </div>
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <div className="flex items-center space-x-2">
-                            <span className="font-bold text-xs text-matcha-leaf truncate">{ord.customer_name}</span>
+                            <span className="font-bold text-xs text-matcha-leaf">{ord.customer_name}</span>
                             <span className="text-[10px] text-stone-500 font-mono shrink-0">
                               {ord.service_type === 'DINE_IN' ? ord.table_number || 'Dine-In' : 'Takeaway'}
                             </span>
                           </div>
-                          <div className="text-[11px] text-stone-500 mt-0.5 line-clamp-1">
+                          {/* Daftar menu turun ke bawah secara wajar tanpa terpotong titik-titik */}
+                          <div className="text-[11px] text-stone-600 mt-1 leading-snug break-words whitespace-normal">
                             {ord.items.map((i) => `${i.quantity}x ${i.product_name_snapshot}`).join(', ')}
                           </div>
                         </div>
                       </div>
 
-                      <div className="text-right flex flex-col items-end space-y-1">
-                        <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                            ord.order_status === 'PREPARING'
-                              ? 'bg-yolk-light text-yolk-dark border border-yolk-blaze/30'
+                      <div className="text-right flex flex-col items-end space-y-1.5 shrink-0">
+                        <div className="flex items-center space-x-1.5">
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                              ord.order_status === 'PREPARING'
+                                ? 'bg-yolk-light text-yolk-dark border border-yolk-blaze/30'
+                                : ord.order_status === 'READY'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : 'bg-stone-200 text-stone-700'
+                            }`}
+                          >
+                            {ord.order_status === 'PREPARING'
+                              ? 'Sedang Disiapkan'
                               : ord.order_status === 'READY'
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : 'bg-stone-200 text-stone-700'
-                          }`}
-                        >
-                          {ord.order_status === 'PREPARING'
-                            ? 'Sedang Disiapkan'
-                            : ord.order_status === 'READY'
-                            ? 'Siap Saji'
-                            : 'Menunggu'}
-                        </span>
-                        <div className="text-xs font-black text-spicy-ember">
-                          Rp{ord.total_amount.toLocaleString('id-ID')}
+                              ? 'Siap Saji'
+                              : 'Menunggu'}
+                          </span>
+                          <span className="text-xs font-black text-spicy-ember">
+                            Rp{ord.total_amount.toLocaleString('id-ID')}
+                          </span>
                         </div>
-                        <div className="flex items-center space-x-1 pt-0.5">
+
+                        {/* Menu aksi samping 1 baris (icon saja) */}
+                        <div className="flex items-center space-x-1 pt-0.5 justify-end">
+                          {ord.transfer_proof_image && (
+                            <button
+                              type="button"
+                              onClick={() => setPreviewProofUrl(ord.transfer_proof_image || null)}
+                              className="w-7 h-7 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-800 flex items-center justify-center border border-emerald-300 transition shadow-xs cursor-pointer"
+                              title="Lihat Struk / Bukti Transfer"
+                              aria-label="Lihat Struk"
+                            >
+                              <Paperclip className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+
                           {ord.order_status === 'READY' ? (
                             <button
                               type="button"
                               onClick={() => updateOrderStatus(ord.id, 'COMPLETED', 'Admin')}
-                              className="text-[9px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2 py-0.5 rounded shadow-xs transition"
-                              title="Tandai Pesanan Selesai"
+                              className="w-7 h-7 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center shadow-xs transition cursor-pointer"
+                              title="Tandai Pesanan Selesai (✓)"
+                              aria-label="Tandai Selesai"
                             >
-                              ✓ Selesai
+                              <Check className="w-4 h-4 stroke-[2.5]" />
                             </button>
                           ) : (
                             <button
                               type="button"
                               onClick={() => updateOrderStatus(ord.id, 'READY', 'Admin')}
-                              className="text-[9px] bg-yolk-blaze hover:bg-amber-600 text-stone-950 font-bold px-2 py-0.5 rounded shadow-xs transition"
+                              className="w-7 h-7 rounded-lg bg-yolk-blaze hover:bg-amber-500 text-stone-950 flex items-center justify-center shadow-xs transition cursor-pointer"
                               title="Tandai Siap Saji"
+                              aria-label="Tandai Siap Saji"
                             >
-                              Siap Saji
+                              <Flame className="w-4 h-4 fill-stone-950 text-stone-950" />
                             </button>
                           )}
+
                           <button
                             type="button"
                             onClick={() => {
@@ -2062,22 +2085,13 @@ export function AdminView() {
                                 updateOrderStatus(ord.id, 'CANCELLED', 'Admin');
                               }
                             }}
-                            className="text-[9px] bg-red-100 hover:bg-red-200 text-red-700 font-bold px-1.5 py-0.5 rounded border border-red-300 transition"
-                            title="Batalkan Pesanan (Cancel)"
+                            className="w-7 h-7 rounded-lg bg-red-100 hover:bg-red-200 text-red-700 flex items-center justify-center border border-red-300 transition shadow-xs cursor-pointer"
+                            title="Batalkan Pesanan (✕)"
+                            aria-label="Batalkan Pesanan"
                           >
-                            ✕ Batal
+                            <X className="w-3.5 h-3.5 stroke-[2.5]" />
                           </button>
                         </div>
-                        {ord.transfer_proof_image && (
-                          <button
-                            type="button"
-                            onClick={() => setPreviewProofUrl(ord.transfer_proof_image || null)}
-                            className="mt-0.5 inline-flex items-center space-x-1 text-[9px] bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold px-2 py-0.5 rounded-md border border-emerald-300 transition"
-                          >
-                            <span>📎</span>
-                            <span>Lihat Struk</span>
-                          </button>
-                        )}
                       </div>
                     </div>
                   ))
