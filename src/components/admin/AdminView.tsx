@@ -773,7 +773,7 @@ export function AdminView() {
     if (!floatingDragRef.current.isDragging) return;
     const dx = clientX - floatingDragRef.current.startX;
     const dy = clientY - floatingDragRef.current.startY;
-    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+    if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
       floatingDragRef.current.hasMoved = true;
     }
     const nextX = Math.min(Math.max(12, floatingDragRef.current.initialX + dx), window.innerWidth - 68);
@@ -5662,34 +5662,32 @@ export function AdminView() {
         >
           <button
             type="button"
-            onMouseDown={(e) => {
+            onContextMenu={(e) => e.preventDefault()}
+            onPointerDown={(e) => {
+              if (e.pointerType === 'mouse' && e.button !== 0) return;
               e.preventDefault();
+              try {
+                e.currentTarget.setPointerCapture(e.pointerId);
+              } catch (_) {}
               handleFloatingPointerDown(e.clientX, e.clientY);
-              const onMouseMove = (moveEvent: MouseEvent) => {
-                handleFloatingPointerMove(moveEvent.clientX, moveEvent.clientY);
-              };
-              const onMouseUp = () => {
-                handleFloatingPointerUp();
-                window.removeEventListener('mousemove', onMouseMove);
-                window.removeEventListener('mouseup', onMouseUp);
-              };
-              window.addEventListener('mousemove', onMouseMove);
-              window.addEventListener('mouseup', onMouseUp);
             }}
-            onTouchStart={(e) => {
-              if (e.touches.length > 0) {
-                handleFloatingPointerDown(e.touches[0].clientX, e.touches[0].clientY);
-              }
+            onPointerMove={(e) => {
+              handleFloatingPointerMove(e.clientX, e.clientY);
             }}
-            onTouchMove={(e) => {
-              if (e.touches.length > 0) {
-                handleFloatingPointerMove(e.touches[0].clientX, e.touches[0].clientY);
-              }
-            }}
-            onTouchEnd={() => {
+            onPointerUp={(e) => {
+              e.preventDefault();
+              try {
+                if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+                  e.currentTarget.releasePointerCapture(e.pointerId);
+                }
+              } catch (_) {}
               handleFloatingPointerUp();
             }}
-            className={`w-14 h-14 rounded-full bg-white shadow-2xl border-2 flex items-center justify-center overflow-hidden transition-transform cursor-grab active:cursor-grabbing active:scale-95 ${
+            onPointerCancel={() => {
+              floatingDragRef.current.isDragging = false;
+              floatingDragRef.current.hasMoved = false;
+            }}
+            className={`w-14 h-14 rounded-full bg-white shadow-2xl border-2 flex items-center justify-center overflow-hidden transition-transform touch-none select-none cursor-grab active:cursor-grabbing active:scale-95 ${
               isMobileMenuOpen
                 ? 'border-spicy-ember ring-4 ring-spicy-ember/30 scale-105'
                 : 'border-matcha-leaf/25 hover:scale-105 hover:border-spicy-ember/60'
