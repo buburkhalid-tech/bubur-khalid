@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useApp } from '@/lib/store/AppContext';
 import { getJakartaDateStr, getJakartaMonthStr, formatJakartaTime } from '@/lib/date-utils';
 import { StaffSalary, OperationalExpense, ExpenseCategory } from '@/lib/types';
+import { formatIndonesianWhatsappNumber, formatDisplayPhoneNumber, DEFAULT_OWNER_WHATSAPP } from '@/lib/utils/phone';
 import {
   ShieldAlert,
   Lock,
@@ -259,11 +260,9 @@ export function OwnerFinancialView() {
 
   const ownerUser = useMemo(() => users.find((u) => u.role === 'OWNER') || currentUser, [users, currentUser]);
   const ownerEmail = ownerUser?.email || 'buburkhalid@gmail.com';
-  const rawPhone = storeSettings.adminWhatsapp || ownerUser?.phone || '6285274281819';
-  const cleanPhone = rawPhone.replace(/\D/g, '').replace(/^0/, '62');
-  const formattedPhone = cleanPhone.startsWith('62')
-    ? `+62 ${cleanPhone.slice(2, 5)}-${cleanPhone.slice(5, 9)}-${cleanPhone.slice(9)}`
-    : rawPhone;
+  const rawPhone = ownerUser?.phone || storeSettings.ownerWhatsapp || DEFAULT_OWNER_WHATSAPP;
+  const cleanPhone = formatIndonesianWhatsappNumber(rawPhone, DEFAULT_OWNER_WHATSAPP);
+  const formattedPhone = formatDisplayPhoneNumber(cleanPhone);
 
   // Timer cooldown 60 detik untuk kirim ulang OTP
   useEffect(() => {

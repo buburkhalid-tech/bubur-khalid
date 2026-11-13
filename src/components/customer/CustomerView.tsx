@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useApp } from '@/lib/store/AppContext';
 import { Product, Order, PromoBanner } from '@/lib/types';
 import { parseImageUrl } from '@/lib/utils/image';
+import { formatIndonesianWhatsappNumber, DEFAULT_ADMIN_WHATSAPP } from '@/lib/utils/phone';
 import { supabase } from '@/lib/supabase/client';
 import {
   Search,
@@ -319,11 +320,10 @@ export function CustomerView() {
   const getAdminWhatsappPhone = () => {
     let rawNumber = storeSettings.adminWhatsapp;
     if (!rawNumber || rawNumber === '6281234567890') {
-      const ownerUser = (users || []).find((u) => u.role === 'OWNER' && u.phone);
-      rawNumber = ownerUser?.phone || '6285274281819';
+      const adminUser = (users || []).find((u) => u.role === 'ADMIN' && u.phone);
+      rawNumber = adminUser?.phone || DEFAULT_ADMIN_WHATSAPP;
     }
-    const cleanNumber = rawNumber.replace(/[^0-9]/g, '');
-    return cleanNumber.startsWith('0') ? '62' + cleanNumber.slice(1) : cleanNumber;
+    return formatIndonesianWhatsappNumber(rawNumber, DEFAULT_ADMIN_WHATSAPP);
   };
 
   const loadImageFromDataUrl = (src: string): Promise<HTMLImageElement | null> => {

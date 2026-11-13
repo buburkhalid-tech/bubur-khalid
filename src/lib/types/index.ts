@@ -185,6 +185,7 @@ export interface StoreSettings {
   bannerImage: string;
   operatingHours: string;
   adminWhatsapp: string;
+  ownerWhatsapp?: string;
   isStoreOpen: boolean;
   isStoreHoliday?: boolean;
   holidayReason?: string;

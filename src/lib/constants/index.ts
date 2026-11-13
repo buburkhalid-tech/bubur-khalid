@@ -182,6 +182,7 @@ export const INITIAL_STORE_SETTINGS: StoreSettings = {
   bannerImage: '/images/hero-banner-wide.jpg',
   operatingHours: 'Buka: Senin–Sabtu 16.00–22.00 WIB',
   adminWhatsapp: '6285274281819',
+  ownerWhatsapp: '6285274281819',
   isStoreOpen: true,
   isStoreHoliday: false,
   holidayReason: 'Toko sedang libur hari ini. Buka kembali besok.',

@@ -6,6 +6,7 @@ import QRCode from 'qrcode';
 import { useApp } from '@/lib/store/AppContext';
 import { Product, SystemUser, UserRole, TableInfo, PromoBanner } from '@/lib/types';
 import { parseImageUrl, isGoogleDriveLink } from '@/lib/utils/image';
+import { formatDisplayPhoneNumber } from '@/lib/utils/phone';
 import { getJakartaDateStr, getJakartaMonthStr, formatJakartaFullDate } from '@/lib/date-utils';
 import {
   LayoutDashboard,
@@ -4034,20 +4035,50 @@ export function AdminView() {
                   />
                 </div>
 
-                <div>
-                  <label className="block font-bold text-matcha-leaf mb-1">
-                    Nomor WhatsApp Admin / Toko:
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Contoh: 085274281819 atau +6285274281819"
-                    value={storeForm.adminWhatsapp || ''}
-                    onChange={(e) => setStoreForm({ ...storeForm, adminWhatsapp: e.target.value })}
-                    className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-matcha-leaf font-mono font-bold focus:outline-none focus:border-spicy-ember"
-                  />
-                  <p className="text-[10px] text-stone-500 mt-1">
-                    *Digunakan untuk menerima konfirmasi bukti bayar dan pengiriman struk pesanan.
-                  </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-emerald-50/60 p-3.5 rounded-xl border border-emerald-200">
+                    <label className="block font-bold text-xs text-matcha-leaf mb-1.5 flex items-center justify-between">
+                      <span className="flex items-center space-x-1.5">
+                        <span>🛡️</span>
+                        <span>Nomor WhatsApp Admin (Staf Toko):</span>
+                      </span>
+                      <span className="text-[10px] text-emerald-800 bg-emerald-100 font-mono font-bold px-1.5 py-0.5 rounded">
+                        {storeForm.adminWhatsapp ? formatDisplayPhoneNumber(storeForm.adminWhatsapp) : '-'}
+                      </span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: 085274281819 atau +6285274281819"
+                      value={storeForm.adminWhatsapp || ''}
+                      onChange={(e) => setStoreForm({ ...storeForm, adminWhatsapp: e.target.value })}
+                      className="w-full bg-white border border-stone-300 rounded-lg px-3 py-2 text-matcha-leaf font-mono font-bold text-xs focus:outline-none focus:border-emerald-600"
+                    />
+                    <p className="text-[10px] text-stone-500 mt-1">
+                      *Menerima konfirmasi pesanan, struk PNG, dan bukti transfer dari pelanggan web.
+                    </p>
+                  </div>
+
+                  <div className="bg-amber-50/60 p-3.5 rounded-xl border border-amber-200">
+                    <label className="block font-bold text-xs text-matcha-leaf mb-1.5 flex items-center justify-between">
+                      <span className="flex items-center space-x-1.5">
+                        <span>👑</span>
+                        <span>Nomor WhatsApp Owner (Pemilik):</span>
+                      </span>
+                      <span className="text-[10px] text-amber-900 bg-amber-100 font-mono font-bold px-1.5 py-0.5 rounded">
+                        {storeForm.ownerWhatsapp ? formatDisplayPhoneNumber(storeForm.ownerWhatsapp) : '-'}
+                      </span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: 081234567890 atau +6281234567890"
+                      value={storeForm.ownerWhatsapp || ''}
+                      onChange={(e) => setStoreForm({ ...storeForm, ownerWhatsapp: e.target.value })}
+                      className="w-full bg-white border border-stone-300 rounded-lg px-3 py-2 text-matcha-leaf font-mono font-bold text-xs focus:outline-none focus:border-amber-600"
+                    />
+                    <p className="text-[10px] text-stone-500 mt-1">
+                      *Menerima kode OTP keamanan laporan finansial &amp; otorisasi penting pemilik toko.
+                    </p>
+                  </div>
                 </div>
 
                 <div>
@@ -4385,7 +4416,7 @@ export function AdminView() {
                     <div className="flex items-center space-x-2">
                       <span className="text-xl">🏦</span>
                       <div>
-                        <span className="font-bold text-xs text-matcha-leaf">Transfer Bank & WhatsApp Admin</span>
+                        <span className="font-bold text-xs text-matcha-leaf">Transfer Bank & WhatsApp Admin / Owner</span>
                         <div className="text-[10px] text-stone-500">Kirim bukti transfer & antrean via WA</div>
                       </div>
                     </div>
@@ -4412,20 +4443,38 @@ export function AdminView() {
                   </div>
 
                   <div className="space-y-2.5">
-                    <div>
-                      <label className="block text-[11px] font-bold text-matcha-leaf mb-0.5">
-                        Nomor WhatsApp Admin (Menerima Bukti Bayar):
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Contoh: 085274281819 atau +6285274281819"
-                        value={storeForm.adminWhatsapp || ''}
-                        onChange={(e) => setStoreForm({ ...storeForm, adminWhatsapp: e.target.value })}
-                        className="w-full bg-white border border-stone-300 rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold text-emerald-800 focus:outline-none focus:border-emerald-600"
-                      />
-                      <p className="text-[10px] text-stone-400 mt-0.5">
-                        *Pelanggan akan diarahkan ke nomor WhatsApp ini saat klik kirim bukti bayar
-                      </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <div>
+                        <label className="block text-[11px] font-bold text-matcha-leaf mb-0.5">
+                          🛡️ WhatsApp Admin (Menerima Bukti Bayar):
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Contoh: 085274281819 atau +6285274281819"
+                          value={storeForm.adminWhatsapp || ''}
+                          onChange={(e) => setStoreForm({ ...storeForm, adminWhatsapp: e.target.value })}
+                          className="w-full bg-white border border-stone-300 rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold text-emerald-800 focus:outline-none focus:border-emerald-600"
+                        />
+                        <p className="text-[10px] text-stone-400 mt-0.5">
+                          *Pelanggan web diarahkan ke nomor ini saat kirim konfirmasi / bukti transfer
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-matcha-leaf mb-0.5">
+                          👑 WhatsApp Owner (Keuangan &amp; OTP):
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Contoh: 081234567890 atau +6281234567890"
+                          value={storeForm.ownerWhatsapp || ''}
+                          onChange={(e) => setStoreForm({ ...storeForm, ownerWhatsapp: e.target.value })}
+                          className="w-full bg-white border border-stone-300 rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold text-amber-900 focus:outline-none focus:border-amber-600"
+                        />
+                        <p className="text-[10px] text-stone-400 mt-0.5">
+                          *Menerima kode verifikasi OTP otorisasi laporan keuangan Owner
+                        </p>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-3 gap-2">
@@ -4648,6 +4697,16 @@ export function AdminView() {
                     onChange={(e) => setUserPhone(e.target.value)}
                     className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-xs text-matcha-leaf focus:outline-none focus:border-spicy-ember"
                   />
+                  {userRole === 'OWNER' && (
+                    <span className="text-[9px] text-amber-700 block mt-0.5">
+                      👑 Nomor resmi Owner untuk verifikasi OTP finansial.
+                    </span>
+                  )}
+                  {userRole === 'ADMIN' && (
+                    <span className="text-[9px] text-emerald-700 block mt-0.5">
+                      🛡️ Nomor Admin untuk operasional &amp; chat pesanan.
+                    </span>
+                  )}
                 </div>
               </div>
 

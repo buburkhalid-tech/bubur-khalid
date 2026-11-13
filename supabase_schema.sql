@@ -71,6 +71,7 @@ CREATE TABLE IF NOT EXISTS public.store_settings (
   banner_image TEXT DEFAULT '/images/hero-banner-wide.jpg',
   operating_hours TEXT DEFAULT 'Buka: Senin–Sabtu 16.00–22.00 WIB',
   admin_whatsapp TEXT DEFAULT '6285274281819',
+  owner_whatsapp TEXT DEFAULT '6285274281819',
   is_store_open BOOLEAN DEFAULT true,
   cup_fee NUMERIC DEFAULT 1000,
   cup_name TEXT DEFAULT 'Kemasan Cup Bawa Pulang',

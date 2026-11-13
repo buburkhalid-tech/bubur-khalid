@@ -6,6 +6,7 @@ import { INITIAL_PRODUCTS, INITIAL_TABLES, CUP_FEE, INITIAL_STORE_SETTINGS, INIT
 import { MOCK_ORDERS, MOCK_FINANCIAL_SUMMARY, MOCK_AUDIT_LOGS } from '../mock-data';
 import { supabase } from '../supabase/client';
 import { getJakartaDateStr, getJakartaMonthStr } from '../date-utils';
+import { formatIndonesianWhatsappNumber, DEFAULT_ADMIN_WHATSAPP, DEFAULT_OWNER_WHATSAPP } from '../utils/phone';
 
 interface CartItem {
   product: Product;
@@ -214,11 +215,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             const cleanWhatsapp =
               parsed.adminWhatsapp && parsed.adminWhatsapp !== '6281234567890'
                 ? parsed.adminWhatsapp
-                : '6285274281819';
+                : DEFAULT_ADMIN_WHATSAPP;
+            const cleanOwnerWhatsapp =
+              parsed.ownerWhatsapp && parsed.ownerWhatsapp !== '6281234567890'
+                ? parsed.ownerWhatsapp
+                : DEFAULT_OWNER_WHATSAPP;
             setStoreSettings((prev) => ({
               ...prev,
               ...parsed,
               adminWhatsapp: cleanWhatsapp,
+              ownerWhatsapp: cleanOwnerWhatsapp,
               paymentMethods: {
                 qris: {
                   ...prev.paymentMethods.qris,
@@ -433,7 +439,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             adminWhatsapp:
               cloudSettings.admin_whatsapp && cloudSettings.admin_whatsapp !== '6281234567890'
                 ? cloudSettings.admin_whatsapp
-                : prev.adminWhatsapp || '6285274281819',
+                : prev.adminWhatsapp || DEFAULT_ADMIN_WHATSAPP,
+            ownerWhatsapp:
+              cloudSettings.payment_methods?._ownerWhatsapp ||
+              cloudSettings.owner_whatsapp ||
+              prev.ownerWhatsapp ||
+              DEFAULT_OWNER_WHATSAPP,
             isStoreOpen: cloudSettings.is_store_open ?? prev.isStoreOpen,
             isStoreHoliday: cloudSettings.payment_methods?._holiday?.isHoliday ?? prev.isStoreHoliday ?? false,
             holidayReason: cloudSettings.payment_methods?._holiday?.reason ?? prev.holidayReason ?? 'Toko sedang libur hari ini. Buka kembali besok.',
@@ -1343,6 +1354,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const paymentMethodsPayload = {
             ...existingPm,
             ...updated.paymentMethods,
+            _ownerWhatsapp: updated.ownerWhatsapp || existingPm._ownerWhatsapp || DEFAULT_OWNER_WHATSAPP,
             _holiday: holidayPayload,
             _salaries: existingPm._salaries ?? staffSalaries,
             _expenses: existingPm._expenses ?? operationalExpenses,
@@ -1428,8 +1440,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             });
           addAuditLog('UPDATE_USER', 'User', id, `Data kredensial pengguna "${u.name}" diperbarui`);
 
-          // Jika role Owner dan ada nomor telepon/WA, sinkronkan juga ke adminWhatsapp toko
+          // Sinkronkan nomor WA ke StoreSettings secara terpisah sesuai perannya (Admin vs Owner terpisah dan tidak saling menimpa)
           if (updatedUser.role === 'OWNER' && updatedUser.phone) {
+            setTimeout(() => {
+              updateStoreSettings({ ownerWhatsapp: updatedUser.phone });
+            }, 100);
+          } else if (updatedUser.role === 'ADMIN' && updatedUser.phone) {
             setTimeout(() => {
               updateStoreSettings({ adminWhatsapp: updatedUser.phone });
             }, 100);
@@ -1689,12 +1705,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const uName = (u.name || '').trim().toLowerCase();
       const uPhone = (u.phone || '').trim().replace(/[^0-9]/g, '');
       const idPhone = cleanId.replace(/[^0-9]/g, '');
+      const uPhoneNormalized = u.phone ? formatIndonesianWhatsappNumber(u.phone, '') : '';
+      const idPhoneNormalized = formatIndonesianWhatsappNumber(cleanId, '');
+      const isPhoneMatch =
+        (Boolean(uPhone) && Boolean(idPhone) && uPhone === idPhone) ||
+        (Boolean(uPhoneNormalized) && Boolean(idPhoneNormalized) && uPhoneNormalized === idPhoneNormalized);
 
       return (
         uUsername === cleanId ||
         uEmail === cleanId ||
         uName === cleanId ||
-        (Boolean(uPhone) && Boolean(idPhone) && uPhone === idPhone)
+        isPhoneMatch
       );
     };
 
@@ -1839,6 +1860,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         console.warn('Supabase user upsert error:', upsertErr.message);
       }
     } catch (e) {}
+
+    // Jika role Owner dan mengisi nomor HP, simpan ke ownerWhatsapp (tanpa menimpa adminWhatsapp)
+    if (newUser.role === 'OWNER' && newUser.phone) {
+      setTimeout(() => {
+        updateStoreSettings({ ownerWhatsapp: newUser.phone });
+      }, 100);
+    }
 
     // Auto login after signup
     setCurrentUser(newUser);
@@ -2136,7 +2164,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           adminWhatsapp:
             cloudSettings.admin_whatsapp && cloudSettings.admin_whatsapp !== '6281234567890'
               ? cloudSettings.admin_whatsapp
-              : prev.adminWhatsapp || '6285274281819',
+              : prev.adminWhatsapp || DEFAULT_ADMIN_WHATSAPP,
+          ownerWhatsapp:
+            cloudSettings.payment_methods?._ownerWhatsapp ||
+            cloudSettings.owner_whatsapp ||
+            prev.ownerWhatsapp ||
+            DEFAULT_OWNER_WHATSAPP,
           isStoreOpen: cloudSettings.is_store_open ?? prev.isStoreOpen,
           isStoreHoliday: cloudSettings.payment_methods?._holiday?.isHoliday ?? prev.isStoreHoliday ?? false,
           holidayReason: cloudSettings.payment_methods?._holiday?.reason ?? prev.holidayReason ?? 'Toko sedang libur hari ini. Buka kembali besok.',

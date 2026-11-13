@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useApp } from '@/lib/store/AppContext';
 import { CATEGORIES, CUP_FEE } from '@/lib/constants';
 import { Product, Order } from '@/lib/types';
+import { formatIndonesianWhatsappNumber } from '@/lib/utils/phone';
 import {
   Plus,
   Minus,
@@ -253,10 +254,7 @@ export function PosView() {
         setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
       }
 
-      let cleanPhone = customerWhatsapp.replace(/\D/g, '');
-      if (cleanPhone.startsWith('0')) {
-        cleanPhone = '62' + cleanPhone.slice(1);
-      }
+      const cleanPhone = customerWhatsapp.trim() ? formatIndonesianWhatsappNumber(customerWhatsapp, '') : '';
       const waUrl = cleanPhone ? `https://wa.me/${cleanPhone}` : 'https://wa.me/';
       window.open(waUrl, '_blank');
 
