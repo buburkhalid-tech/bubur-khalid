@@ -1038,11 +1038,11 @@ export function OwnerFinancialView() {
 
           {/* Breakdown Waterfall Grid */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-2">
-            {/* (+) Omzet */}
+            {/* Omzet */}
             <div className="p-4 bg-emerald-50/50 rounded-2xl border border-emerald-200 space-y-1.5">
               <div className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider flex items-center space-x-1">
                 <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                <span>(+) Pemasukan Omzet</span>
+                <span>Pemasukan Omzet</span>
               </div>
               <div className="text-xl font-black text-emerald-900 font-mono">
                 +Rp{monthRevenue.toLocaleString('id-ID')}
@@ -1052,11 +1052,11 @@ export function OwnerFinancialView() {
               </p>
             </div>
 
-            {/* (-) Gaji Karyawan */}
+            {/* Gaji Karyawan */}
             <div className="p-4 bg-rose-50/50 rounded-2xl border border-rose-200 space-y-1.5">
               <div className="text-[11px] font-bold text-rose-800 uppercase tracking-wider flex items-center space-x-1">
                 <span className="w-2 h-2 rounded-full bg-rose-500" />
-                <span>(-) Beban Gaji Karyawan</span>
+                <span>Beban Gaji Karyawan</span>
               </div>
               <div className="text-xl font-black text-rose-900 font-mono">
                 -Rp{totalSalaryExpense.toLocaleString('id-ID')}
@@ -1066,11 +1066,11 @@ export function OwnerFinancialView() {
               </p>
             </div>
 
-            {/* (-) Belanja Keluar & Modal Bahan Pokok */}
+            {/* Belanja Keluar & Modal Bahan Pokok */}
             <div className="p-4 bg-amber-50/50 rounded-2xl border border-amber-200 space-y-1.5">
               <div className="text-[11px] font-bold text-amber-800 uppercase tracking-wider flex items-center space-x-1">
                 <span className="w-2 h-2 rounded-full bg-amber-500" />
-                <span>(-) Belanja Bahan Pokok &amp; Operasional</span>
+                <span>Belanja Bahan Pokok &amp; Operasional</span>
               </div>
               <div className="text-xl font-black text-amber-900 font-mono">
                 -Rp{totalMaterialExpense.toLocaleString('id-ID')}
@@ -1082,11 +1082,11 @@ export function OwnerFinancialView() {
               </p>
             </div>
 
-            {/* (=) Laba Bersih */}
+            {/* Laba Bersih */}
             <div className={`p-4 rounded-2xl border space-y-1.5 ${netProfitMonth >= 0 ? 'bg-matcha-deep text-noodle-cream border-matcha-surface' : 'bg-red-900 text-white border-red-800'}`}>
               <div className="text-[11px] font-bold uppercase tracking-wider flex items-center space-x-1 text-yolk-blaze">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>(=) Laba Bersih Aktual</span>
+                <span>Laba Bersih Aktual</span>
               </div>
               <div className="text-xl font-black font-mono">
                 Rp{netProfitMonth.toLocaleString('id-ID')}
@@ -1351,7 +1351,7 @@ export function OwnerFinancialView() {
                 className="bg-spicy-ember hover:bg-spicy-hover text-white px-3.5 py-1.5 rounded-xl text-xs font-extrabold flex items-center space-x-1.5 shadow-sm transition cursor-pointer active:scale-95"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>+ Catat Belanja Keluar</span>
+                <span>Catat Belanja Keluar</span>
               </button>
             </div>
           </div>
@@ -1425,7 +1425,7 @@ export function OwnerFinancialView() {
                   Belum Ada Pengeluaran Belanja (Rp 0)
                 </h4>
                 <p className="text-xs text-stone-500 leading-relaxed">
-                  Seluruh nominal belanja bahan pokok, gas, dan minyak saat ini adalah <strong className="text-matcha-leaf">Rp 0</strong>. Klik tombol <strong>&quot;+ Catat Belanja Keluar&quot;</strong> ketika ada pembelanjaan keluar untuk toko.
+                  Seluruh nominal belanja bahan pokok, gas, dan minyak saat ini adalah <strong className="text-matcha-leaf">Rp 0</strong>. Klik tombol <strong>&quot;Catat Belanja Keluar&quot;</strong> ketika ada pembelanjaan keluar untuk toko.
                 </p>
               </div>
               <button
@@ -1434,7 +1434,7 @@ export function OwnerFinancialView() {
                 className="inline-flex items-center space-x-1.5 px-4 py-2 bg-spicy-ember hover:bg-spicy-hover text-white rounded-xl font-bold text-xs shadow-sm transition cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>+ Catat Belanja Keluar Sekarang</span>
+                <span>Catat Belanja Keluar Sekarang</span>
               </button>
             </div>
           ) : (
