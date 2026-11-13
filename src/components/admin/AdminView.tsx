@@ -1108,7 +1108,7 @@ export function AdminView() {
                   >
                     <div className="flex items-center space-x-3">
                       <ChefHat className="w-4 h-4 text-yolk-blaze" />
-                      <span>Buka Kitchen Display (Dapur)</span>
+                      <span>Data Pesanan</span>
                     </div>
                   </button>
                 )}
