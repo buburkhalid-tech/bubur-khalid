@@ -466,6 +466,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             setOperationalExpenses(cloudSettings.payment_methods._expenses);
             localStorage.setItem('bubur_khalid_operational_expenses', JSON.stringify(cloudSettings.payment_methods._expenses));
           }
+
+          if (cloudSettings.payment_methods?._promoBanners && Array.isArray(cloudSettings.payment_methods._promoBanners)) {
+            setPromoBanners(cloudSettings.payment_methods._promoBanners);
+            localStorage.setItem('bubur_khalid_promo_banners', JSON.stringify(cloudSettings.payment_methods._promoBanners));
+          }
         }
 
         // 5. Tables
@@ -475,11 +480,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           localStorage.setItem('bubur_khalid_tables', JSON.stringify(cloudTables));
         }
 
-        // 6. Promo Banners
-        const { data: cloudBanners, error: bErr } = await supabase.from('promo_banners').select('*').order('sort_order');
-        if (!bErr && cloudBanners && cloudBanners.length > 0 && isMounted) {
-          setPromoBanners(cloudBanners);
-          localStorage.setItem('bubur_khalid_promo_banners', JSON.stringify(cloudBanners));
+        // 6. Promo Banners (fallback table if not stored inside store_settings._promoBanners)
+        if (!cloudSettings?.payment_methods?._promoBanners) {
+          const { data: cloudBanners, error: bErr } = await supabase.from('promo_banners').select('*').order('sort_order');
+          if (!bErr && cloudBanners && cloudBanners.length > 0 && isMounted) {
+            setPromoBanners(cloudBanners);
+            localStorage.setItem('bubur_khalid_promo_banners', JSON.stringify(cloudBanners));
+          }
         }
       } catch (e) {
         console.warn('Supabase sync error:', e);
@@ -630,25 +637,53 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [operationalExpenses, isHydrated]);
 
+  const syncPromoBannersToCloud = (nextBanners: PromoBanner[]) => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('bubur_khalid_promo_banners', JSON.stringify(nextBanners));
+      } catch (e) {}
+    }
+    supabase
+      .from('store_settings')
+      .select('payment_methods')
+      .eq('id', 'store-config')
+      .maybeSingle()
+      .then(({ data }) => {
+        const existing = data?.payment_methods || {};
+        supabase
+          .from('store_settings')
+          .update({
+            payment_methods: {
+              ...existing,
+              _promoBanners: nextBanners,
+            },
+          })
+          .eq('id', 'store-config')
+          .then(({ error }) => {
+            if (error) console.warn('Supabase promo banners sync error:', error.message);
+          });
+      });
+  };
+
   const addPromoBanner = (newBanner: Omit<PromoBanner, 'id'>) => {
     const banner: PromoBanner = {
       ...newBanner,
       id: `promo-${Date.now()}`,
     };
-    setPromoBanners((prev) => [...prev, banner]);
-    supabase.from('promo_banners').upsert([banner]).then(({ error }) => {
-      if (error) console.warn('Supabase add promo banner error:', error.message);
+    setPromoBanners((prev) => {
+      const next = [...prev, banner];
+      syncPromoBannersToCloud(next);
+      return next;
     });
     addAuditLog('CREATE', 'PromoBanner', banner.id, `Menambahkan banner promosi: ${banner.title}`);
     showToast('Banner promosi berhasil ditambahkan!');
   };
 
   const updatePromoBanner = (id: string, updates: Partial<PromoBanner>) => {
-    setPromoBanners((prev) =>
-      prev.map((b) => (b.id === id ? { ...b, ...updates } : b))
-    );
-    supabase.from('promo_banners').update(updates).eq('id', id).then(({ error }) => {
-      if (error) console.warn('Supabase update promo banner error:', error.message);
+    setPromoBanners((prev) => {
+      const next = prev.map((b) => (b.id === id ? { ...b, ...updates } : b));
+      syncPromoBannersToCloud(next);
+      return next;
     });
     addAuditLog('UPDATE', 'PromoBanner', id, `Memperbarui banner promosi`);
     showToast('Banner promosi berhasil diperbarui!');
@@ -656,28 +691,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const deletePromoBanner = (id: string) => {
     const target = promoBanners.find((b) => b.id === id);
-    setPromoBanners((prev) => prev.filter((b) => b.id !== id));
-    supabase.from('promo_banners').delete().eq('id', id).then(({ error }) => {
-      if (error) console.warn('Supabase delete promo banner error:', error.message);
+    setPromoBanners((prev) => {
+      const next = prev.filter((b) => b.id !== id);
+      syncPromoBannersToCloud(next);
+      return next;
     });
     addAuditLog('DELETE', 'PromoBanner', id, `Menghapus banner promosi: ${target?.title || id}`);
     showToast('Banner promosi telah dihapus');
   };
 
   const togglePromoBannerStatus = (id: string) => {
-    setPromoBanners((prev) =>
-      prev.map((b) => {
+    setPromoBanners((prev) => {
+      const next = prev.map((b) => {
         if (b.id === id) {
-          const next = !b.is_active;
-          supabase.from('promo_banners').update({ is_active: next }).eq('id', id).then(({ error }) => {
-            if (error) console.warn('Supabase toggle promo banner error:', error.message);
-          });
-          showToast(`Banner ${b.title} kini ${next ? 'Aktif' : 'Nonaktif'}`);
-          return { ...b, is_active: next };
+          const nextActive = !b.is_active;
+          showToast(`Banner ${b.title} kini ${nextActive ? 'Aktif' : 'Nonaktif'}`);
+          return { ...b, is_active: nextActive };
         }
         return b;
-      })
-    );
+      });
+      syncPromoBannersToCloud(next);
+      return next;
+    });
   };
 
   // Cart States (Kosong secara default saat pelanggan pertama kali masuk web)
@@ -896,10 +931,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setOrders((prev) => [newOrder, ...prev]);
     clearCustomerCart();
 
-    // Sync order to Supabase Cloud
+    // Sync order to Supabase Cloud (omit non-column `notes` so schema validation never rejects online orders)
+    const { notes: _omitNotes, ...dbOrder } = newOrder;
     supabase
       .from('orders')
-      .upsert([newOrder])
+      .upsert([dbOrder])
       .then(({ error }) => {
         if (error) console.warn('Supabase online order sync error:', error.message);
       });
@@ -1014,43 +1050,57 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Update Order Status
   const updateOrderStatus = (orderId: string, newStatus: OrderStatus, actor = 'Staf Operasional') => {
+    const statusLabels: Record<OrderStatus, string> = {
+      NEW: 'Pesanan Diterima',
+      CONFIRMED: 'Pesanan Dikonfirmasi',
+      PREPARING: 'Sedang Disiapkan',
+      READY: 'Siap Disajikan / Diambil',
+      COMPLETED: 'Pesanan Selesai',
+      REJECTED: 'Pesanan Ditolak',
+      CANCELLED: 'Pesanan Dibatalkan',
+    };
+    const timestampStr = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
+    const currentOrder = orders.find((o) => o.id === orderId);
+    const nextHistory = [
+      ...(currentOrder?.status_history || []),
+      {
+        status: newStatus,
+        label: statusLabels[newStatus],
+        timestamp: timestampStr,
+        actor,
+      },
+    ];
+    const shouldMarkPaid = newStatus === 'COMPLETED' && currentOrder?.payment_status === 'PENDING';
+    const nextPaymentStatus = shouldMarkPaid ? 'PAID' : currentOrder?.payment_status;
+    const nextPaidAt = shouldMarkPaid ? new Date().toISOString() : currentOrder?.paid_at;
+
     setOrders((prev) =>
       prev.map((ord) => {
         if (ord.id === orderId) {
-          const statusLabels: Record<OrderStatus, string> = {
-            NEW: 'Pesanan Diterima',
-            CONFIRMED: 'Pesanan Dikonfirmasi',
-            PREPARING: 'Sedang Disiapkan',
-            READY: 'Siap Disajikan / Diambil',
-            COMPLETED: 'Pesanan Selesai',
-            REJECTED: 'Pesanan Ditolak',
-            CANCELLED: 'Pesanan Dibatalkan',
-          };
           return {
             ...ord,
             order_status: newStatus,
-            status_history: [
-              ...ord.status_history,
-              {
-                status: newStatus,
-                label: statusLabels[newStatus],
-                timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB',
-                actor,
-              },
-            ],
+            payment_status: nextPaymentStatus || ord.payment_status,
+            paid_at: nextPaidAt ?? ord.paid_at,
+            status_history: nextHistory,
           };
         }
         return ord;
       })
     );
 
-    // Sync status change & status_history to Supabase Cloud
+    // Sync status change & fresh status_history to Supabase Cloud
+    const updatePayload: Record<string, any> = {
+      order_status: newStatus,
+      status_history: nextHistory,
+    };
+    if (shouldMarkPaid) {
+      updatePayload.payment_status = 'PAID';
+      updatePayload.paid_at = nextPaidAt;
+    }
     supabase
       .from('orders')
-      .update({
-        order_status: newStatus,
-        status_history: (orders.find(o => o.id === orderId)?.status_history || []),
-      })
+      .update(updatePayload)
       .eq('id', orderId)
       .then(({ error }) => {
         if (error) console.warn('Supabase status update error:', error.message);
@@ -1275,40 +1325,53 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         } catch (e) {}
       }
 
-      // Sync store settings to Supabase Cloud
+      // Sync store settings to Supabase Cloud (preserve _salaries, _expenses, and _promoBanners)
       const holidayPayload = {
         isHoliday: Boolean(updated.isStoreHoliday),
         reason: updated.holidayReason || '',
       };
-      const paymentMethodsPayload = {
-        ...updated.paymentMethods,
-        _holiday: holidayPayload,
-      };
 
       supabase
         .from('store_settings')
-        .upsert([
-          {
-            id: 'store-config',
-            store_name: updated.storeName,
-            store_tagline: updated.storeTagline,
-            store_address: updated.storeAddress,
-            store_logo: updated.storeLogo,
-            banner_title: updated.bannerTitle,
-            banner_subtitle: updated.bannerSubtitle,
-            banner_image: updated.bannerImage,
-            operating_hours: updated.operatingHours,
-            admin_whatsapp: updated.adminWhatsapp,
-            is_store_open: updated.isStoreHoliday ? false : updated.isStoreOpen,
-            cup_fee: updated.cupFee,
-            cup_name: updated.cupName,
-            cup_description: updated.cupDescription,
-            cup_enabled: updated.cupEnabled,
-            payment_methods: paymentMethodsPayload,
-          },
-        ])
-        .then(({ error }) => {
-          if (error) console.warn('Supabase store settings sync error:', error.message);
+        .select('payment_methods')
+        .eq('id', 'store-config')
+        .maybeSingle()
+        .then(({ data }) => {
+          const existingPm = data?.payment_methods || {};
+          const paymentMethodsPayload = {
+            ...existingPm,
+            ...updated.paymentMethods,
+            _holiday: holidayPayload,
+            _salaries: existingPm._salaries ?? staffSalaries,
+            _expenses: existingPm._expenses ?? operationalExpenses,
+            _promoBanners: existingPm._promoBanners ?? promoBanners,
+          };
+
+          supabase
+            .from('store_settings')
+            .upsert([
+              {
+                id: 'store-config',
+                store_name: updated.storeName,
+                store_tagline: updated.storeTagline,
+                store_address: updated.storeAddress,
+                store_logo: updated.storeLogo,
+                banner_title: updated.bannerTitle,
+                banner_subtitle: updated.bannerSubtitle,
+                banner_image: updated.bannerImage,
+                operating_hours: updated.operatingHours,
+                admin_whatsapp: updated.adminWhatsapp,
+                is_store_open: updated.isStoreHoliday ? false : updated.isStoreOpen,
+                cup_fee: updated.cupFee,
+                cup_name: updated.cupName,
+                cup_description: updated.cupDescription,
+                cup_enabled: updated.cupEnabled,
+                payment_methods: paymentMethodsPayload,
+              },
+            ])
+            .then(({ error }) => {
+              if (error) console.warn('Supabase store settings sync error:', error.message);
+            });
         });
 
       addAuditLog('UPDATE_STORE_SETTINGS', 'Settings', 'store-config', 'Pengaturan banner dan metode pembayaran diperbarui oleh Admin');
@@ -1860,9 +1923,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       id: newId,
     };
     setTables((prev) => [...prev, newTable]);
-    supabase.from('tables').upsert([newTable]).then(({ error }) => {
-      if (error) console.warn('Supabase add table error:', error.message);
-    });
+    supabase
+      .from('tables')
+      .upsert([
+        {
+          id: newTable.id,
+          table_number: newTable.table_number,
+          qr_token: newTable.qr_token,
+          is_active: newTable.is_active,
+        },
+      ])
+      .then(({ error }) => {
+        if (error) console.warn('Supabase add table error:', error.message);
+      });
     addAuditLog('ADD_TABLE', 'Table', newId, `Meja baru ditambahkan: ${newTable.table_number} (${newTable.qr_token})`);
     showToast(`Meja "${newTable.table_number}" berhasil ditambahkan!`);
   };
@@ -1871,15 +1944,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setTables((prev) =>
       prev.map((t) => {
         if (t.id === id) {
+          const nextTable = { ...t, ...updated };
           addAuditLog('UPDATE_TABLE', 'Table', id, `Data meja "${t.table_number}" diperbarui`);
-          return { ...t, ...updated };
+          supabase
+            .from('tables')
+            .upsert([
+              {
+                id: nextTable.id,
+                table_number: nextTable.table_number,
+                qr_token: nextTable.qr_token,
+                is_active: nextTable.is_active,
+              },
+            ])
+            .then(({ error }) => {
+              if (error) console.warn('Supabase update table error:', error.message);
+            });
+          return nextTable;
         }
         return t;
       })
     );
-    supabase.from('tables').update(updated).eq('id', id).then(({ error }) => {
-      if (error) console.warn('Supabase update table error:', error.message);
-    });
     showToast('Data meja berhasil diperbarui!');
   };
 
@@ -1899,9 +1983,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       prev.map((t) => {
         if (t.id === id) {
           const next = !t.is_active;
-          supabase.from('tables').update({ is_active: next }).eq('id', id).then(({ error }) => {
-            if (error) console.warn('Supabase toggle table error:', error.message);
-          });
+          supabase
+            .from('tables')
+            .upsert([
+              {
+                id: t.id,
+                table_number: t.table_number,
+                qr_token: t.qr_token,
+                is_active: next,
+              },
+            ])
+            .then(({ error }) => {
+              if (error) console.warn('Supabase toggle table error:', error.message);
+            });
           addAuditLog('TOGGLE_TABLE', 'Table', id, `Status meja "${t.table_number}" diubah menjadi ${next ? 'Aktif' : 'Non-Aktif'}`);
           showToast(`Status ${t.table_number} kini ${next ? 'Aktif' : 'Non-Aktif'}`);
           return { ...t, is_active: next };
@@ -1975,17 +2069,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       showToast('Menghubungkan & sinkronisasi data cloud Supabase...');
       // 1. Fetch products
-      const { data: pData } = await supabase.from('products').select('*');
-      if (pData) {
+      const { data: pData } = await supabase.from('products').select('*').order('sort_order', { ascending: true });
+      if (pData && pData.length > 0) {
         const active = pData
-          .filter((p: any) => !p.is_deleted)
+          .filter((p: any) => !p.deleted_at)
           .map((p: any) => ({
             ...p,
             price: Number(p.price),
             is_available: Boolean(p.is_available),
           }));
         const trashed = pData
-          .filter((p: any) => p.is_deleted)
+          .filter((p: any) => p.deleted_at)
           .map((p: any) => ({
             ...p,
             price: Number(p.price),
@@ -2045,6 +2139,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           isStoreHoliday: cloudSettings.payment_methods?._holiday?.isHoliday ?? prev.isStoreHoliday ?? false,
           holidayReason: cloudSettings.payment_methods?._holiday?.reason ?? prev.holidayReason ?? 'Toko sedang libur hari ini. Buka kembali besok.',
           cupFee: Number(cloudSettings.cup_fee ?? prev.cupFee),
+          cupName: cloudSettings.cup_name || prev.cupName,
+          cupDescription: cloudSettings.cup_description || prev.cupDescription,
+          cupEnabled: cloudSettings.cup_enabled ?? prev.cupEnabled,
           paymentMethods: {
             qris: {
               ...prev.paymentMethods.qris,
@@ -2060,6 +2157,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             },
           },
         }));
+
+        if (cloudSettings.payment_methods?._salaries && Array.isArray(cloudSettings.payment_methods._salaries)) {
+          setStaffSalaries(cloudSettings.payment_methods._salaries);
+          localStorage.setItem('bubur_khalid_staff_salaries', JSON.stringify(cloudSettings.payment_methods._salaries));
+        }
+
+        if (cloudSettings.payment_methods?._expenses && Array.isArray(cloudSettings.payment_methods._expenses)) {
+          setOperationalExpenses(cloudSettings.payment_methods._expenses);
+          localStorage.setItem('bubur_khalid_operational_expenses', JSON.stringify(cloudSettings.payment_methods._expenses));
+        }
+
+        if (cloudSettings.payment_methods?._promoBanners && Array.isArray(cloudSettings.payment_methods._promoBanners)) {
+          setPromoBanners(cloudSettings.payment_methods._promoBanners);
+          localStorage.setItem('bubur_khalid_promo_banners', JSON.stringify(cloudSettings.payment_methods._promoBanners));
+        }
+      }
+
+      // 4. Fetch tables
+      const { data: cloudTables, error: tErr } = await supabase.from('tables').select('*').order('table_number');
+      if (!tErr && cloudTables && cloudTables.length > 0) {
+        setTables(cloudTables);
+        localStorage.setItem('bubur_khalid_tables', JSON.stringify(cloudTables));
       }
 
       showToast('✅ Data berhasil disinkronkan langsung dari Cloud!');
@@ -2094,19 +2213,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('bubur_khalid_orders', JSON.stringify([]));
       } catch (e) {}
 
-      // 2. Reset staff salaries ke [] (kosong)
+      // 2. Reset staff salaries & operational expenses secara atomik agar tidak race condition di Supabase
       setStaffSalaries([]);
-      syncSalariesToCloud([]);
+      setOperationalExpenses([]);
       try {
         localStorage.setItem('bubur_khalid_staff_salaries', JSON.stringify([]));
-      } catch (e) {}
-
-      // 3. Reset operational expenses (modal belanja keluar) ke [] (kosong / Rp 0)
-      setOperationalExpenses([]);
-      syncExpensesToCloud([]);
-      try {
         localStorage.setItem('bubur_khalid_operational_expenses', JSON.stringify([]));
       } catch (e) {}
+
+      const { data: cfg } = await supabase
+        .from('store_settings')
+        .select('payment_methods')
+        .eq('id', 'store-config')
+        .maybeSingle();
+      const existingPm = cfg?.payment_methods || {};
+      await supabase
+        .from('store_settings')
+        .update({
+          payment_methods: {
+            ...existingPm,
+            _salaries: [],
+            _expenses: [],
+          },
+        })
+        .eq('id', 'store-config');
 
       addAuditLog('RESET_FINANCIAL_ALL', 'Financial', 'all', 'Owner mereset seluruh omzet penjualan, daftar gaji, dan belanja keluar ke Rp 0');
       showToast('✅ Seluruh transaksi, gaji, & belanja bahan berhasil di-reset ke Rp 0.');

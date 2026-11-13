@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { AppProvider, useApp } from '@/lib/store/AppContext';
-import { DemoSwitcher } from '@/components/common/DemoSwitcher';
 import { CustomerView } from '@/components/customer/CustomerView';
 import { AdminView } from '@/components/admin/AdminView';
 import { PosView } from '@/components/pos/PosView';
