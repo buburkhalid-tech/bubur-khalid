@@ -3278,18 +3278,19 @@ export function AdminView() {
                   </div>
 
                   <div className="flex items-center space-x-2 flex-shrink-0 w-full sm:w-auto">
-                    <button
-                      type="button"
-                      onClick={() => setActiveView('customer')}
+                    <a
+                      href="https://bubur-khalid.vercel.app"
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="w-full sm:w-auto px-4 py-2.5 bg-spicy-ember hover:bg-spicy-hover text-white rounded-xl text-xs font-black flex items-center justify-center space-x-2 shadow-md transition active:scale-95"
                     >
                       <Smartphone className="w-4 h-4" />
                       <span>Buka Simulasi Sekarang</span>
-                    </button>
+                    </a>
                     <a
                       href="https://bubur-khalid.vercel.app"
                       target="_blank"
-                      rel="noreferrer"
+                      rel="noopener noreferrer"
                       className="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl border border-white/20 transition flex items-center justify-center"
                       title="Buka Web Pelanggan di Tab Baru"
                     >
