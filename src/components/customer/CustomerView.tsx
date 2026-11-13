@@ -2559,7 +2559,7 @@ export function CustomerView() {
                     <div>
                       <div className="text-[11px] font-bold text-matcha-leaf">
                         {activeTrackingOrder.transfer_proof_image || transferProof
-                          ? '✓ Bukti Transfer Siap Dikirim'
+                          ? '✓ Bukti Transfer'
                           : 'Belum Lampirkan Bukti Bayar?'}
                       </div>
                       <div className="text-[10px] text-stone-500">
