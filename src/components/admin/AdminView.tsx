@@ -2202,7 +2202,7 @@ export function AdminView() {
               <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-soft">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-extrabold text-sm text-matcha-leaf">
-                    Menu Terlaris {topSellingFilter === 'today' ? 'Hari Ini' : 'Sepanjang Waktu'}
+                    Terlaris {topSellingFilter === 'today' ? 'Hari Ini' : 'Sepanjang Waktu'}
                   </h3>
                   <div className="flex bg-stone-100 p-0.5 rounded-lg border border-stone-200 text-[10px] font-bold">
                     <button
