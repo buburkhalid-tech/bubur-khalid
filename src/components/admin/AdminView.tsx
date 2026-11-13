@@ -2186,7 +2186,7 @@ export function AdminView() {
                             className="mt-0.5 inline-flex items-center space-x-1 text-[9px] bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold px-2 py-0.5 rounded-md border border-emerald-300 transition"
                           >
                             <span>📎</span>
-                            <span>Lihat Struk WA</span>
+                            <span>Lihat Struk</span>
                           </button>
                         )}
                       </div>
