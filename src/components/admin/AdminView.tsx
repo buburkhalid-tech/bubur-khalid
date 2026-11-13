@@ -5654,14 +5654,6 @@ export function AdminView() {
                   ))}
                 </div>
               </div>
-
-              {/* Auto-Save Indicator Info */}
-              <div className="p-3 bg-emerald-50/80 border border-emerald-200 rounded-2xl flex items-center space-x-2 text-[11px] text-emerald-800">
-                <span className="text-emerald-600 font-black">✓</span>
-                <span>
-                  <strong>Tersimpan Otomatis:</strong> Setiap perubahan jam buka atau status toko langsung aktif dan tersimpan ke cloud Supabase.
-                </span>
-              </div>
             </div>
 
             {/* Sticky / Pinned Close Action Footer */}

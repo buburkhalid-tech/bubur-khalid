@@ -2108,14 +2108,6 @@ export function CustomerView() {
                 </div>
               </div>
 
-              {/* PNG Confirmation Callout */}
-              <div className="p-3 bg-emerald-100/70 rounded-xl border border-emerald-300 text-xs text-emerald-950 flex items-start space-x-2">
-                <span className="text-lg">🖼️</span>
-                <div className="leading-snug">
-                  <strong>Konfirmasi Struk PNG:</strong> Menekan tombol Konfirmasi akan mengirim gambar PNG berisi struk pesanan, nomor antrean <strong>{transferConfirmationOrder.queue_number}</strong>, dan screenshot M-Banking ke WhatsApp Admin (bukan teks agar tidak dapat diedit).
-                </div>
-              </div>
-
               {/* Action Buttons */}
               <div className="space-y-2 pt-1">
                 <button
@@ -2608,10 +2600,6 @@ export function CustomerView() {
                   </span>
                   <ExternalLink className="w-3.5 h-3.5" />
                 </button>
-
-                <div className="text-[10px] text-emerald-800 text-center leading-relaxed">
-                  Konfirmasi dikirim sebagai <strong>gambar PNG</strong> berisi struk, nomor antrean <strong>{activeTrackingOrder.queue_number}</strong>, dan screenshot M-Banking ke <strong>Admin Bubur Khalid ({storeSettings.adminWhatsapp && storeSettings.adminWhatsapp !== '6281234567890' ? storeSettings.adminWhatsapp : '0852-7428-1819'})</strong> (tanpa teks yang bisa diedit).
-                </div>
               </div>
 
               {/* Progress Pesanan (Dynamic Vertical Timeline Stepper Synced with Data Pesanan) */}
