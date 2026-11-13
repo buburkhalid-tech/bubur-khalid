@@ -702,6 +702,23 @@ export function AdminView() {
   // Floating Logo Button Position & Drag State (Hanya 1 logo floating yang bisa digeser bebas)
   const [floatingPos, setFloatingPos] = useState<{ x: number; y: number } | null>(null);
   const [isDrawerExpanded, setIsDrawerExpanded] = useState<boolean>(false);
+
+  // Check if any modal is currently open so floating button does not overlap modal UI
+  const isAnyModalOpen = Boolean(
+    isStoreHoursModalOpen ||
+    isTableModalOpen ||
+    deletingTable ||
+    viewingQrTable ||
+    isPromoModalOpen ||
+    deletingPromo ||
+    deletingProduct ||
+    permanentDeletingProduct ||
+    isConfirmEmptyTrashOpen ||
+    isUserModalOpen ||
+    editingProduct ||
+    isAddMode ||
+    isMobileMenuOpen
+  );
   const floatingDragRef = useRef<{
     isDragging: boolean;
     startX: number;
@@ -4784,8 +4801,8 @@ export function AdminView() {
 
       {/* MODAL 1: TAMBAH & EDIT MEJA (Bisa Edit, Tambah, Batal/Cancel, Close) */}
       {isTableModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-white w-full max-w-md rounded-3xl p-6 relative shadow-floating animate-slideUp space-y-4">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-fadeIn">
+          <div className="bg-white w-full max-w-md rounded-3xl p-5 sm:p-6 relative shadow-floating animate-slideUp space-y-4 max-h-[90dvh] overflow-y-auto my-auto">
             
             {/* Modal Header & Close Button */}
             <div className="flex items-center justify-between pb-3 border-b border-stone-100">
@@ -4948,8 +4965,8 @@ export function AdminView() {
 
       {/* MODAL 3: UNDUH & CETAK QR CODE STIKER (Bisa Cetak, Unduh, Close/Tutup) */}
       {viewingQrTable && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-white w-full max-w-sm rounded-3xl p-6 relative shadow-floating animate-slideUp space-y-4 text-center">
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-fadeIn">
+          <div className="bg-white w-full max-w-sm rounded-3xl p-5 sm:p-6 relative shadow-floating animate-slideUp space-y-4 text-center max-h-[90dvh] overflow-y-auto my-auto">
             
             {/* Close Button (X) */}
             <button
@@ -5434,218 +5451,221 @@ export function AdminView() {
 
       {/* MODAL: PENGATURAN JAM BUKA & STATUS OPERASIONAL TOKO (AUTO-SAVE) */}
       {isStoreHoursModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-white w-full max-w-md rounded-3xl p-6 relative shadow-floating animate-slideUp text-left space-y-5">
-            {/* Close Button X */}
-            <button
-              type="button"
-              onClick={() => setIsStoreHoursModalOpen(false)}
-              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-500 flex items-center justify-center transition"
-              title="Tutup & Selesai (Tersimpan Otomatis)"
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            {/* Modal Header */}
-            <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center shadow-xs border border-emerald-200 flex-shrink-0">
-                <Store className="w-6 h-6" />
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-fadeIn">
+          <div className="bg-white w-full max-w-md rounded-3xl p-4 sm:p-6 relative shadow-floating animate-slideUp text-left max-h-[90dvh] flex flex-col justify-between my-auto">
+            {/* Modal Header & Close Button */}
+            <div className="flex items-center justify-between pb-3 border-b border-stone-100 flex-shrink-0">
+              <div className="flex items-center space-x-3 pr-2">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center shadow-xs border border-emerald-200 flex-shrink-0">
+                  <Store className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-black text-sm sm:text-base text-matcha-leaf">
+                    Jam Buka &amp; Status Toko
+                  </h3>
+                  <p className="text-[10px] sm:text-[11px] text-stone-500">
+                    Perubahan tersimpan otomatis ke cloud tanpa tombol save.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-black text-base text-matcha-leaf">
-                  Jam Buka &amp; Status Toko
-                </h3>
-                <p className="text-[11px] text-stone-500">
-                  Perubahan tersimpan otomatis seketika ke cloud tanpa tombol save.
-                </p>
-              </div>
+              <button
+                type="button"
+                onClick={() => setIsStoreHoursModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-500 hover:text-stone-800 flex items-center justify-center transition flex-shrink-0 cursor-pointer"
+                title="Tutup & Selesai (Tersimpan Otomatis)"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
-            {/* STATUS TOKO: 3 PILIHAN UTAMA (Buka, Libur, Tutup) */}
-            <div className="space-y-2">
-              <label className="block text-xs font-bold text-matcha-leaf">
-                Status Operasional Toko:
-              </label>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                {/* 1. BUKA NORMAL */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    updateStoreSettings({ isStoreOpen: true, isStoreHoliday: false });
-                    setStoreForm((prev) => ({ ...prev, isStoreOpen: true }));
-                  }}
-                  className={`p-3 rounded-2xl border text-left transition flex flex-col justify-between cursor-pointer ${
-                    storeSettings.isStoreOpen && !storeSettings.isStoreHoliday
-                      ? 'bg-emerald-50 border-emerald-500 text-emerald-900 ring-2 ring-emerald-500/20 shadow-xs'
-                      : 'bg-white border-stone-200 text-stone-600 hover:bg-stone-50'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-base">🟢</span>
-                    {storeSettings.isStoreOpen && !storeSettings.isStoreHoliday && (
-                      <span className="text-[9px] font-black uppercase bg-emerald-600 text-white px-1.5 py-0.2 rounded-full">
-                        Aktif
-                      </span>
-                    )}
-                  </div>
-                  <div>
-                    <div className="font-black text-xs">Buka Normal</div>
-                    <div className="text-[10px] text-stone-500 leading-tight mt-0.5">Menerima pesanan</div>
-                  </div>
-                </button>
-
-                {/* 2. TOMBOL LIBUR (Sesuai Permintaan User) */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    updateStoreSettings({ isStoreOpen: false, isStoreHoliday: true });
-                    setStoreForm((prev) => ({ ...prev, isStoreOpen: false }));
-                  }}
-                  className={`p-3 rounded-2xl border text-left transition flex flex-col justify-between cursor-pointer ${
-                    storeSettings.isStoreHoliday
-                      ? 'bg-amber-50 border-amber-500 text-amber-950 ring-2 ring-amber-500/20 shadow-xs'
-                      : 'bg-white border-stone-200 text-stone-600 hover:bg-stone-50'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-base">🏖️</span>
-                    {storeSettings.isStoreHoliday && (
-                      <span className="text-[9px] font-black uppercase bg-amber-600 text-white px-1.5 py-0.2 rounded-full">
-                        Aktif
-                      </span>
-                    )}
-                  </div>
-                  <div>
-                    <div className="font-black text-xs text-amber-950">Toko Libur</div>
-                    <div className="text-[10px] text-amber-800 leading-tight mt-0.5">Info libur ke pembeli</div>
-                  </div>
-                </button>
-
-                {/* 3. TUTUP SEMENTARA */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    updateStoreSettings({ isStoreOpen: false, isStoreHoliday: false });
-                    setStoreForm((prev) => ({ ...prev, isStoreOpen: false }));
-                  }}
-                  className={`p-3 rounded-2xl border text-left transition flex flex-col justify-between cursor-pointer ${
-                    !storeSettings.isStoreOpen && !storeSettings.isStoreHoliday
-                      ? 'bg-red-50 border-red-500 text-red-900 ring-2 ring-red-500/20 shadow-xs'
-                      : 'bg-white border-stone-200 text-stone-600 hover:bg-stone-50'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-base">🔒</span>
-                    {!storeSettings.isStoreOpen && !storeSettings.isStoreHoliday && (
-                      <span className="text-[9px] font-black uppercase bg-red-600 text-white px-1.5 py-0.2 rounded-full">
-                        Aktif
-                      </span>
-                    )}
-                  </div>
-                  <div>
-                    <div className="font-black text-xs text-red-900">Tutup</div>
-                    <div className="text-[10px] text-stone-500 leading-tight mt-0.5">Tutup sementara</div>
-                  </div>
-                </button>
-              </div>
-            </div>
-
-            {/* FORM ALASAN LIBUR (Tampil jika Toko Libur aktif) */}
-            {storeSettings.isStoreHoliday && (
-              <div className="p-3.5 bg-amber-50 border border-amber-300 rounded-2xl space-y-2 animate-fadeIn">
-                <label className="block text-xs font-bold text-amber-950">
-                  Pesan Libur untuk Pelanggan (Muncul di Web):
+            {/* Scrollable Modal Body */}
+            <div className="flex-1 overflow-y-auto space-y-4 py-2 pr-1 -mr-1">
+              {/* STATUS TOKO: 3 PILIHAN UTAMA (Buka, Libur, Tutup) */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-matcha-leaf">
+                  Status Operasional Toko:
                 </label>
-                <input
-                  type="text"
-                  value={storeSettings.holidayReason || ''}
-                  placeholder="Contoh: Toko libur hari ini, buka kembali besok jam 16:00 WIB"
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    updateStoreSettings({ holidayReason: val });
-                  }}
-                  className="w-full bg-white border border-amber-300 rounded-xl px-3 py-2 text-xs text-amber-950 font-medium focus:outline-none focus:border-amber-600"
-                />
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {/* 1. BUKA NORMAL */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateStoreSettings({ isStoreOpen: true, isStoreHoliday: false });
+                      setStoreForm((prev) => ({ ...prev, isStoreOpen: true }));
+                    }}
+                    className={`p-3 rounded-2xl border text-left transition flex flex-col justify-between cursor-pointer ${
+                      storeSettings.isStoreOpen && !storeSettings.isStoreHoliday
+                        ? 'bg-emerald-50 border-emerald-500 text-emerald-900 ring-2 ring-emerald-500/20 shadow-xs'
+                        : 'bg-white border-stone-200 text-stone-600 hover:bg-stone-50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-base">🟢</span>
+                      {storeSettings.isStoreOpen && !storeSettings.isStoreHoliday && (
+                        <span className="text-[9px] font-black uppercase bg-emerald-600 text-white px-1.5 py-0.2 rounded-full">
+                          Aktif
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <div className="font-black text-xs">Buka Normal</div>
+                      <div className="text-[10px] text-stone-500 leading-tight mt-0.5">Menerima pesanan</div>
+                    </div>
+                  </button>
+
+                  {/* 2. TOMBOL LIBUR (Sesuai Permintaan User) */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateStoreSettings({ isStoreOpen: false, isStoreHoliday: true });
+                      setStoreForm((prev) => ({ ...prev, isStoreOpen: false }));
+                    }}
+                    className={`p-3 rounded-2xl border text-left transition flex flex-col justify-between cursor-pointer ${
+                      storeSettings.isStoreHoliday
+                        ? 'bg-amber-50 border-amber-500 text-amber-950 ring-2 ring-amber-500/20 shadow-xs'
+                        : 'bg-white border-stone-200 text-stone-600 hover:bg-stone-50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-base">🏖️</span>
+                      {storeSettings.isStoreHoliday && (
+                        <span className="text-[9px] font-black uppercase bg-amber-600 text-white px-1.5 py-0.2 rounded-full">
+                          Aktif
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <div className="font-black text-xs text-amber-950">Toko Libur</div>
+                      <div className="text-[10px] text-amber-800 leading-tight mt-0.5">Info libur ke pembeli</div>
+                    </div>
+                  </button>
+
+                  {/* 3. TUTUP SEMENTARA */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateStoreSettings({ isStoreOpen: false, isStoreHoliday: false });
+                      setStoreForm((prev) => ({ ...prev, isStoreOpen: false }));
+                    }}
+                    className={`p-3 rounded-2xl border text-left transition flex flex-col justify-between cursor-pointer ${
+                      !storeSettings.isStoreOpen && !storeSettings.isStoreHoliday
+                        ? 'bg-red-50 border-red-500 text-red-900 ring-2 ring-red-500/20 shadow-xs'
+                        : 'bg-white border-stone-200 text-stone-600 hover:bg-stone-50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-base">🔒</span>
+                      {!storeSettings.isStoreOpen && !storeSettings.isStoreHoliday && (
+                        <span className="text-[9px] font-black uppercase bg-red-600 text-white px-1.5 py-0.2 rounded-full">
+                          Aktif
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <div className="font-black text-xs text-red-900">Tutup</div>
+                      <div className="text-[10px] text-stone-500 leading-tight mt-0.5">Tutup sementara</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* FORM ALASAN LIBUR (Tampil jika Toko Libur aktif) */}
+              {storeSettings.isStoreHoliday && (
+                <div className="p-3.5 bg-amber-50 border border-amber-300 rounded-2xl space-y-2 animate-fadeIn">
+                  <label className="block text-xs font-bold text-amber-950">
+                    Pesan Libur untuk Pelanggan (Muncul di Web):
+                  </label>
+                  <input
+                    type="text"
+                    value={storeSettings.holidayReason || ''}
+                    placeholder="Contoh: Toko libur hari ini, buka kembali besok jam 16:00 WIB"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      updateStoreSettings({ holidayReason: val });
+                    }}
+                    className="w-full bg-white border border-amber-300 rounded-xl px-3 py-2 text-xs text-amber-950 font-medium focus:outline-none focus:border-amber-600"
+                  />
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    <span className="text-[10px] text-amber-800 font-semibold">Preset Cepat:</span>
+                    {[
+                      'Libur hari ini, buka kembali besok.',
+                      'Toko sedang libur akhir pekan.',
+                      'Libur cuti bersama / hari raya.',
+                    ].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => updateStoreSettings({ holidayReason: preset })}
+                        className="text-[10px] bg-white hover:bg-amber-100 text-amber-900 px-2 py-0.5 rounded-lg border border-amber-200 font-medium transition cursor-pointer"
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* EDIT JAM BUKA OPERASIONAL TOKO */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-matcha-leaf">
+                  Jam Operasional / Jam Buka:
+                </label>
+                <div className="relative">
+                  <Clock className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={storeSettings.operatingHours || ''}
+                    placeholder="Contoh: 16:00 - 22:00 WIB"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      updateStoreSettings({ operatingHours: val });
+                      setStoreForm((prev) => ({ ...prev, operatingHours: val }));
+                    }}
+                    className="w-full pl-9 pr-3 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs font-bold text-matcha-leaf focus:outline-none focus:border-spicy-ember focus:bg-white transition"
+                  />
+                </div>
+
+                {/* Quick Hours Preset Chips */}
                 <div className="flex flex-wrap gap-1.5 pt-1">
-                  <span className="text-[10px] text-amber-800 font-semibold">Preset Cepat:</span>
+                  <span className="text-[10px] text-stone-400 font-semibold self-center">Pilihan Cepat:</span>
                   {[
-                    'Libur hari ini, buka kembali besok.',
-                    'Toko sedang libur akhir pekan.',
-                    'Libur cuti bersama / hari raya.',
-                  ].map((preset) => (
+                    '16:00 - 22:00',
+                    '15:00 - 23:00',
+                    '09:00 - 21:00',
+                    '16:00 - 00:00',
+                    '24 Jam',
+                  ].map((chip) => (
                     <button
-                      key={preset}
+                      key={chip}
                       type="button"
-                      onClick={() => updateStoreSettings({ holidayReason: preset })}
-                      className="text-[10px] bg-white hover:bg-amber-100 text-amber-900 px-2 py-0.5 rounded-lg border border-amber-200 font-medium transition cursor-pointer"
+                      onClick={() => {
+                        updateStoreSettings({ operatingHours: chip });
+                        setStoreForm((prev) => ({ ...prev, operatingHours: chip }));
+                      }}
+                      className={`text-[10px] px-2.5 py-1 rounded-lg border font-bold transition cursor-pointer ${
+                        storeSettings.operatingHours === chip
+                          ? 'bg-spicy-ember text-white border-spicy-ember'
+                          : 'bg-stone-50 hover:bg-stone-100 text-stone-700 border-stone-200'
+                      }`}
                     >
-                      {preset}
+                      {chip}
                     </button>
                   ))}
                 </div>
               </div>
-            )}
 
-            {/* EDIT JAM BUKA OPERASIONAL TOKO */}
-            <div className="space-y-2">
-              <label className="block text-xs font-bold text-matcha-leaf">
-                Jam Operasional / Jam Buka:
-              </label>
-              <div className="relative">
-                <Clock className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={storeSettings.operatingHours || ''}
-                  placeholder="Contoh: 16:00 - 22:00 WIB"
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    updateStoreSettings({ operatingHours: val });
-                    setStoreForm((prev) => ({ ...prev, operatingHours: val }));
-                  }}
-                  className="w-full pl-9 pr-3 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs font-bold text-matcha-leaf focus:outline-none focus:border-spicy-ember focus:bg-white transition"
-                />
-              </div>
-
-              {/* Quick Hours Preset Chips */}
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                <span className="text-[10px] text-stone-400 font-semibold self-center">Pilihan Cepat:</span>
-                {[
-                  '16:00 - 22:00',
-                  '15:00 - 23:00',
-                  '09:00 - 21:00',
-                  '16:00 - 00:00',
-                  '24 Jam',
-                ].map((chip) => (
-                  <button
-                    key={chip}
-                    type="button"
-                    onClick={() => {
-                      updateStoreSettings({ operatingHours: chip });
-                      setStoreForm((prev) => ({ ...prev, operatingHours: chip }));
-                    }}
-                    className={`text-[10px] px-2.5 py-1 rounded-lg border font-bold transition cursor-pointer ${
-                      storeSettings.operatingHours === chip
-                        ? 'bg-spicy-ember text-white border-spicy-ember'
-                        : 'bg-stone-50 hover:bg-stone-100 text-stone-700 border-stone-200'
-                    }`}
-                  >
-                    {chip}
-                  </button>
-                ))}
+              {/* Auto-Save Indicator Info */}
+              <div className="p-3 bg-emerald-50/80 border border-emerald-200 rounded-2xl flex items-center space-x-2 text-[11px] text-emerald-800">
+                <span className="text-emerald-600 font-black">✓</span>
+                <span>
+                  <strong>Tersimpan Otomatis:</strong> Setiap perubahan jam buka atau status toko langsung aktif dan tersimpan ke cloud Supabase.
+                </span>
               </div>
             </div>
 
-            {/* Auto-Save Indicator Info */}
-            <div className="p-3 bg-emerald-50/80 border border-emerald-200 rounded-2xl flex items-center space-x-2 text-[11px] text-emerald-800">
-              <span className="text-emerald-600 font-black">✓</span>
-              <span>
-                <strong>Tersimpan Otomatis:</strong> Setiap perubahan jam buka atau status toko langsung aktif dan tersimpan ke cloud Supabase.
-              </span>
-            </div>
-
-            {/* Close Action */}
-            <div className="pt-1">
+            {/* Sticky / Pinned Close Action Footer */}
+            <div className="pt-2 border-t border-stone-100 flex-shrink-0">
               <button
                 type="button"
                 onClick={() => setIsStoreHoursModalOpen(false)}
@@ -5659,11 +5679,11 @@ export function AdminView() {
         </div>
       )}
 
-      {/* FLOATING BUBUR KHALID LOGO (Hanya 1 logo bulat melayang, bisa digeser bebas, klik untuk buka slide menu) */}
-      {floatingPos && (
+      {/* FLOATING BUBUR KHALID LOGO (Hanya 1 logo bulat melayang, bisa digeser bebas, klik untuk buka slide menu, sembunyikan saat modal/drawer terbuka) */}
+      {!isAnyModalOpen && floatingPos && (
         <div
           style={{ left: `${floatingPos.x}px`, top: `${floatingPos.y}px` }}
-          className="fixed z-50 pointer-events-auto touch-none select-none"
+          className="fixed z-40 pointer-events-auto touch-none select-none"
         >
           <button
             type="button"
