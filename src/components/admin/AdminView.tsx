@@ -701,6 +701,7 @@ export function AdminView() {
 
   // Floating Logo Button Position & Drag State (Hanya 1 logo floating yang bisa digeser bebas)
   const [floatingPos, setFloatingPos] = useState<{ x: number; y: number } | null>(null);
+  const [isDrawerExpanded, setIsDrawerExpanded] = useState<boolean>(false);
   const floatingDragRef = useRef<{
     isDragging: boolean;
     startX: number;
@@ -791,8 +792,19 @@ export function AdminView() {
         JSON.stringify({ x: floatingDragRef.current.currentX, y: floatingDragRef.current.currentY })
       );
     } else {
+      setIsDrawerExpanded(false);
       setIsMobileMenuOpen((prev) => !prev);
     }
+  };
+
+  const handleDrawerNavClick = (action: () => void) => {
+    if (!isDrawerExpanded) {
+      setIsDrawerExpanded(true);
+      return;
+    }
+    action();
+    setIsMobileMenuOpen(false);
+    setIsDrawerExpanded(false);
   };
 
   // Live dynamic today date formatted in Asia/Jakarta (id-ID)
@@ -946,57 +958,80 @@ export function AdminView() {
   return (
     <div className="min-h-screen md:h-screen md:overflow-hidden bg-tofu-silkblaze flex flex-col text-matcha-leaf">
       
-      {/* MOBILE SLIDE-OUT DRAWER OVERLAY */}
+      {/* SLIDE-OUT DRAWER OVERLAY (Awal: Icon-only tanpa tulisan; Saat disentuh/hover baru muncul tulisan) */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-50 animate-fadeIn">
           {/* Backdrop (tap to close) */}
           <div
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="absolute inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+            onClick={() => {
+              setIsMobileMenuOpen(false);
+              setIsDrawerExpanded(false);
+            }}
+            className="absolute inset-0 bg-black/50 backdrop-blur-xs transition-opacity"
           />
 
           {/* Drawer Body */}
-          <div className="relative w-72 max-w-[85vw] h-full bg-matcha-leaf text-tofu-silkblaze flex flex-col justify-between p-5 shadow-2xl border-r border-matcha-surface animate-slideRight">
+          <div
+            onMouseEnter={() => setIsDrawerExpanded(true)}
+            onMouseLeave={() => setIsDrawerExpanded(false)}
+            onTouchStart={() => {
+              if (!isDrawerExpanded) setIsDrawerExpanded(true);
+            }}
+            className={`relative h-full bg-matcha-leaf text-tofu-silkblaze flex flex-col justify-between shadow-2xl border-r border-matcha-surface animate-slideRight transition-all duration-200 overflow-hidden ${
+              isDrawerExpanded ? 'w-72 max-w-[85vw] p-5' : 'w-20 p-3'
+            }`}
+          >
             <div>
               {/* Drawer Header */}
-              <div className="flex items-center justify-between pb-4 border-b border-matcha-surface">
-                <div className="flex items-center space-x-2.5">
-                  <div className="w-9 h-9 rounded-full overflow-hidden relative border border-white/40 bg-white flex-shrink-0">
+              <div className={`flex items-center pb-4 border-b border-matcha-surface ${isDrawerExpanded ? 'justify-between' : 'justify-center'}`}>
+                <div className={`flex items-center ${isDrawerExpanded ? 'space-x-2.5' : ''}`}>
+                  <div
+                    onClick={() => setIsDrawerExpanded((prev) => !prev)}
+                    className="w-9 h-9 rounded-full overflow-hidden relative border border-white/40 bg-white flex-shrink-0 cursor-pointer"
+                    title="Sentuh untuk Perluas / Perkecil Menu"
+                  >
                     <Image src={storeSettings.storeLogo || '/images/logo/bubur-khalid-logo.png'} alt="Logo" fill className="object-cover" />
                   </div>
-                  <div>
-                    <div className="font-black text-sm text-white">{storeSettings.storeName}</div>
-                    <div className="text-[10px] text-noodle-cream">Menu Navigasi Admin</div>
-                  </div>
+                  {isDrawerExpanded && (
+                    <div className="whitespace-nowrap">
+                      <div className="font-black text-sm text-white">{storeSettings.storeName}</div>
+                      <div className="text-[10px] text-noodle-cream">Menu Navigasi Admin</div>
+                    </div>
+                  )}
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="w-8 h-8 rounded-full bg-matcha-surface text-stone-300 hover:text-white flex items-center justify-center transition active:scale-90"
-                  title="Tutup Menu"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+                {isDrawerExpanded && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      setIsDrawerExpanded(false);
+                    }}
+                    className="w-8 h-8 rounded-full bg-matcha-surface text-stone-300 hover:text-white flex items-center justify-center transition active:scale-90 flex-shrink-0"
+                    title="Tutup Menu"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
               </div>
 
-              {/* Navigation Items in Mobile Drawer */}
-              <nav className="mt-5 space-y-1.5">
+              {/* Navigation Items in Drawer */}
+              <nav className="mt-5 space-y-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    setActiveTab('dashboard');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold transition ${
+                  onClick={() => handleDrawerNavClick(() => setActiveTab('dashboard'))}
+                  className={`w-full flex items-center rounded-2xl text-xs font-bold transition ${
+                    isDrawerExpanded ? 'justify-between px-3.5 py-3' : 'justify-center p-3'
+                  } ${
                     activeTab === 'dashboard'
                       ? 'bg-spicy-ember text-white shadow-md'
                       : 'text-noodle-cream hover:bg-matcha-surface'
                   }`}
+                  title="Dashboard Operasional"
                 >
-                  <div className="flex items-center space-x-3">
-                    <LayoutDashboard className="w-4 h-4" />
-                    <span>Dashboard Operasional</span>
+                  <div className={`flex items-center ${isDrawerExpanded ? 'space-x-3' : ''}`}>
+                    <LayoutDashboard className="w-5 h-5 flex-shrink-0" />
+                    {isDrawerExpanded && <span className="whitespace-nowrap">Dashboard Operasional</span>}
                   </div>
                 </button>
 
@@ -1004,19 +1039,19 @@ export function AdminView() {
                 {(!currentUser || isAdminOrOwner) && (
                   <button
                     type="button"
-                    onClick={() => {
-                      setActiveTab('menu');
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold transition ${
+                    onClick={() => handleDrawerNavClick(() => setActiveTab('menu'))}
+                    className={`w-full flex items-center rounded-2xl text-xs font-bold transition ${
+                      isDrawerExpanded ? 'justify-between px-3.5 py-3' : 'justify-center p-3'
+                    } ${
                       activeTab === 'menu'
                         ? 'bg-spicy-ember text-white shadow-md'
                         : 'text-noodle-cream hover:bg-matcha-surface'
                     }`}
+                    title="Menu & Harga"
                   >
-                    <div className="flex items-center space-x-3">
-                      <UtensilsCrossed className="w-4 h-4" />
-                      <span>Menu & Harga</span>
+                    <div className={`flex items-center ${isDrawerExpanded ? 'space-x-3' : ''}`}>
+                      <UtensilsCrossed className="w-5 h-5 flex-shrink-0" />
+                      {isDrawerExpanded && <span className="whitespace-nowrap">Menu & Harga</span>}
                     </div>
                   </button>
                 )}
@@ -1025,19 +1060,19 @@ export function AdminView() {
                 {(!currentUser || isAdminOrOwner) && (
                   <button
                     type="button"
-                    onClick={() => {
-                      setActiveTab('tables');
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold transition ${
+                    onClick={() => handleDrawerNavClick(() => setActiveTab('tables'))}
+                    className={`w-full flex items-center rounded-2xl text-xs font-bold transition ${
+                      isDrawerExpanded ? 'justify-between px-3.5 py-3' : 'justify-center p-3'
+                    } ${
                       activeTab === 'tables'
                         ? 'bg-spicy-ember text-white shadow-md'
                         : 'text-noodle-cream hover:bg-matcha-surface'
                     }`}
+                    title="Meja & QR Code"
                   >
-                    <div className="flex items-center space-x-3">
-                      <QrCode className="w-4 h-4" />
-                      <span>Meja & QR Code</span>
+                    <div className={`flex items-center ${isDrawerExpanded ? 'space-x-3' : ''}`}>
+                      <QrCode className="w-5 h-5 flex-shrink-0" />
+                      {isDrawerExpanded && <span className="whitespace-nowrap">Meja & QR Code</span>}
                     </div>
                   </button>
                 )}
@@ -1045,70 +1080,78 @@ export function AdminView() {
                 {/* Security & Pengaturan (Bagi Kasir/Dapur tampil sebagai Akun & Sandi) */}
                 <button
                   type="button"
-                  onClick={() => {
-                    setStoreForm(storeSettings);
-                    setActiveTab('settings');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold transition ${
+                  onClick={() =>
+                    handleDrawerNavClick(() => {
+                      setStoreForm(storeSettings);
+                      setActiveTab('settings');
+                    })
+                  }
+                  className={`w-full flex items-center rounded-2xl text-xs font-bold transition ${
+                    isDrawerExpanded ? 'justify-between px-3.5 py-3' : 'justify-center p-3'
+                  } ${
                     activeTab === 'settings'
                       ? 'bg-spicy-ember text-white shadow-md'
                       : 'text-noodle-cream hover:bg-matcha-surface'
                   }`}
+                  title={isOwner ? 'Security & Pengaturan' : 'Akun & Ganti Sandi'}
                 >
-                  <div className="flex items-center space-x-3">
-                    <Shield className="w-4 h-4 text-yolk-blaze" />
-                    <span>{isOwner ? 'Security & Pengaturan' : 'Akun & Ganti Sandi'}</span>
+                  <div className={`flex items-center ${isDrawerExpanded ? 'space-x-3' : ''}`}>
+                    <Shield className="w-5 h-5 text-yolk-blaze flex-shrink-0" />
+                    {isDrawerExpanded && (
+                      <span className="whitespace-nowrap">
+                        {isOwner ? 'Security & Pengaturan' : 'Akun & Ganti Sandi'}
+                      </span>
+                    )}
                   </div>
                 </button>
 
-                {/* Laporan Keuangan (Owner): HANYA TAMPIL UNTUK ROLE OWNER */}
+                {/* Laporan Keuangan: HANYA TAMPIL UNTUK ROLE OWNER */}
                 {isOwner && (
                   <button
                     type="button"
-                    onClick={() => {
-                      setActiveView('owner-financial');
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold text-noodle-cream hover:bg-matcha-surface transition"
+                    onClick={() => handleDrawerNavClick(() => setActiveView('owner-financial'))}
+                    className={`w-full flex items-center rounded-2xl text-xs font-bold text-noodle-cream hover:bg-matcha-surface transition ${
+                      isDrawerExpanded ? 'justify-between px-3.5 py-3' : 'justify-center p-3'
+                    }`}
+                    title="Laporan Keuangan"
                   >
-                    <div className="flex items-center space-x-3">
-                      <FileText className="w-4 h-4 text-yolk-blaze" />
-                      <span>Laporan Keuangan</span>
+                    <div className={`flex items-center ${isDrawerExpanded ? 'space-x-3' : ''}`}>
+                      <FileText className="w-5 h-5 text-yolk-blaze flex-shrink-0" />
+                      {isDrawerExpanded && <span className="whitespace-nowrap">Laporan Keuangan</span>}
                     </div>
                   </button>
                 )}
 
-                {/* POS Kasir Tablet: Owner, Admin, dan Kasir */}
+                {/* POS Kasir: Owner, Admin, dan Kasir */}
                 {!isKitchen && (
                   <button
                     type="button"
-                    onClick={() => {
-                      setActiveView('pos');
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold text-noodle-cream hover:bg-matcha-surface transition"
+                    onClick={() => handleDrawerNavClick(() => setActiveView('pos'))}
+                    className={`w-full flex items-center rounded-2xl text-xs font-bold text-noodle-cream hover:bg-matcha-surface transition ${
+                      isDrawerExpanded ? 'justify-between px-3.5 py-3' : 'justify-center p-3'
+                    }`}
+                    title="POS Kasir"
                   >
-                    <div className="flex items-center space-x-3">
-                      <Calculator className="w-4 h-4 text-yolk-blaze" />
-                      <span>POS Kasir</span>
+                    <div className={`flex items-center ${isDrawerExpanded ? 'space-x-3' : ''}`}>
+                      <Calculator className="w-5 h-5 text-yolk-blaze flex-shrink-0" />
+                      {isDrawerExpanded && <span className="whitespace-nowrap">POS Kasir</span>}
                     </div>
                   </button>
                 )}
 
-                {/* Kitchen Display: Owner, Admin, dan Tim Dapur */}
+                {/* Data Pesanan: Owner, Admin, dan Tim Dapur */}
                 {!isCashier && (
                   <button
                     type="button"
-                    onClick={() => {
-                      setActiveView('kds');
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold text-noodle-cream hover:bg-matcha-surface transition"
+                    onClick={() => handleDrawerNavClick(() => setActiveView('kds'))}
+                    className={`w-full flex items-center rounded-2xl text-xs font-bold text-noodle-cream hover:bg-matcha-surface transition ${
+                      isDrawerExpanded ? 'justify-between px-3.5 py-3' : 'justify-center p-3'
+                    }`}
+                    title="Data Pesanan"
                   >
-                    <div className="flex items-center space-x-3">
-                      <ChefHat className="w-4 h-4 text-yolk-blaze" />
-                      <span>Data Pesanan</span>
+                    <div className={`flex items-center ${isDrawerExpanded ? 'space-x-3' : ''}`}>
+                      <ChefHat className="w-5 h-5 text-yolk-blaze flex-shrink-0" />
+                      {isDrawerExpanded && <span className="whitespace-nowrap">Data Pesanan</span>}
                     </div>
                   </button>
                 )}
@@ -1117,22 +1160,28 @@ export function AdminView() {
                 {(!currentUser || isAdminOrOwner) && (
                   <button
                     type="button"
-                    onClick={() => {
-                      setActiveTab('trash');
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold transition ${
+                    onClick={() => handleDrawerNavClick(() => setActiveTab('trash'))}
+                    className={`w-full flex items-center rounded-2xl text-xs font-bold transition relative ${
+                      isDrawerExpanded ? 'justify-between px-3.5 py-3' : 'justify-center p-3'
+                    } ${
                       activeTab === 'trash'
                         ? 'bg-spicy-ember text-white shadow-md'
                         : 'text-noodle-cream hover:bg-matcha-surface'
                     }`}
+                    title="Tong Sampah"
                   >
-                    <div className="flex items-center space-x-3">
-                      <Trash2 className="w-4 h-4" />
-                      <span>Tong Sampah</span>
+                    <div className={`flex items-center ${isDrawerExpanded ? 'space-x-3' : ''}`}>
+                      <Trash2 className="w-5 h-5 flex-shrink-0" />
+                      {isDrawerExpanded && <span className="whitespace-nowrap">Tong Sampah</span>}
                     </div>
                     {trashProducts.length > 0 && (
-                      <span className="bg-spicy-ember text-white text-[10px] font-black px-2 py-0.5 rounded-full">
+                      <span
+                        className={`bg-spicy-ember text-white font-black rounded-full ${
+                          isDrawerExpanded
+                            ? 'text-[10px] px-2 py-0.5'
+                            : 'absolute top-1.5 right-1.5 w-4 h-4 text-[9px] flex items-center justify-center border border-matcha-leaf'
+                        }`}
+                      >
                         {trashProducts.length}
                       </span>
                     )}
