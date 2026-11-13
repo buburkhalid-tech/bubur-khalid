@@ -2604,7 +2604,7 @@ export function CustomerView() {
                   <span>
                     {isSharingOrderPNG
                       ? 'Menyiapkan Struk PNG...'
-                      : `Kirim PNG ke WhatsApp Admin (${activeTrackingOrder.queue_number})`}
+                      : `Kirim ke Admin (${activeTrackingOrder.queue_number})`}
                   </span>
                   <ExternalLink className="w-3.5 h-3.5" />
                 </button>
