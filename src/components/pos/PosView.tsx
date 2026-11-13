@@ -22,6 +22,7 @@ import {
   X,
   MessageCircle,
   Share2,
+  Download,
 } from 'lucide-react';
 
 export function PosView() {
@@ -61,6 +62,137 @@ export function PosView() {
     if (typeof window !== 'undefined') {
       window.print();
     }
+  };
+
+  const handleDownloadReceiptPNG = () => {
+    if (!lastCompletedOrder || typeof document === 'undefined') return;
+    const width = 440;
+    const scale = 2;
+    const padding = 28;
+    const itemCount = lastCompletedOrder.items.length + (lastCompletedOrder.cup_fee > 0 ? 1 : 0);
+    const qrisExtra = lastCompletedOrder.payment_method === 'QRIS' ? 44 : 0;
+    const cashExtra = lastCompletedOrder.payment_method === 'CASH' ? 44 : 0;
+    const height = 430 + itemCount * 24 + qrisExtra + cashExtra;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width * scale;
+    canvas.height = height * scale;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.scale(scale, scale);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, height);
+
+    let y = 38;
+    const center = width / 2;
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#1b4332';
+    ctx.font = '900 18px sans-serif';
+    ctx.fillText((storeSettings.storeName || 'BUBUR KHALID').toUpperCase(), center, y);
+    y += 18;
+
+    ctx.fillStyle = '#78716c';
+    ctx.font = '11px monospace';
+    const telp = storeSettings.adminWhatsapp && storeSettings.adminWhatsapp !== '6281234567890' ? storeSettings.adminWhatsapp : '0852-7428-1819';
+    ctx.fillText(`${storeSettings.storeAddress || 'Jl. Zaini No. 1c'} • Telp: ${telp}`, center, y);
+    y += 16;
+    ctx.fillText(storeSettings.operatingHours || 'Buka: Senin-Sabtu 16.00-22.00 WIB', center, y);
+    y += 16;
+
+    // Dashed divider
+    ctx.strokeStyle = '#d6d3d1';
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(padding, y);
+    ctx.lineTo(width - padding, y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    y += 16;
+
+    // Queue box
+    ctx.fillStyle = '#fef3c7';
+    ctx.strokeStyle = '#fde68a';
+    ctx.lineWidth = 1;
+    ctx.fillRect(padding, y, width - padding * 2, 74);
+    ctx.strokeRect(padding, y, width - padding * 2, 74);
+
+    ctx.fillStyle = '#57534e';
+    ctx.font = 'bold 10px sans-serif';
+    ctx.fillText('NOMOR ANTREAN TOKO', center, y + 18);
+    ctx.fillStyle = '#e11d48';
+    ctx.font = '900 28px sans-serif';
+    ctx.fillText(lastCompletedOrder.queue_number, center, y + 48);
+    ctx.fillStyle = '#57534e';
+    ctx.font = '10px sans-serif';
+    ctx.fillText(`Urutan Dapur: #${lastCompletedOrder.global_queue_sequence} (FIFO)`, center, y + 64);
+    y += 94;
+
+    const drawRow = (label: string, val: string, bold = false, color = '#1b4332') => {
+      ctx.textAlign = 'left';
+      ctx.fillStyle = bold ? '#1b4332' : '#44403c';
+      ctx.font = `${bold ? 'bold ' : ''}11px monospace`;
+      ctx.fillText(label, padding, y);
+      ctx.textAlign = 'right';
+      ctx.fillStyle = color;
+      ctx.fillText(val, width - padding, y);
+      y += 18;
+    };
+
+    drawRow('Waktu:', `${new Date().toLocaleTimeString('id-ID')} WIB`);
+    drawRow('Kasir:', currentUser ? `${currentUser.name} (${currentUser.role})` : 'Kasir Toko');
+    drawRow('Pelanggan:', lastCompletedOrder.customer_name || 'Pelanggan Toko');
+    drawRow('Pembayaran:', `${lastCompletedOrder.payment_method} (LUNAS)`, true, '#047857');
+    if (lastCompletedOrder.payment_method === 'QRIS') {
+      drawRow('Provider:', lastCompletedOrder.qris_provider || 'BCA / QRIS');
+      drawRow('No. Ref/RRN:', lastCompletedOrder.qris_reference || '-');
+    }
+
+    y += 4;
+    ctx.strokeStyle = '#e7e5e4';
+    ctx.beginPath();
+    ctx.moveTo(padding, y);
+    ctx.lineTo(width - padding, y);
+    ctx.stroke();
+    y += 18;
+
+    lastCompletedOrder.items.forEach((it) => {
+      const name = `${it.quantity}x ${it.product_name_snapshot}${it.use_cup ? ' (Cup)' : ''}`;
+      drawRow(name, `Rp${it.line_total.toLocaleString('id-ID')}`);
+    });
+    if (lastCompletedOrder.cup_fee > 0) {
+      drawRow('Biaya Bungkus Cup', `Rp${lastCompletedOrder.cup_fee.toLocaleString('id-ID')}`, false, '#78716c');
+    }
+
+    y += 4;
+    ctx.strokeStyle = '#d6d3d1';
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(padding, y);
+    ctx.lineTo(width - padding, y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    y += 20;
+
+    drawRow('TOTAL:', `Rp${lastCompletedOrder.total_amount.toLocaleString('id-ID')}`, true, '#1b4332');
+    if (lastCompletedOrder.payment_method === 'CASH') {
+      drawRow('Tunai:', `Rp${(lastCompletedOrder.total_amount + lastChange).toLocaleString('id-ID')}`, false, '#78716c');
+      drawRow('Kembalian:', `Rp${lastChange.toLocaleString('id-ID')}`, true, '#047857');
+    }
+
+    y += 12;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#78716c';
+    ctx.font = '10px sans-serif';
+    ctx.fillText('Terima Kasih Atas Kunjungan Anda!', center, y);
+    y += 14;
+    ctx.fillText('Harap simpan struk ini untuk mengambil pesanan.', center, y);
+
+    const link = document.createElement('a');
+    link.download = `Struk-${lastCompletedOrder.queue_number}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
   };
 
   const handleShareToWhatsApp = () => {
@@ -745,7 +877,16 @@ Simpan struk ini untuk mengambil pesanan.`;
             </div>
 
             {/* Action Buttons (no-print) */}
-            <div className="no-print flex flex-col sm:flex-row gap-2.5 mt-5 font-sans">
+            <div className="no-print flex flex-wrap sm:flex-nowrap gap-2 mt-5 font-sans">
+              <button
+                type="button"
+                onClick={handleDownloadReceiptPNG}
+                className="bg-amber-500 hover:bg-amber-600 text-white py-3 px-3.5 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition cursor-pointer flex-shrink-0"
+                title="Simpan struk sebagai gambar PNG"
+              >
+                <Download className="w-4 h-4 flex-shrink-0" />
+                <span className="whitespace-nowrap">Download PNG</span>
+              </button>
               <button
                 type="button"
                 onClick={handlePrintReceipt}
@@ -761,7 +902,7 @@ Simpan struk ini untuk mengambil pesanan.`;
                   setIsReceiptOpen(false);
                   setCustomerWhatsapp('');
                 }}
-                className="bg-stone-100 hover:bg-stone-200 text-stone-700 py-3 px-5 rounded-xl text-xs font-bold transition cursor-pointer active:scale-95 flex-shrink-0"
+                className="bg-stone-100 hover:bg-stone-200 text-stone-700 py-3 px-4 rounded-xl text-xs font-bold transition cursor-pointer active:scale-95 flex-shrink-0"
               >
                 Tutup / Selesai
               </button>
