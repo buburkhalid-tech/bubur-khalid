@@ -699,53 +699,54 @@ export function AdminView() {
   const [formImage, setFormImage] = useState<string>('');
   const [formAvailable, setFormAvailable] = useState<boolean>(true);
 
-  // Pop-Slide Collapsible Sidebar State (Default: only icons visible; slides open on touch/hover)
-  const [isSidebarHovered, setIsSidebarHovered] = useState<boolean>(false);
-  const [isSidebarPinned, setIsSidebarPinned] = useState<boolean>(false);
-
-  // Floating Dashboard Icon Position & Drag State (Bisa digeser bebas agar tidak mengganggu UI)
+  // Floating Logo Button Position & Drag State (Hanya 1 logo floating yang bisa digeser bebas)
   const [floatingPos, setFloatingPos] = useState<{ x: number; y: number } | null>(null);
-  const [isFloatingDragging, setIsFloatingDragging] = useState<boolean>(false);
   const floatingDragRef = useRef<{
+    isDragging: boolean;
     startX: number;
     startY: number;
     initialX: number;
     initialY: number;
+    currentX: number;
+    currentY: number;
     hasMoved: boolean;
   }>({
+    isDragging: false,
     startX: 0,
     startY: 0,
     initialX: 0,
     initialY: 0,
+    currentX: 0,
+    currentY: 0,
     hasMoved: false,
   });
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    let initial = {
+      x: Math.max(16, window.innerWidth - 76),
+      y: Math.max(16, window.innerHeight - 92),
+    };
     const saved = localStorage.getItem('bubur_khalid_admin_floating_pos');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
         if (typeof parsed.x === 'number' && typeof parsed.y === 'number') {
-          const clampedX = Math.min(Math.max(16, parsed.x), window.innerWidth - 64);
-          const clampedY = Math.min(Math.max(16, parsed.y), window.innerHeight - 64);
-          setFloatingPos({ x: clampedX, y: clampedY });
-          return;
+          initial = {
+            x: Math.min(Math.max(12, parsed.x), window.innerWidth - 68),
+            y: Math.min(Math.max(12, parsed.y), window.innerHeight - 68),
+          };
         }
       } catch (_) {}
     }
-    // Default kanan bawah agar tidak menghalangi tabel/kartu utama
-    setFloatingPos({
-      x: Math.max(16, window.innerWidth - 68),
-      y: Math.max(16, window.innerHeight - 90),
-    });
+    setFloatingPos(initial);
 
     const handleResize = () => {
       setFloatingPos((prev) => {
         if (!prev) return null;
         return {
-          x: Math.min(Math.max(16, prev.x), window.innerWidth - 64),
-          y: Math.min(Math.max(16, prev.y), window.innerHeight - 64),
+          x: Math.min(Math.max(12, prev.x), window.innerWidth - 68),
+          y: Math.min(Math.max(12, prev.y), window.innerHeight - 68),
         };
       });
     };
@@ -756,37 +757,43 @@ export function AdminView() {
   const handleFloatingPointerDown = (clientX: number, clientY: number) => {
     if (!floatingPos) return;
     floatingDragRef.current = {
+      isDragging: true,
       startX: clientX,
       startY: clientY,
       initialX: floatingPos.x,
       initialY: floatingPos.y,
+      currentX: floatingPos.x,
+      currentY: floatingPos.y,
       hasMoved: false,
     };
-    setIsFloatingDragging(true);
   };
 
   const handleFloatingPointerMove = (clientX: number, clientY: number) => {
-    if (!isFloatingDragging || !floatingPos) return;
+    if (!floatingDragRef.current.isDragging) return;
     const dx = clientX - floatingDragRef.current.startX;
     const dy = clientY - floatingDragRef.current.startY;
     if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
       floatingDragRef.current.hasMoved = true;
     }
-    const nextX = Math.min(Math.max(12, floatingDragRef.current.initialX + dx), window.innerWidth - 60);
-    const nextY = Math.min(Math.max(12, floatingDragRef.current.initialY + dy), window.innerHeight - 60);
+    const nextX = Math.min(Math.max(12, floatingDragRef.current.initialX + dx), window.innerWidth - 68);
+    const nextY = Math.min(Math.max(12, floatingDragRef.current.initialY + dy), window.innerHeight - 68);
+    floatingDragRef.current.currentX = nextX;
+    floatingDragRef.current.currentY = nextY;
     setFloatingPos({ x: nextX, y: nextY });
   };
 
   const handleFloatingPointerUp = () => {
-    if (!isFloatingDragging) return;
-    setIsFloatingDragging(false);
-    if (floatingDragRef.current.hasMoved && floatingPos) {
-      localStorage.setItem('bubur_khalid_admin_floating_pos', JSON.stringify(floatingPos));
+    if (!floatingDragRef.current.isDragging) return;
+    floatingDragRef.current.isDragging = false;
+    if (floatingDragRef.current.hasMoved) {
+      localStorage.setItem(
+        'bubur_khalid_admin_floating_pos',
+        JSON.stringify({ x: floatingDragRef.current.currentX, y: floatingDragRef.current.currentY })
+      );
     } else {
       setIsMobileMenuOpen((prev) => !prev);
     }
   };
-  const isSidebarOpen = isSidebarHovered || isSidebarPinned;
 
   // Live dynamic today date formatted in Asia/Jakarta (id-ID)
   const liveTodayIndo = useMemo(() => {
@@ -937,50 +944,8 @@ export function AdminView() {
   };
 
   return (
-    <div className="min-h-screen md:h-screen md:overflow-hidden bg-tofu-silkblaze flex flex-col md:flex-row text-matcha-leaf">
+    <div className="min-h-screen md:h-screen md:overflow-hidden bg-tofu-silkblaze flex flex-col text-matcha-leaf">
       
-      {/* TOP HEADER BAR (With 🍔 Hamburger Menu Button) */}
-      <div className="flex items-center justify-between bg-matcha-leaf text-tofu-silkblaze px-4 py-3 sticky top-0 z-40 border-b border-matcha-surface shadow-md">
-        <div className="flex items-center space-x-3">
-          {/* 🍔 Hamburger Button */}
-          <button
-            type="button"
-            onClick={() => setIsMobileMenuOpen(true)}
-            className="w-10 h-10 rounded-xl bg-matcha-surface hover:bg-spicy-ember text-tofu-silkblaze flex items-center justify-center transition active:scale-95 shadow-sm"
-            title="Buka Menu Navigasi"
-          >
-            <Menu className="w-5 h-5 text-noodle-cream" />
-          </button>
-
-          {/* Logo & Current View Title */}
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 rounded-full overflow-hidden relative border border-white/40 bg-white flex-shrink-0">
-              <Image src={storeSettings.storeLogo || '/images/logo/bubur-khalid-logo.png'} alt="Logo" fill className="object-cover" />
-            </div>
-            <div>
-              <div className="font-black text-xs text-white leading-tight">{storeSettings.storeName}</div>
-              <div className="text-[10px] text-yolk-blaze font-bold">
-                {activeTab === 'dashboard'
-                  ? 'Dashboard Operasional'
-                  : activeTab === 'menu'
-                  ? 'Manajemen Menu'
-                  : activeTab === 'tables'
-                  ? 'Manajemen Meja'
-                  : activeTab === 'settings'
-                  ? (isOwner ? 'Security & Toko' : 'Akun & Keamanan')
-                  : 'Tong Sampah'}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Status Indicator */}
-        <div className="flex items-center space-x-1.5 bg-black/20 px-2.5 py-1 rounded-full text-[10px] font-bold">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span>Admin</span>
-        </div>
-      </div>
-
       {/* MOBILE SLIDE-OUT DRAWER OVERLAY */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-50 animate-fadeIn">
@@ -5639,7 +5604,7 @@ export function AdminView() {
         </div>
       )}
 
-      {/* FLOATING DASHBOARD BUTTON (Draggable anywhere on screen, click to open slide menu) */}
+      {/* FLOATING BUBUR KHALID LOGO (Hanya 1 logo bulat melayang, bisa digeser bebas, klik untuk buka slide menu) */}
       {floatingPos && (
         <div
           style={{ left: `${floatingPos.x}px`, top: `${floatingPos.y}px` }}
@@ -5648,6 +5613,7 @@ export function AdminView() {
           <button
             type="button"
             onMouseDown={(e) => {
+              e.preventDefault();
               handleFloatingPointerDown(e.clientX, e.clientY);
               const onMouseMove = (moveEvent: MouseEvent) => {
                 handleFloatingPointerMove(moveEvent.clientX, moveEvent.clientY);
@@ -5673,26 +5639,26 @@ export function AdminView() {
             onTouchEnd={() => {
               handleFloatingPointerUp();
             }}
-            className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-floating border-2 transition-transform cursor-grab active:cursor-grabbing active:scale-95 ${
+            className={`w-14 h-14 rounded-full bg-white shadow-2xl border-2 flex items-center justify-center overflow-hidden transition-transform cursor-grab active:cursor-grabbing active:scale-95 ${
               isMobileMenuOpen
-                ? 'bg-spicy-ember text-white border-white ring-4 ring-spicy-ember/30 rotate-90 scale-105'
-                : 'bg-matcha-deep/95 hover:bg-matcha-deep text-noodle-cream border-matcha-surface hover:scale-105'
+                ? 'border-spicy-ember ring-4 ring-spicy-ember/30 scale-105'
+                : 'border-matcha-leaf/25 hover:scale-105 hover:border-spicy-ember/60'
             }`}
-            title="Menu Navigasi Toko (Klik untuk Buka Slide Menu / Geser untuk Pindahkan Posisi)"
+            title="Menu Navigasi Toko (Klik untuk Buka Menu / Geser untuk Pindahkan Posisi)"
             aria-label="Buka Slide Menu"
           >
-            {isMobileMenuOpen ? (
-              <X className="w-5 h-5 text-white" />
-            ) : (
-              <div className="relative flex items-center justify-center">
-                <LayoutDashboard className="w-5 h-5 text-yolk-blaze" />
-                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-400 animate-pulse ring-1 ring-black/40" />
-              </div>
-            )}
+            <div className="relative w-12 h-12 rounded-full overflow-hidden pointer-events-none">
+              <Image
+                src={storeSettings.storeLogo || '/images/logo/bubur-khalid-logo.png'}
+                alt="Menu Navigasi Bubur Khalid"
+                fill
+                draggable={false}
+                className="object-contain p-0.5 select-none pointer-events-none"
+              />
+            </div>
           </button>
         </div>
       )}
-
     </div>
   );
 }
