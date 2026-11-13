@@ -107,7 +107,7 @@ export function KdsView() {
                 : 'text-stone-400 hover:text-white'
             }`}
           >
-            <span>Siap Disajikan</span>
+            <span>Siap</span>
             <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
               filterStatus === 'READY' ? 'bg-black/25 text-white' : 'bg-stone-800 text-stone-300'
             }`}>
@@ -199,7 +199,7 @@ export function KdsView() {
                           : 'bg-stone-700 text-stone-200'
                       }`}
                     >
-                      {isReady ? 'SIAP DISAJIKAN' : isPreparing ? 'SEDANG DIMASAK' : 'MENUNGGU'}
+                      {isReady ? 'SIAP' : isPreparing ? 'SEDANG DIMASAK' : 'MENUNGGU'}
                     </span>
                     <div className="text-[10px] text-stone-400 mt-1">{order.customer_name}</div>
                   </div>
