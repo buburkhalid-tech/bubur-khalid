@@ -914,7 +914,9 @@ export function AdminView() {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setStoreForm((prev) => ({ ...prev, bannerImage: reader.result as string }));
+        const dataUrl = reader.result as string;
+        setStoreForm((prev) => ({ ...prev, bannerImage: dataUrl }));
+        updateStoreSettings({ bannerImage: dataUrl });
       };
       reader.readAsDataURL(file);
     }
@@ -4071,21 +4073,56 @@ export function AdminView() {
                 </div>
 
                 {/* Banner Photo Editor */}
-                <div className="md:col-span-2 p-3.5 bg-tofu-silkblaze rounded-xl border border-noodle-dark/60 space-y-3">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-20 h-14 rounded-xl overflow-hidden relative bg-white border border-stone-300 flex-shrink-0 shadow-sm">
-                      <Image
-                        src={storeForm.bannerImage || '/images/hero-banner-wide.jpg'}
-                        alt="Foto Banner"
-                        fill
-                        className="object-cover"
-                      />
+                <div className="md:col-span-2 p-4 bg-tofu-silkblaze rounded-xl border border-noodle-dark/60 flex flex-col sm:flex-row items-center gap-4">
+                  <div className="w-full sm:w-28 h-28 sm:h-16 rounded-xl overflow-hidden relative bg-white border border-stone-300 flex-shrink-0 shadow-sm">
+                    <Image
+                      src={storeForm.bannerImage || '/images/hero-banner-wide.jpg'}
+                      alt="Foto Banner"
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+
+                  <div className="flex-1 w-full space-y-1.5 text-xs">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-[11px] font-semibold text-stone-600">
+                        Path, URL Gambar, atau Link Google Drive:
+                      </label>
+                      {isGoogleDriveLink(storeForm.bannerImage) && (
+                        <span className="bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded font-bold text-[9px]">
+                          ✓ Auto-Saved
+                        </span>
+                      )}
                     </div>
 
-                    <div className="flex-1 space-y-2">
-                      <label className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white border border-stone-300 rounded-lg font-bold text-stone-700 cursor-pointer hover:bg-noodle-cream transition shadow-sm text-xs">
-                        <Upload className="w-3.5 h-3.5 text-spicy-ember" />
-                        <span>Unggah Banner</span>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        placeholder="Paste link Google Drive atau path banner..."
+                        value={storeForm.bannerImage}
+                        onChange={(e) => {
+                          const rawVal = e.target.value;
+                          const parsed = parseImageUrl(rawVal);
+                          setStoreForm((prev) => ({ ...prev, bannerImage: parsed }));
+                          if (
+                            isGoogleDriveLink(rawVal) ||
+                            isGoogleDriveLink(parsed) ||
+                            parsed.startsWith('https://') ||
+                            parsed.startsWith('http://') ||
+                            parsed.startsWith('/') ||
+                            parsed.startsWith('data:image/')
+                          ) {
+                            updateStoreSettings({ bannerImage: parsed });
+                          }
+                        }}
+                        className="flex-1 min-w-0 bg-white border border-stone-300 rounded-xl px-3 py-2 text-xs font-mono text-stone-800 focus:outline-none focus:border-spicy-ember"
+                      />
+                      <label
+                        className="w-9 h-9 shrink-0 bg-spicy-ember hover:bg-spicy-hover text-white rounded-xl flex items-center justify-center cursor-pointer transition shadow-sm active:scale-95"
+                        title="Unggah Banner"
+                        aria-label="Unggah Banner"
+                      >
+                        <Upload className="w-4 h-4" />
                         <input
                           type="file"
                           accept="image/*"
@@ -4093,25 +4130,11 @@ export function AdminView() {
                           className="hidden"
                         />
                       </label>
-                      <div className="flex items-center justify-between text-[10px] text-stone-500">
-                        <span>Atau gunakan URL / Link Google Drive:</span>
-                        {isGoogleDriveLink(storeForm.bannerImage) && (
-                          <span className="bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded font-bold text-[9px]">
-                            ✓ Google Drive Terhubung
-                          </span>
-                        )}
-                      </div>
-                      <input
-                        type="text"
-                        placeholder="Path gambar atau link Google Drive (https://drive.google.com/...)"
-                        value={storeForm.bannerImage}
-                        onChange={(e) => setStoreForm({ ...storeForm, bannerImage: parseImageUrl(e.target.value) })}
-                        className="w-full bg-white border border-stone-200 rounded-lg px-2.5 py-1 text-[11px] font-mono text-stone-800 focus:outline-none focus:border-spicy-ember"
-                      />
-                      <p className="text-[9.5px] text-stone-500 leading-tight">
-                        💡 <strong>Tips Komposisi:</strong> Resolusi ideal <strong>1200 × 600 px</strong> (Landscape rasio 2:1). Letakkan mangkuk bubur di <strong>sisi kanan</strong>, sisi kiri akan otomatis dibaurkan dengan teks judul & harga. Mendukung link share Google Drive.
-                      </p>
                     </div>
+
+                    <p className="text-[9.5px] text-stone-500 leading-tight">
+                      💡 <strong>Tips Komposisi:</strong> Resolusi ideal <strong>1200 × 600 px</strong> (Landscape rasio 2:1). Letakkan mangkuk bubur di <strong>sisi kanan</strong>, sisi kiri akan otomatis dibaurkan dengan teks judul &amp; harga. Mendukung link share Google Drive.
+                    </p>
                   </div>
                 </div>
               </div>
