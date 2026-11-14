@@ -2828,19 +2828,16 @@ export function AdminView() {
                 <div>
                   <div className="flex items-center space-x-2">
                     <h3 className="font-extrabold text-sm text-matcha-leaf">
-                      Kemasan & Opsi Tambahan (Add-on)
+                      Opsi Tambahan
                     </h3>
                     <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${
                       (storeSettings.cupEnabled !== false)
                         ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                         : 'bg-stone-200 text-stone-600 border border-stone-300'
                     }`}>
-                      {(storeSettings.cupEnabled !== false) ? '🟢 Aktif di Menu' : '⚪ Non-Aktif / Terhapus'}
+                      {(storeSettings.cupEnabled !== false) ? '🟢 Aktif' : '⚪ Non-Aktif / Terhapus'}
                     </span>
                   </div>
-                  <p className="text-[11px] text-stone-500 mt-0.5">
-                    Opsi kemasan berbayar yang tampil saat pelanggan memilih pesanan bungkus/takeaway.
-                  </p>
                 </div>
 
                 {!cupEditMode && (
@@ -2851,7 +2848,7 @@ export function AdminView() {
                       className="bg-stone-100 hover:bg-stone-200 text-matcha-leaf font-bold text-xs px-3.5 py-2 rounded-xl border border-stone-300 flex items-center space-x-1.5 transition cursor-pointer"
                     >
                       <Edit2 className="w-3.5 h-3.5 text-matcha-leaf" />
-                      <span>Edit Kemasan</span>
+                      <span>Edit</span>
                     </button>
                     {(storeSettings.cupEnabled !== false) ? (
                       <button
@@ -2881,7 +2878,7 @@ export function AdminView() {
                 <div className="space-y-3">
                   <div className="bg-stone-50 p-4 rounded-xl border border-stone-200">
                     <div className="text-[10px] font-bold text-stone-400 uppercase tracking-wider mb-2">
-                      Preview Tampilan pada Popup Menu Pelanggan:
+                      Preview Custumer
                     </div>
                     {/* Exact Card matching customer view */}
                     <div className="p-3 bg-noodle-cream/40 rounded-xl border border-noodle-dark flex items-center justify-between max-w-md shadow-xs">
@@ -2896,7 +2893,7 @@ export function AdminView() {
                       <span className={`px-3 py-1 rounded-lg text-xs font-bold ${
                         (storeSettings.cupEnabled !== false) ? 'bg-spicy-ember text-white' : 'bg-stone-300 text-stone-600'
                       }`}>
-                        Gunakan (+{Math.round((storeSettings.cupFee ?? 1000) / 1000)}rb)
+                        Gunakan
                       </span>
                     </div>
                   </div>
@@ -2937,7 +2934,7 @@ export function AdminView() {
                       </div>
                     </div>
                     <span className="px-3 py-1 rounded-lg text-xs font-bold bg-spicy-ember text-white">
-                      Gunakan (+{Math.round((Number(cupForm.fee) || 0) / 1000)}rb)
+                      Gunakan
                     </span>
                   </div>
 

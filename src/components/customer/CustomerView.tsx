@@ -1862,7 +1862,7 @@ export function CustomerView() {
                         }`}
                       >
                         {modalUseCup
-                          ? `Gunakan (+${Math.round((storeSettings.cupFee ?? 1000) / 1000)}rb)`
+                          ? 'Gunakan'
                           : 'Tanpa Cup'}
                       </button>
                     </div>
