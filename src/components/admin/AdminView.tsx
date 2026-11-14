@@ -3324,57 +3324,65 @@ export function AdminView() {
 
             {/* Top Sub-Navigation Tabs: HANYA TAMPIL UNTUK OWNER */}
             {isOwner && (
-              <div className="flex flex-wrap gap-2 p-1.5 bg-stone-200/80 rounded-2xl border border-stone-300">
+              <div className="grid grid-cols-4 sm:flex sm:flex-wrap gap-1.5 sm:gap-2 p-1.5 bg-stone-200/80 rounded-2xl border border-stone-300">
                 <button
                   type="button"
                   onClick={() => setSettingsSubTab('security')}
-                  className={`flex-1 min-w-[170px] py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-center space-x-2 ${
+                  title="Security & Pengguna"
+                  aria-label="Security & Pengguna"
+                  className={`sm:flex-1 sm:min-w-[170px] py-3 sm:py-2.5 px-2 sm:px-3 rounded-xl text-xs font-black transition flex items-center justify-center sm:space-x-2 cursor-pointer ${
                     settingsSubTab === 'security'
                       ? 'bg-spicy-ember text-white shadow-md'
-                      : 'bg-transparent text-stone-700 hover:bg-stone-300/50'
+                      : 'bg-white/70 sm:bg-transparent text-stone-700 hover:bg-stone-300/50'
                   }`}
                 >
-                  <Shield className="w-4 h-4" />
-                  <span className="whitespace-nowrap">Security & Pengguna</span>
+                  <Shield className="w-5 h-5 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline whitespace-nowrap">Security & Pengguna</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setSettingsSubTab('promo')}
-                  className={`flex-1 min-w-[190px] py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-center space-x-2 ${
+                  title="Banner Promosi"
+                  aria-label="Banner Promosi"
+                  className={`relative sm:flex-1 sm:min-w-[190px] py-3 sm:py-2.5 px-2 sm:px-3 rounded-xl text-xs font-black transition flex items-center justify-center sm:space-x-2 cursor-pointer ${
                     settingsSubTab === 'promo'
                       ? 'bg-spicy-ember text-white shadow-md'
-                      : 'bg-transparent text-stone-700 hover:bg-stone-300/50'
+                      : 'bg-white/70 sm:bg-transparent text-stone-700 hover:bg-stone-300/50'
                   }`}
                 >
-                  <Sparkles className="w-4 h-4 text-yolk-blaze" />
-                  <span className="whitespace-nowrap">Banner Promosi</span>
-                  <span className="bg-yolk-blaze text-stone-950 text-[10px] px-1.5 py-0.2 rounded-full font-black">
+                  <Sparkles className="w-5 h-5 sm:w-4 sm:h-4 text-yolk-blaze" />
+                  <span className="hidden sm:inline whitespace-nowrap">Banner Promosi</span>
+                  <span className="absolute top-1 right-1 sm:static bg-yolk-blaze text-stone-950 text-[9px] sm:text-[10px] px-1.5 py-0.2 rounded-full font-black leading-tight">
                     {promoBanners?.length || 0}
                   </span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setSettingsSubTab('banner')}
-                  className={`flex-1 min-w-[160px] py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-center space-x-2 ${
+                  title="Hero Banner & Profil"
+                  aria-label="Hero Banner & Profil"
+                  className={`sm:flex-1 sm:min-w-[160px] py-3 sm:py-2.5 px-2 sm:px-3 rounded-xl text-xs font-black transition flex items-center justify-center sm:space-x-2 cursor-pointer ${
                     settingsSubTab === 'banner'
                       ? 'bg-spicy-ember text-white shadow-md'
-                      : 'bg-transparent text-stone-700 hover:bg-stone-300/50'
+                      : 'bg-white/70 sm:bg-transparent text-stone-700 hover:bg-stone-300/50'
                   }`}
                 >
-                  <Store className="w-4 h-4" />
-                  <span>Hero Banner & Profil</span>
+                  <Store className="w-5 h-5 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Hero Banner & Profil</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setSettingsSubTab('payment')}
-                  className={`flex-1 min-w-[160px] py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-center space-x-2 ${
+                  title="Metode Pembayaran"
+                  aria-label="Metode Pembayaran"
+                  className={`sm:flex-1 sm:min-w-[160px] py-3 sm:py-2.5 px-2 sm:px-3 rounded-xl text-xs font-black transition flex items-center justify-center sm:space-x-2 cursor-pointer ${
                     settingsSubTab === 'payment'
                       ? 'bg-spicy-ember text-white shadow-md'
-                      : 'bg-transparent text-stone-700 hover:bg-stone-300/50'
+                      : 'bg-white/70 sm:bg-transparent text-stone-700 hover:bg-stone-300/50'
                   }`}
                 >
-                  <CreditCard className="w-4 h-4" />
-                  <span>Metode Pembayaran</span>
+                  <CreditCard className="w-5 h-5 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Metode Pembayaran</span>
                 </button>
               </div>
             )}
