@@ -3511,30 +3511,33 @@ export function AdminView() {
                   </div>
                   {/* Tombol Pendaftaran Karyawan: Khusus Owner */}
                   {isOwner ? (
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
                       <button
                         type="button"
                         onClick={() => handleOpenAddUser('ADMIN')}
-                        className="px-3.5 py-2 bg-matcha-leaf hover:bg-matcha-leaf/90 text-white rounded-xl text-xs font-extrabold flex items-center space-x-1.5 shadow-sm transition active:scale-95 cursor-pointer"
+                        title="Tambah Admin"
+                        aria-label="Tambah Admin"
+                        className="w-9 h-9 bg-matcha-leaf hover:bg-matcha-leaf/90 text-white rounded-xl flex items-center justify-center shadow-sm transition active:scale-95 cursor-pointer"
                       >
-                        <UserPlus className="w-3.5 h-3.5" />
-                        <span>Tambah Admin</span>
+                        <UserPlus className="w-4 h-4" />
                       </button>
                       <button
                         type="button"
                         onClick={() => handleOpenAddUser('CASHIER')}
-                        className="px-3.5 py-2 bg-spicy-ember hover:bg-spicy-hover text-white rounded-xl text-xs font-extrabold flex items-center space-x-1.5 shadow-sm transition active:scale-95 cursor-pointer"
+                        title="Tambah Kasir"
+                        aria-label="Tambah Kasir"
+                        className="w-9 h-9 bg-spicy-ember hover:bg-spicy-hover text-white rounded-xl flex items-center justify-center shadow-sm transition active:scale-95 cursor-pointer"
                       >
-                        <UserPlus className="w-3.5 h-3.5" />
-                        <span>Tambah Kasir</span>
+                        <UserPlus className="w-4 h-4" />
                       </button>
                       <button
                         type="button"
                         onClick={() => handleOpenAddUser('OWNER')}
-                        className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-extrabold flex items-center space-x-1.5 shadow-sm transition active:scale-95 cursor-pointer"
+                        title="Tambah Owner"
+                        aria-label="Tambah Owner"
+                        className="w-9 h-9 bg-amber-600 hover:bg-amber-700 text-white rounded-xl flex items-center justify-center shadow-sm transition active:scale-95 cursor-pointer"
                       >
-                        <UserPlus className="w-3.5 h-3.5" />
-                        <span>Tambah Owner</span>
+                        <UserPlus className="w-4 h-4" />
                       </button>
                     </div>
                   ) : (
