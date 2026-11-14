@@ -2660,8 +2660,8 @@ export function AdminView() {
                         <span className="text-[10px] text-stone-500 font-normal">PNG / JPG resolusi tinggi</span>
                       </div>
                       
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                        <div className="w-20 h-20 rounded-xl overflow-hidden relative flex-shrink-0 bg-white border-2 border-spicy-ember/30 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden relative flex-shrink-0 bg-white border-2 border-spicy-ember/30 shadow-sm">
                           {formImage ? (
                             <Image src={formImage} alt="Preview Foto" fill className="object-cover" />
                           ) : (
@@ -2671,35 +2671,37 @@ export function AdminView() {
                           )}
                         </div>
 
-                        <div className="flex-1 w-full space-y-2">
-                          <label className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white border border-stone-300 rounded-lg font-bold text-stone-700 cursor-pointer hover:bg-noodle-cream transition shadow-sm text-xs">
-                            <Upload className="w-3.5 h-3.5 text-spicy-ember" />
-                            <span>Unggah Foto dari Komputer</span>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={handleImageFileChange}
-                              className="hidden"
-                            />
-                          </label>
+                        <div className="flex-1 min-w-0 space-y-1.5">
                           <div className="flex items-center justify-between text-[10px] text-stone-500">
-                            <span>Atau gunakan URL / Link Google Drive:</span>
+                            <span>URL / Link Google Drive:</span>
                             {isGoogleDriveLink(formImage) && (
-                              <span className="bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded font-bold text-[9px]">
+                              <span className="bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-bold text-[9px]">
                                 ✓ Google Drive Terhubung
                               </span>
                             )}
                           </div>
-                          <input
-                            type="text"
-                            placeholder="Path gambar atau link Google Drive (https://drive.google.com/...)"
-                            value={formImage}
-                            onChange={(e) => setFormImage(parseImageUrl(e.target.value))}
-                            className="w-full bg-white border border-stone-200 rounded-lg px-2.5 py-1 text-[11px] font-mono text-stone-800 focus:outline-none focus:border-spicy-ember"
-                          />
-                          <p className="text-[9px] text-stone-400 italic">
-                            *Dapat paste link share Google Drive langsung (Pastikan akses file: &quot;Siapa saja yang memiliki link&quot;).
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              placeholder="Path gambar atau link Google Drive..."
+                              value={formImage}
+                              onChange={(e) => setFormImage(parseImageUrl(e.target.value))}
+                              className="flex-1 min-w-0 bg-white border border-stone-200 rounded-lg px-2.5 py-2 text-[11px] font-mono text-stone-800 focus:outline-none focus:border-spicy-ember"
+                            />
+                            <label
+                              title="Unggah Foto dari Komputer"
+                              aria-label="Unggah Foto dari Komputer"
+                              className="shrink-0 w-9 h-9 bg-white border border-stone-300 rounded-lg flex items-center justify-center text-spicy-ember cursor-pointer hover:bg-noodle-cream transition shadow-sm active:scale-95"
+                            >
+                              <Upload className="w-4 h-4" />
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleImageFileChange}
+                                className="hidden"
+                              />
+                            </label>
+                          </div>
                         </div>
                       </div>
 
