@@ -2639,20 +2639,7 @@ export function AdminView() {
                 <div className="bg-white rounded-2xl max-w-lg w-full max-h-[92vh] overflow-y-auto p-4 sm:p-6 shadow-floating border border-stone-200 text-matcha-leaf relative animate-slideUp">
                   
                   {/* Modal Header */}
-                  <div className="flex items-center justify-between pb-3 border-b border-stone-200">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-8 h-8 rounded-lg bg-spicy-ember text-white flex items-center justify-center flex-shrink-0">
-                        <UtensilsCrossed className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h3 className="font-extrabold text-sm text-matcha-leaf">
-                          {isAddMode ? 'Tambah Menu' : `Edit Menu: ${editingProduct?.name}`}
-                        </h3>
-                        <p className="text-[10px] text-stone-500">
-                          Ubah nama, foto produk, harga, kategori, dan deskripsi
-                        </p>
-                      </div>
-                    </div>
+                  <div className="flex items-center justify-end pb-2">
                     <button
                       onClick={() => {
                         setEditingProduct(null);
