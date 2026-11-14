@@ -1272,7 +1272,7 @@ export function AdminView() {
                   )}
 
                   {/* Daftar Pesanan Terbaru */}
-                  <div className="max-h-80 overflow-y-auto divide-y divide-stone-100 p-2">
+                  <div className="max-h-[65vh] sm:max-h-80 overflow-y-auto p-2.5 space-y-2 bg-stone-50/50">
                     {orders.length === 0 ? (
                       <div className="py-8 text-center text-stone-400 text-xs">
                         Belum ada riwayat pesanan.
@@ -1286,55 +1286,66 @@ export function AdminView() {
                         return (
                           <div
                             key={ord.id}
-                            className={`p-2.5 rounded-xl transition flex items-start space-x-3 cursor-pointer ${
+                            className={`p-3 rounded-xl transition cursor-pointer border ${
                               isNew
-                                ? 'bg-amber-50/60 hover:bg-amber-100/60 border border-amber-200/50'
-                                : 'hover:bg-stone-50'
+                                ? 'bg-amber-50/80 hover:bg-amber-100/70 border-amber-200/80 shadow-2xs'
+                                : 'bg-white hover:bg-stone-50 border-stone-200/70'
                             }`}
                             onClick={() => {
                               setActiveTab('dashboard');
                               setIsNotificationOpen(false);
                             }}
                           >
-                            <div className="shrink-0 w-8 h-8 rounded-lg bg-noodle-cream text-matcha-leaf font-mono font-black text-xs flex items-center justify-center border border-noodle-dark/40 shadow-2xs mt-0.5">
-                              {ord.queue_number}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center justify-between">
+                            {/* Baris 1: Nomor Antrian (1 baris) + Nama Pelanggan + Channel */}
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="shrink-0 whitespace-nowrap px-2 py-0.5 rounded-md bg-noodle-cream text-matcha-leaf font-mono font-black text-[11px] tracking-tight border border-noodle-dark/40 shadow-2xs">
+                                  {ord.queue_number}
+                                </span>
                                 <span className="font-bold text-xs text-matcha-leaf truncate">
                                   {ord.customer_name}
                                 </span>
-                                <span className="text-[10px] text-stone-400 font-mono">
-                                  {ord.queue_channel === 'ONLINE' ? 'Online' : 'Kasir'}
-                                </span>
                               </div>
-                              <div className="text-[11px] text-stone-600 truncate mt-0.5">
-                                {ord.items.map((i) => `${i.quantity}x ${i.product_name_snapshot}`).join(', ')}
-                              </div>
-                              <div className="flex items-center justify-between mt-1 text-[10px]">
-                                <span
-                                  className={`font-bold px-1.5 py-0.2 rounded ${
-                                    isNew
-                                      ? 'bg-amber-100 text-amber-800'
-                                      : isPrep
-                                      ? 'bg-yolk-light text-yolk-dark'
-                                      : isReady
-                                      ? 'bg-emerald-100 text-emerald-800'
-                                      : 'bg-stone-100 text-stone-600'
-                                  }`}
-                                >
-                                  {isNew
-                                    ? 'Menunggu Diproses'
+                              <span
+                                className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                                  ord.queue_channel === 'ONLINE'
+                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/70'
+                                    : 'bg-stone-100 text-stone-600 border border-stone-200/70'
+                                }`}
+                              >
+                                {ord.queue_channel === 'ONLINE' ? 'Online' : 'Kasir'}
+                              </span>
+                            </div>
+
+                            {/* Baris 2: Ringkasan Item */}
+                            <div className="text-[11px] text-stone-600 truncate mt-1.5">
+                              {ord.items.map((i) => `${i.quantity}x ${i.product_name_snapshot}`).join(', ')}
+                            </div>
+
+                            {/* Baris 3: Status & Total */}
+                            <div className="flex items-center justify-between mt-2 pt-2 border-t border-stone-100 text-[10px]">
+                              <span
+                                className={`font-bold px-2 py-0.5 rounded-md ${
+                                  isNew
+                                    ? 'bg-amber-100 text-amber-800'
                                     : isPrep
-                                    ? 'Sedang Dimasak'
+                                    ? 'bg-yolk-light text-yolk-dark'
                                     : isReady
-                                    ? 'Siap Saji'
-                                    : 'Selesai'}
-                                </span>
-                                <span className="font-bold text-spicy-ember">
-                                  Rp{ord.total_amount.toLocaleString('id-ID')}
-                                </span>
-                              </div>
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : 'bg-stone-100 text-stone-600'
+                                }`}
+                              >
+                                {isNew
+                                  ? 'Menunggu Diproses'
+                                  : isPrep
+                                  ? 'Sedang Dimasak'
+                                  : isReady
+                                  ? 'Siap Saji'
+                                  : 'Selesai'}
+                              </span>
+                              <span className="font-extrabold text-xs text-spicy-ember">
+                                Rp{ord.total_amount.toLocaleString('id-ID')}
+                              </span>
                             </div>
                           </div>
                         );
