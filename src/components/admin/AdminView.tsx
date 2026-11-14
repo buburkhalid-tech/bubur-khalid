@@ -3950,18 +3950,10 @@ export function AdminView() {
 
             {/* Editor 0: Logo & Ikon Toko (Upload & Edit) */}
             <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-soft space-y-4">
-              <div className="border-b border-stone-100 pb-3 flex items-center justify-between">
-                <div>
-                  <h3 className="font-extrabold text-sm text-matcha-leaf flex items-center space-x-2">
-                    <span>🔘 Logo & Ikon Toko (Upload & Kelola)</span>
-                  </h3>
-                  <p className="text-[11px] text-stone-500">
-                    Logo ini tampil otomatis di header aplikasi pelanggan, panel admin, tablet POS kasir, dan cetak struk
-                  </p>
-                </div>
-                <span className="text-[10px] bg-spicy-light text-spicy-ember font-bold px-2.5 py-1 rounded-full border border-spicy-ember/30">
-                  Ikon Resmi Toko
-                </span>
+              <div className="border-b border-stone-100 pb-3">
+                <p className="text-[11px] text-stone-500">
+                  Logo ini tampil otomatis di header aplikasi pelanggan, panel admin, tablet POS kasir, dan cetak struk
+                </p>
               </div>
 
               <div className="p-4 bg-tofu-silkblaze rounded-xl border border-noodle-dark/60 flex flex-col sm:flex-row items-center gap-5">
@@ -3991,14 +3983,6 @@ export function AdminView() {
                         className="hidden"
                       />
                     </label>
-
-                    <button
-                      type="button"
-                      onClick={() => setStoreForm({ ...storeForm, storeLogo: '/images/logo/bubur-khalid-logo.png' })}
-                      className="px-3.5 py-2 bg-white hover:bg-stone-100 border border-stone-300 text-stone-700 font-bold rounded-xl transition text-xs shadow-2xs"
-                    >
-                      Gunakan Logo Bawaan
-                    </button>
                   </div>
 
                   <div>
@@ -4031,7 +4015,7 @@ export function AdminView() {
             <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-soft space-y-4">
               <div className="border-b border-stone-100 pb-3">
                 <h3 className="font-extrabold text-sm text-matcha-leaf flex items-center space-x-2">
-                  <span>🖼️ Edit Konten Banner Beranda Pelanggan</span>
+                  <span>🖼️ Edit Banner Beranda Pelanggan</span>
                 </h3>
                 <p className="text-[11px] text-stone-500">Sesuaikan judul sambutan, teks promosi, dan foto utama banner</p>
               </div>
@@ -4039,7 +4023,7 @@ export function AdminView() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                 <div>
                   <label className="block font-bold text-matcha-leaf mb-1">
-                    Judul Sambutan Banner:
+                    Sambutan Banner :
                   </label>
                   <input
                     type="text"
@@ -4052,7 +4036,7 @@ export function AdminView() {
 
                 <div>
                   <label className="block font-bold text-matcha-leaf mb-1">
-                    Sub-tagline Toko:
+                    Sub-tagline :
                   </label>
                   <input
                     type="text"
