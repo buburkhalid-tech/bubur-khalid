@@ -2891,49 +2891,53 @@ export function AdminView() {
 
             {/* OPSI TAMBAHAN / KEMASAN CUP BAWA PULANG (Edit, Hapus, Cancel, Save) */}
             <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-soft space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-100 pb-3">
-                <div>
-                  <div className="flex items-center space-x-2">
-                    <h3 className="font-extrabold text-sm text-matcha-leaf">
-                      Opsi Tambahan
-                    </h3>
-                    <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${
-                      (storeSettings.cupEnabled !== false)
-                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                        : 'bg-stone-200 text-stone-600 border border-stone-300'
-                    }`}>
-                      {(storeSettings.cupEnabled !== false) ? '🟢 Aktif' : '⚪ Non-Aktif / Terhapus'}
-                    </span>
-                  </div>
+              <div className="flex items-center justify-between gap-2 border-b border-stone-100 pb-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <h3 className="font-extrabold text-sm text-matcha-leaf truncate">
+                    Opsi Tambahan
+                  </h3>
+                  <span className={`shrink-0 text-[10px] font-black px-2 py-0.5 rounded-full ${
+                    (storeSettings.cupEnabled !== false)
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                      : 'bg-stone-200 text-stone-600 border border-stone-300'
+                  }`}>
+                    {(storeSettings.cupEnabled !== false) ? '🟢 Aktif' : '⚪ Non-Aktif'}
+                  </span>
                 </div>
 
                 {!cupEditMode && (
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <button
                       type="button"
                       onClick={handleStartEditCup}
-                      className="bg-stone-100 hover:bg-stone-200 text-matcha-leaf font-bold text-xs px-3.5 py-2 rounded-xl border border-stone-300 flex items-center space-x-1.5 transition cursor-pointer"
+                      title="Edit"
+                      aria-label="Edit"
+                      className="w-8 h-8 sm:w-auto sm:h-auto sm:px-3.5 sm:py-2 bg-stone-100 hover:bg-stone-200 text-matcha-leaf font-bold text-xs rounded-xl border border-stone-300 flex items-center justify-center sm:space-x-1.5 transition cursor-pointer"
                     >
                       <Edit2 className="w-3.5 h-3.5 text-matcha-leaf" />
-                      <span>Edit</span>
+                      <span className="hidden sm:inline">Edit</span>
                     </button>
                     {(storeSettings.cupEnabled !== false) ? (
                       <button
                         type="button"
                         onClick={handleDeleteCup}
-                        className="bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs px-3.5 py-2 rounded-xl border border-red-200 flex items-center space-x-1.5 transition cursor-pointer"
+                        title="Hapus"
+                        aria-label="Hapus"
+                        className="w-8 h-8 sm:w-auto sm:h-auto sm:px-3.5 sm:py-2 bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs rounded-xl border border-red-200 flex items-center justify-center sm:space-x-1.5 transition cursor-pointer"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
-                        <span>Hapus</span>
+                        <span className="hidden sm:inline">Hapus</span>
                       </button>
                     ) : (
                       <button
                         type="button"
                         onClick={handleRestoreCup}
-                        className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs px-3.5 py-2 rounded-xl border border-emerald-200 flex items-center space-x-1.5 transition cursor-pointer"
+                        title="Aktifkan Kembali"
+                        aria-label="Aktifkan Kembali"
+                        className="w-8 h-8 sm:w-auto sm:h-auto sm:px-3.5 sm:py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs rounded-xl border border-emerald-200 flex items-center justify-center sm:space-x-1.5 transition cursor-pointer"
                       >
                         <RotateCcw className="w-3.5 h-3.5" />
-                        <span>Aktifkan Kembali</span>
+                        <span className="hidden sm:inline">Aktifkan Kembali</span>
                       </button>
                     )}
                   </div>
