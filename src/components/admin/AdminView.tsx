@@ -2836,7 +2836,7 @@ export function AdminView() {
                         type="submit"
                         className="flex-1 bg-spicy-ember hover:bg-spicy-hover text-white py-2.5 rounded-xl font-extrabold text-xs shadow-md transition"
                       >
-                        {isAddMode ? 'Simpan Menu Baru' : 'Simpan Perubahan Menu'}
+                        {isAddMode ? 'Simpan Menu Baru' : 'Simpan Menu'}
                       </button>
                       <button
                         type="button"
@@ -3022,7 +3022,7 @@ export function AdminView() {
                         onChange={(e) => setCupForm({ ...cupForm, enabled: e.target.checked })}
                         className="w-4 h-4 text-spicy-ember rounded border-stone-300 focus:ring-spicy-ember"
                       />
-                      <span>Tampilkan opsi kemasan ini pada pelanggan (Status: Aktif)</span>
+                      <span>Tampilkan opsi kemasan pada pelanggan</span>
                     </label>
                   </div>
 
@@ -3034,7 +3034,7 @@ export function AdminView() {
                       className="bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold text-xs px-4 py-2.5 rounded-xl transition flex items-center justify-center space-x-1.5 cursor-pointer"
                     >
                       <X className="w-3.5 h-3.5" />
-                      <span>Cancel (Batal)</span>
+                      <span>Cancel</span>
                     </button>
                     <button
                       type="button"
@@ -3042,7 +3042,7 @@ export function AdminView() {
                       className="bg-spicy-ember hover:bg-spicy-hover text-white font-extrabold text-xs px-5 py-2.5 rounded-xl shadow-md transition flex items-center justify-center space-x-1.5 cursor-pointer"
                     >
                       <CheckCircle className="w-4 h-4" />
-                      <span>Save (Simpan Perubahan)</span>
+                      <span>Save</span>
                     </button>
                   </div>
                 </div>
