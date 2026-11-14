@@ -847,7 +847,7 @@ export function OwnerFinancialView() {
             </button>
             <div>
               <div className="flex items-center space-x-2">
-                <span className="font-extrabold text-sm text-white">Sesi Laporan Finansial Aktif (Owner Khalid)</span>
+                <span className="font-extrabold text-sm text-white">Laporan Finansial</span>
                 <span className="text-[10px] bg-emerald-500 text-black px-2 py-0.5 rounded-full font-bold">
                   Verified
                 </span>
@@ -1317,11 +1317,8 @@ export function OwnerFinancialView() {
             <div>
               <div className="inline-flex items-center space-x-1.5 bg-amber-500/10 text-amber-900 text-[11px] font-black px-2.5 py-0.5 rounded-md uppercase tracking-wider mb-1">
                 <ShoppingBag className="w-3.5 h-3.5 text-amber-700" />
-                <span>Belanja Keluar &amp; Modal Bahan Pokok (Input Manual Owner)</span>
+                <span>Belanja Keluar &amp; Modal Bahan Pokok.</span>
               </div>
-              <h3 className="font-black text-base text-matcha-leaf">
-                Daftar Belanja Keluar &amp; Modal Pokok ({operationalExpenses.length} Item)
-              </h3>
               <p className="text-xs text-stone-500">
                 Input manual ketika ada belanja keluar (Bahan Pokok, Gas LPG, Minyak &amp; Bumbu, Cup). Jika belum ada belanja riil, nilai adalah <strong className="text-matcha-leaf">Rp 0</strong>.
               </p>
@@ -2112,7 +2109,7 @@ export function OwnerFinancialView() {
                     {editingExpense ? 'Edit Belanja Keluar' : 'Catat Belanja Keluar'}
                   </h3>
                   <p className="text-[11px] text-stone-500">
-                    Input pengeluaran modal bahan pokok, gas, minyak dll
+                    Input pengeluaran modal bahan pokok.
                   </p>
                 </div>
               </div>
