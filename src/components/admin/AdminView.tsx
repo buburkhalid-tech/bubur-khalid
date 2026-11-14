@@ -2952,11 +2952,6 @@ export function AdminView() {
               ) : (
                 /* Edit Mode */
                 <div className="space-y-4 bg-stone-50/70 p-4 rounded-xl border border-amber-200">
-                  <div className="text-[11px] font-extrabold text-amber-900 flex items-center space-x-1.5">
-                    <span>✏️</span>
-                    <span>Edit Data Kemasan (Perubahan Langsung Terlihat di Preview):</span>
-                  </div>
-
                   {/* Realtime Live Preview */}
                   <div className="p-3 bg-noodle-cream/40 rounded-xl border border-noodle-dark flex items-center justify-between max-w-md shadow-xs">
                     <div>
