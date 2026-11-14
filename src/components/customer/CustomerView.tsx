@@ -519,28 +519,8 @@ export function CustomerView() {
       }
 
       const fileName = `Konfirmasi-${order.queue_number}.png`;
-      const pngFile = new File([pngBlob], fileName, { type: 'image/png' });
 
-      // Tablet/HP: Share langsung gambar PNG (bukan teks) ke WhatsApp Admin
-      if (
-        typeof navigator !== 'undefined' &&
-        typeof navigator.canShare === 'function' &&
-        navigator.canShare({ files: [pngFile] })
-      ) {
-        try {
-          await navigator.share({
-            files: [pngFile],
-            title: `Konfirmasi ${order.queue_number} - ${storeSettings.storeName || 'Bubur Khalid'}`,
-          });
-          return;
-        } catch (err) {
-          if (err instanceof DOMException && err.name === 'AbortError') {
-            return;
-          }
-        }
-      }
-
-      // Fallback Desktop/Browser tanpa file share: salin PNG / unduh PNG lalu buka chat WA tanpa teks
+      // Salin PNG ke clipboard (jika didukung browser desktop) & unduh PNG otomatis agar siap dilampirkan di WA Admin
       let copied = false;
       if (typeof navigator !== 'undefined' && navigator.clipboard && typeof ClipboardItem !== 'undefined') {
         try {
@@ -549,21 +529,30 @@ export function CustomerView() {
         } catch (_) {}
       }
 
-      if (!copied) {
-        const blobUrl = URL.createObjectURL(pngBlob);
-        const link = document.createElement('a');
-        link.download = fileName;
-        link.href = blobUrl;
-        link.click();
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+      const blobUrl = URL.createObjectURL(pngBlob);
+      const link = document.createElement('a');
+      link.download = fileName;
+      link.href = blobUrl;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+
+      // Langsung arahkan ke chat WhatsApp Admin resmi dengan rincian pesanan terisi otomatis
+      const adminPhone = getAdminWhatsappPhone();
+      const itemsText = order.items
+        .map((it) => `• ${it.quantity}x ${it.product_name_snapshot}`)
+        .join('\n');
+      const waMessage = `Halo Admin ${storeSettings.storeName || 'Bubur Khalid'}, saya konfirmasi pembayaran pesanan:\n\nNo. Antrean: *${order.queue_number}*\nNama: *${order.customer_name}*\nTotal: *Rp${order.total_amount.toLocaleString('id-ID')}*\nMetode: *${order.payment_method}*\n\nPesanan:\n${itemsText}\n\n_(Struk & bukti transfer terlampir)_`;
+      const waUrl = `https://wa.me/${adminPhone}?text=${encodeURIComponent(waMessage)}`;
+
+      const opened = window.open(waUrl, '_blank');
+      if (!opened) {
+        window.location.href = waUrl;
       }
 
-      const adminPhone = getAdminWhatsappPhone();
-      window.open(`https://wa.me/${adminPhone}`, '_blank');
       triggerToast(
         copied
-          ? 'Gambar PNG struk disalin! Tempel (Paste) langsung di WhatsApp Admin.'
-          : 'Gambar PNG struk diunduh! Lampirkan PNG tersebut di WhatsApp Admin.'
+          ? 'Struk PNG disalin & diunduh! Mengarahkan ke WhatsApp Admin...'
+          : 'Struk PNG diunduh! Mengarahkan ke WhatsApp Admin...'
       );
     } finally {
       setIsSharingOrderPNG(false);
