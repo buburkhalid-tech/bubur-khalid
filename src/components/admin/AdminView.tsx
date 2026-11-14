@@ -925,7 +925,9 @@ export function AdminView() {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setStoreForm((prev) => ({ ...prev, storeLogo: reader.result as string }));
+        const dataUrl = reader.result as string;
+        setStoreForm((prev) => ({ ...prev, storeLogo: dataUrl }));
+        updateStoreSettings({ storeLogo: dataUrl });
       };
       reader.readAsDataURL(file);
     }
@@ -3947,9 +3949,9 @@ export function AdminView() {
                 </p>
               </div>
 
-              <div className="p-4 bg-tofu-silkblaze rounded-xl border border-noodle-dark/60 flex flex-col sm:flex-row items-center gap-5">
+              <div className="p-4 bg-tofu-silkblaze rounded-xl border border-noodle-dark/60 flex flex-col sm:flex-row items-center gap-4">
                 {/* Logo Preview Circle */}
-                <div className="relative w-20 h-20 rounded-full overflow-hidden border-3 border-spicy-ember shadow-md bg-spicy-ember flex items-center justify-center flex-shrink-0">
+                <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border-3 border-spicy-ember shadow-md bg-spicy-ember flex items-center justify-center flex-shrink-0">
                   {storeForm.storeLogo ? (
                     <Image
                       src={storeForm.storeLogo}
@@ -3962,11 +3964,47 @@ export function AdminView() {
                   )}
                 </div>
 
-                <div className="flex-1 space-y-2.5 text-xs w-full">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <label className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-spicy-ember hover:bg-spicy-hover text-white rounded-xl font-bold cursor-pointer transition shadow-sm text-xs active:scale-95">
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>Unggah File Logo Baru</span>
+                <div className="flex-1 space-y-1.5 text-xs w-full">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-[11px] font-semibold text-stone-600">
+                      Path, URL Gambar, atau Link Google Drive:
+                    </label>
+                    {isGoogleDriveLink(storeForm.storeLogo || '') && (
+                      <span className="bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded font-bold text-[9px]">
+                        ✓ Auto-Saved
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Input Link + Tombol Upload Icon-Only Sejajar */}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="Paste link Google Drive atau path logo..."
+                      value={storeForm.storeLogo || ''}
+                      onChange={(e) => {
+                        const rawVal = e.target.value;
+                        const parsed = parseImageUrl(rawVal);
+                        setStoreForm((prev) => ({ ...prev, storeLogo: parsed }));
+                        if (
+                          isGoogleDriveLink(rawVal) ||
+                          isGoogleDriveLink(parsed) ||
+                          parsed.startsWith('https://') ||
+                          parsed.startsWith('http://') ||
+                          parsed.startsWith('/') ||
+                          parsed.startsWith('data:image/')
+                        ) {
+                          updateStoreSettings({ storeLogo: parsed });
+                        }
+                      }}
+                      className="flex-1 min-w-0 bg-white border border-stone-300 rounded-xl px-3 py-2 text-xs font-mono text-stone-800 focus:outline-none focus:border-spicy-ember"
+                    />
+                    <label
+                      className="w-9 h-9 shrink-0 bg-spicy-ember hover:bg-spicy-hover text-white rounded-xl flex items-center justify-center cursor-pointer transition shadow-sm active:scale-95"
+                      title="Unggah File Logo Baru"
+                      aria-label="Unggah File Logo Baru"
+                    >
+                      <Upload className="w-4 h-4" />
                       <input
                         type="file"
                         accept="image/*"
@@ -3976,28 +4014,9 @@ export function AdminView() {
                     </label>
                   </div>
 
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="block text-[11px] font-semibold text-stone-600">
-                        Path, URL Gambar, atau Link Google Drive:
-                      </label>
-                      {isGoogleDriveLink(storeForm.storeLogo || '') && (
-                        <span className="bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded font-bold text-[9px]">
-                          ✓ Google Drive Terhubung
-                        </span>
-                      )}
-                    </div>
-                    <input
-                      type="text"
-                      placeholder="Contoh: https://drive.google.com/file/d/.../view atau path logo"
-                      value={storeForm.storeLogo || ''}
-                      onChange={(e) => setStoreForm({ ...storeForm, storeLogo: parseImageUrl(e.target.value) })}
-                      className="w-full bg-white border border-stone-300 rounded-lg px-2.5 py-1.5 text-xs font-mono text-stone-800 focus:outline-none focus:border-spicy-ember"
-                    />
-                    <p className="text-[9px] text-stone-400 mt-1 italic">
-                      *Bisa paste link Google Drive langsung (Pastikan sharing: &quot;Anyone with the link&quot;).
-                    </p>
-                  </div>
+                  <p className="text-[9.5px] text-stone-400 italic">
+                    *Paste link Google Drive langsung otomatis tersimpan &amp; terupdate (Pastikan sharing: &quot;Anyone with the link&quot;).
+                  </p>
                 </div>
               </div>
             </div>
