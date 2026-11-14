@@ -3456,7 +3456,7 @@ export function AdminView() {
                       title="Keluar dari akun Anda saat ini"
                     >
                       <LogOut className="w-4 h-4" />
-                      <span>Keluar (Logout)</span>
+                      <span>Keluar</span>
                     </button>
                   </div>
                 </div>
@@ -3476,7 +3476,7 @@ export function AdminView() {
                           Simulasi Mobile Pelanggan.
                         </h4>
                         <span className="bg-yolk-blaze text-stone-950 text-[9px] font-black px-2 py-0.5 rounded-full uppercase">
-                          Live Preview
+                          Live
                         </span>
                       </div>
                       <p className="text-xs text-noodle-cream/90 mt-1 max-w-xl leading-relaxed">
@@ -3744,7 +3744,7 @@ export function AdminView() {
                       </p>
                     </div>
                     <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 rounded-full border border-emerald-300">
-                      Live Preview Aktif
+                      Live
                     </span>
                   </div>
 
@@ -4042,7 +4042,7 @@ export function AdminView() {
             <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-soft space-y-4">
               <div className="border-b border-stone-100 pb-3">
                 <h3 className="font-extrabold text-sm text-matcha-leaf flex items-center space-x-2">
-                  <span>🖼️ Edit Banner Beranda Pelanggan</span>
+                  <span>🖼️ Banner Beranda Pelanggan</span>
                 </h3>
                 <p className="text-[11px] text-stone-500">Sesuaikan judul sambutan, teks promosi, dan foto utama banner</p>
               </div>
@@ -4462,7 +4462,7 @@ export function AdminView() {
                     <div className="flex items-center space-x-2">
                       <span className="text-xl">🏦</span>
                       <div>
-                        <span className="font-bold text-xs text-matcha-leaf">Transfer Bank & WhatsApp Admin / Owner</span>
+                        <span className="font-bold text-xs text-matcha-leaf">Bank & WhatsApp Admin / Owner</span>
                         <div className="text-[10px] text-stone-500">Kirim bukti transfer & antrean via WA</div>
                       </div>
                     </div>
@@ -4616,7 +4616,7 @@ export function AdminView() {
                         ) : (
                           <CheckCircle className="w-5 h-5" />
                         )}
-                        <span>{isSavingStore ? 'Menyimpan Pengaturan...' : 'Simpan Pengaturan Pembayaran'}</span>
+                        <span>{isSavingStore ? 'Menyimpan Pengaturan...' : 'Simpan Pembayaran'}</span>
                       </button>
                     </div>
                   </div>
@@ -5174,7 +5174,7 @@ export function AdminView() {
                 </span>
                 <div>
                   <h3 className="font-extrabold text-base text-matcha-leaf">
-                    {editingPromo ? 'Edit Banner Promosi' : 'Tambah Banner Promosi Baru'}
+                    {editingPromo ? 'Banner Promosi' : 'Tambah Banner Promosi Baru'}
                   </h3>
                   <p className="text-[11px] text-stone-500">
                     Banner ini akan berputar otomatis di bawah menu unggulan
@@ -5211,7 +5211,7 @@ export function AdminView() {
               {/* Deskripsi Promo */}
               <div>
                 <label className="block text-xs font-bold text-matcha-leaf mb-1">
-                  Deskripsi / Keterangan Promo: <span className="text-red-500">*</span>
+                  Deskripsi : <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   required
@@ -5227,7 +5227,7 @@ export function AdminView() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-matcha-leaf mb-1">
-                    Badge Label (Pill Atas):
+                    Badge Label :
                   </label>
                   <input
                     type="text"
@@ -5254,7 +5254,7 @@ export function AdminView() {
               {/* Image Input (Google Drive & Local Menu) */}
               <div className="space-y-2">
                 <label className="block text-xs font-bold text-matcha-leaf">
-                  URL Foto Banner (Mendukung Link Google Drive):
+                  URL Google Drive
                 </label>
                 <input
                   type="text"
@@ -5263,11 +5263,6 @@ export function AdminView() {
                   onChange={(e) => setPromoImageInput(e.target.value)}
                   className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-xs font-mono text-matcha-leaf focus:outline-none focus:border-spicy-ember"
                 />
-
-                {/* Google Drive Link Help */}
-                <p className="text-[10px] text-stone-500">
-                  📁 Cukup salin link share foto dari Google Drive Anda (pastikan akses: <em>&quot;Siapa saja yang memiliki link&quot;</em>).
-                </p>
 
                 {/* Quick Presets from Official Menu */}
                 <div className="pt-1">
