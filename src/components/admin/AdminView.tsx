@@ -3480,15 +3480,6 @@ export function AdminView() {
                       <Smartphone className="w-4 h-4" />
                       <span>Buka Simulasi Sekarang</span>
                     </a>
-                    <a
-                      href="https://bubur-khalid.vercel.app"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl border border-white/20 transition flex items-center justify-center"
-                      title="Buka Web Pelanggan di Tab Baru"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                    </a>
                   </div>
                 </div>
 
