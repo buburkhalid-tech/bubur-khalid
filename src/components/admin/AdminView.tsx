@@ -4072,13 +4072,6 @@ export function AdminView() {
 
                 {/* Banner Photo Editor */}
                 <div className="md:col-span-2 p-3.5 bg-tofu-silkblaze rounded-xl border border-noodle-dark/60 space-y-3">
-                  <div className="font-bold text-matcha-leaf flex items-center justify-between flex-wrap gap-1">
-                    <span>Foto Utama Banner:</span>
-                    <span className="text-[10px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded-md border border-amber-300/60">
-                      📐 Rekomendasi: 1200 × 600 px (Rasio 2:1)
-                    </span>
-                  </div>
-
                   <div className="flex items-center space-x-4">
                     <div className="w-20 h-14 rounded-xl overflow-hidden relative bg-white border border-stone-300 flex-shrink-0 shadow-sm">
                       <Image
@@ -4092,7 +4085,7 @@ export function AdminView() {
                     <div className="flex-1 space-y-2">
                       <label className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white border border-stone-300 rounded-lg font-bold text-stone-700 cursor-pointer hover:bg-noodle-cream transition shadow-sm text-xs">
                         <Upload className="w-3.5 h-3.5 text-spicy-ember" />
-                        <span>Unggah Foto Banner dari Komputer</span>
+                        <span>Unggah Banner</span>
                         <input
                           type="file"
                           accept="image/*"
