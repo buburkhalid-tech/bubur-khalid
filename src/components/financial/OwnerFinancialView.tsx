@@ -800,14 +800,6 @@ export function OwnerFinancialView() {
             >
               Buka Laporan Keuangan
             </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveView('admin')}
-              className="w-full py-2.5 rounded-xl border border-stone-300 text-stone-600 hover:text-stone-800 text-xs font-bold transition hover:bg-stone-50 cursor-pointer"
-            >
-              ← Batal & Kembali ke Dashboard Admin
-            </button>
           </form>
 
           <div className="pt-2 border-t border-stone-100 text-[11px] text-stone-400">
