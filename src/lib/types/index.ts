@@ -25,7 +25,7 @@ export interface Product {
   id: string;
   name: string;
   price: number;
-  category: 'Bubur' | 'Kolak' | 'Lopis' | 'Kerupuk' | 'Paket';
+  category: string;
   description: string;
   image: string;
   is_available: boolean;
@@ -193,6 +193,7 @@ export interface StoreSettings {
   cupName?: string;
   cupDescription?: string;
   cupEnabled?: boolean;
+  customCategories?: string[];
   paymentMethods: {
     qris: PaymentMethodConfig;
     cash: PaymentMethodConfig;

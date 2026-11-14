@@ -368,7 +368,13 @@ export function PosView() {
 
           {/* Category Filter Horizontal Scroll (Stationary) */}
           <div className="flex-shrink-0 flex space-x-2 overflow-x-auto pb-1 hide-scrollbar">
-            {CATEGORIES.map((cat) => (
+            {Array.from(
+              new Set([
+                ...CATEGORIES,
+                ...(storeSettings.customCategories || []),
+                ...products.map((p) => p.category).filter(Boolean),
+              ])
+            ).map((cat) => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
@@ -529,24 +535,37 @@ export function PosView() {
                       </div>
                     </div>
                     <div className="text-xs sm:text-sm font-black text-spicy-ember flex-shrink-0 text-right">
-                      Rp{(item.product.price * item.quantity + (item.useCup ? CUP_FEE * item.quantity : 0)).toLocaleString('id-ID')}
+                      Rp{(
+                        item.product.price * item.quantity +
+                        (item.useCup && storeSettings.cupEnabled !== false
+                          ? (storeSettings.cupFee ?? CUP_FEE) * item.quantity
+                          : 0)
+                      ).toLocaleString('id-ID')}
                     </div>
                   </div>
 
                   {/* Row 2: Cup Packaging Toggle & Stepper Quantity */}
                   <div className="flex items-center justify-between gap-2 pt-1 border-t border-stone-200/80">
-                    <button
-                      type="button"
-                      onClick={() => togglePosCartCup(item.product.id)}
-                      className={`text-[10px] sm:text-[11px] font-bold px-2 py-1 rounded-lg flex items-center space-x-1 transition select-none ${
-                        item.useCup
-                          ? 'bg-spicy-ember text-white shadow-xs'
-                          : 'bg-stone-200 text-stone-700 hover:bg-stone-300'
-                      }`}
-                    >
-                      <Coffee className="w-3.5 h-3.5" />
-                      <span>{item.useCup ? 'Bungkus Cup (+1rb)' : '+ Bungkus Cup'}</span>
-                    </button>
+                    {storeSettings.cupEnabled !== false ? (
+                      <button
+                        type="button"
+                        onClick={() => togglePosCartCup(item.product.id)}
+                        className={`text-[10px] sm:text-[11px] font-bold px-2 py-1 rounded-lg flex items-center space-x-1 transition select-none ${
+                          item.useCup
+                            ? 'bg-spicy-ember text-white shadow-xs'
+                            : 'bg-stone-200 text-stone-700 hover:bg-stone-300'
+                        }`}
+                      >
+                        <Coffee className="w-3.5 h-3.5" />
+                        <span>
+                          {item.useCup
+                            ? `Bungkus Cup (+Rp${(storeSettings.cupFee ?? CUP_FEE).toLocaleString('id-ID')})`
+                            : '+ Bungkus Cup'}
+                        </span>
+                      </button>
+                    ) : (
+                      <div />
+                    )}
 
                     {/* Touch-Friendly Stepper */}
                     <div className="flex items-center space-x-1 flex-shrink-0">

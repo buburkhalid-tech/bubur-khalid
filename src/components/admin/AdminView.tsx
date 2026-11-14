@@ -80,6 +80,8 @@ export function AdminView() {
     restoreProduct,
     hardDeleteProduct,
     emptyProductTrash,
+    renameProductCategory,
+    addCustomCategory,
     tables,
     addTable,
     updateTable,
@@ -2264,18 +2266,18 @@ export function AdminView() {
                     (activeQueueTab === 'ONLINE' ? activeOnlineOrders : activeInStoreOrders).map((ord) => (
                     <div
                       key={ord.id}
-                      className="p-3.5 rounded-xl border border-stone-200 hover:border-noodle-dark bg-stone-50 flex items-start justify-between gap-3 transition"
+                      className="p-3.5 rounded-xl border border-stone-200 hover:border-noodle-dark bg-stone-50 flex flex-col sm:flex-row sm:items-start justify-between gap-2.5 sm:gap-3 transition"
                     >
                       <div className="flex items-start space-x-3 min-w-0 flex-1">
-                        <div className="shrink-0 h-11 px-3 min-w-[70px] sm:min-w-[76px] rounded-xl bg-gradient-to-br from-noodle-cream to-amber-100/60 border border-noodle-dark/60 flex items-center justify-center shadow-xs mt-0.5">
+                        <div className="shrink-0 h-10 sm:h-11 px-2.5 sm:px-3 min-w-[68px] sm:min-w-[76px] rounded-xl bg-gradient-to-br from-noodle-cream to-amber-100/60 border border-noodle-dark/60 flex items-center justify-center shadow-xs mt-0.5">
                           <span className="font-black font-mono text-xs sm:text-sm text-matcha-leaf tracking-wider whitespace-nowrap">
                             {ord.queue_number}
                           </span>
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center space-x-2">
-                            <span className="font-bold text-xs text-matcha-leaf">{ord.customer_name}</span>
-                            <span className="text-[10px] text-stone-500 font-mono shrink-0">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                            <span className="font-bold text-xs text-matcha-leaf truncate">{ord.customer_name}</span>
+                            <span className="text-[10px] text-stone-500 font-mono shrink-0 bg-white px-1.5 py-0.5 rounded border border-stone-200">
                               {ord.service_type === 'DINE_IN' ? ord.table_number || 'Dine-In' : 'Takeaway'}
                             </span>
                           </div>
@@ -2286,10 +2288,10 @@ export function AdminView() {
                         </div>
                       </div>
 
-                      <div className="text-right flex flex-col items-end space-y-1.5 shrink-0">
+                      <div className="pt-2 border-t border-stone-200/70 sm:border-t-0 sm:pt-0 flex items-center justify-between sm:flex-col sm:items-end gap-2 shrink-0">
                         <div className="flex items-center space-x-1.5">
                           <span
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${
                               ord.order_status === 'PREPARING'
                                 ? 'bg-yolk-light text-yolk-dark border border-yolk-blaze/30'
                                 : ord.order_status === 'READY'
@@ -2303,7 +2305,7 @@ export function AdminView() {
                               ? 'Siap Saji'
                               : 'Menunggu'}
                           </span>
-                          <span className="text-xs font-black text-spicy-ember">
+                          <span className="text-xs font-black text-spicy-ember whitespace-nowrap">
                             Rp{ord.total_amount.toLocaleString('id-ID')}
                           </span>
                         </div>
@@ -2798,6 +2800,7 @@ export function AdminView() {
                                 'Lopis',
                                 'Kerupuk',
                                 'Paket',
+                                ...(storeSettings.customCategories || []),
                                 ...products.map((p) => p.category).filter(Boolean),
                                 ...customCategories,
                               ])
@@ -2822,6 +2825,7 @@ export function AdminView() {
                                           setCustomCategories((prev) =>
                                             Array.from(new Set([...prev.filter((c) => c !== cat), trimmed]))
                                           );
+                                          renameProductCategory(cat, trimmed);
                                           if (formCategory === cat) setFormCategory(trimmed);
                                         }
                                         setEditingCategoryName(null);
@@ -2891,6 +2895,7 @@ export function AdminView() {
                                       const trimmed = editingCategoryValue.trim();
                                       if (trimmed) {
                                         setCustomCategories((prev) => Array.from(new Set([...prev, trimmed])));
+                                        addCustomCategory(trimmed);
                                         setFormCategory(trimmed);
                                         setIsCategoryDropdownOpen(false);
                                       }
@@ -3729,7 +3734,101 @@ export function AdminView() {
                     <span className="text-xs font-bold text-stone-500">Security Level: Strict RBAC</span>
                   </div>
 
-                  <div className="overflow-x-auto">
+                  {/* Mobile User Cards (md:hidden) */}
+                  <div className="md:hidden divide-y divide-stone-100">
+                    {users.map((u) => (
+                      <div key={u.id} className="p-3.5 space-y-2.5">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center space-x-2.5 min-w-0">
+                            <div className="w-9 h-9 rounded-full bg-noodle-cream text-matcha-leaf flex items-center justify-center font-black text-xs border border-noodle-dark shrink-0">
+                              {u.name.slice(0, 2).toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="font-extrabold text-matcha-leaf text-xs truncate">{u.name}</div>
+                              <div className="text-[10px] text-stone-400 font-mono truncate">@{u.username}</div>
+                            </div>
+                          </div>
+                          <span
+                            className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-black inline-flex items-center space-x-1 border ${
+                              u.role === 'OWNER'
+                                ? 'bg-amber-100 text-amber-900 border-amber-300'
+                                : u.role === 'ADMIN'
+                                ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                                : u.role === 'CASHIER'
+                                ? 'bg-cyan-100 text-cyan-900 border-cyan-300'
+                                : 'bg-orange-100 text-orange-900 border-orange-300'
+                            }`}
+                          >
+                            <span>{u.role === 'OWNER' ? '👑' : u.role === 'ADMIN' ? '🛡️' : u.role === 'CASHIER' ? '🏪' : '🍳'}</span>
+                            <span>{u.role}</span>
+                          </span>
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-stone-600 bg-stone-50 px-2.5 py-1.5 rounded-xl border border-stone-100">
+                          <div className="min-w-0 truncate">
+                            <span className="font-medium">{u.email || '-'}</span>
+                            {u.phone && <span className="text-stone-400"> • {u.phone}</span>}
+                          </div>
+                          <span className="font-mono bg-white px-2 py-0.5 rounded border border-stone-200 text-[10px] text-stone-700 shrink-0">
+                            {isOwner || u.id === currentUser?.id ? `PIN: ••••${u.pin?.slice(-2) || '••'}` : 'PIN: ••••••'}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-1">
+                          {isOwner ? (
+                            <button
+                              type="button"
+                              onClick={() => toggleUserStatus(u.id)}
+                              className={`px-2.5 py-1 rounded-full text-[10px] font-black transition flex items-center space-x-1 border cursor-pointer ${
+                                u.is_active
+                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                                  : 'bg-stone-100 text-stone-500 border-stone-300'
+                              }`}
+                            >
+                              <span className={`w-1.5 h-1.5 rounded-full ${u.is_active ? 'bg-emerald-600 animate-pulse' : 'bg-stone-400'}`} />
+                              <span>{u.is_active ? 'Aktif' : 'Non-Aktif'}</span>
+                            </button>
+                          ) : (
+                            <span
+                              className={`px-2.5 py-1 rounded-full text-[10px] font-black inline-flex items-center space-x-1 border ${
+                                u.is_active
+                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                                  : 'bg-stone-100 text-stone-500 border-stone-300'
+                              }`}
+                            >
+                              <span className={`w-1.5 h-1.5 rounded-full ${u.is_active ? 'bg-emerald-600' : 'bg-stone-400'}`} />
+                              <span>{u.is_active ? 'Aktif' : 'Non-Aktif'}</span>
+                            </span>
+                          )}
+
+                          <div className="flex items-center space-x-1.5">
+                            {(isOwner || u.id === currentUser?.id) && (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditUser(u)}
+                                title="Edit Pengguna & Sandi"
+                                className="w-7 h-7 rounded-lg bg-stone-100 hover:bg-spicy-light text-stone-700 hover:text-spicy-ember flex items-center justify-center border border-stone-200/80 transition cursor-pointer"
+                              >
+                                <KeyRound className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                            {isOwner && u.role !== 'OWNER' && (
+                              <button
+                                type="button"
+                                onClick={() => deleteUser(u.id)}
+                                title="Hapus Karyawan"
+                                className="w-7 h-7 rounded-lg bg-stone-100 hover:bg-red-50 text-stone-500 hover:text-red-600 flex items-center justify-center border border-stone-200/80 transition cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-left text-xs">
                       <thead className="bg-stone-50 text-stone-500 font-bold border-b border-stone-200">
                         <tr>

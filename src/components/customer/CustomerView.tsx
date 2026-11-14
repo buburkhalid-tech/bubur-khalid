@@ -769,15 +769,15 @@ export function CustomerView() {
             </div>
 
             {/* Floating Animated Promo Sticker (Domino's Pizza Reference "+ EXTRA DISCOUNT 30%") */}
-            <div className="absolute top-14 right-3 sm:right-6 z-20 pointer-events-none">
+            <div className="absolute bottom-7 right-3 sm:top-14 sm:bottom-auto sm:right-6 z-20 pointer-events-none">
               <div className="relative">
                 {/* Glowing Animated Ring */}
                 <div className="absolute -inset-1 rounded-full bg-spicy-ember opacity-70 blur-xs animate-ping" />
                 
                 {/* Rotating Animated Badge */}
-                <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-tr from-spicy-ember via-spicy-hover to-spicy-ember text-white flex flex-col items-center justify-center p-1 shadow-2xl border-2 border-white transform rotate-12 animate-pulse select-none">
+                <div className="relative w-13 h-13 sm:w-16 sm:h-16 rounded-full bg-gradient-to-tr from-spicy-ember via-spicy-hover to-spicy-ember text-white flex flex-col items-center justify-center p-1 shadow-2xl border-2 border-white transform rotate-12 animate-pulse select-none">
                   <span className="text-[7px] font-black uppercase tracking-tight leading-none text-yolk-blaze">EKSTRA</span>
-                  <span className="text-[12px] sm:text-[13px] font-black leading-none my-0.5 tracking-tight">GURIH</span>
+                  <span className="text-[11px] sm:text-[13px] font-black leading-none my-0.5 tracking-tight">GURIH</span>
                   <span className="text-[7px] font-extrabold leading-none opacity-95">100% ASLI</span>
                 </div>
               </div>
@@ -785,7 +785,7 @@ export function CustomerView() {
 
             {/* Hero Body Content */}
             <div className="relative z-10 px-4 pt-3 pb-8">
-              <div className="max-w-[64%] space-y-2">
+              <div className="max-w-[72%] sm:max-w-[66%] space-y-2">
                 {/* Rekomendasi Juara Tag */}
                 <div className="inline-flex items-center space-x-1.5 bg-spicy-ember/90 text-white font-black px-2 py-0.5 rounded-md uppercase tracking-wider text-[9px] shadow-sm">
                   <span>⭐ Rekomendasi Juara</span>
@@ -1280,14 +1280,33 @@ export function CustomerView() {
               {/* Category Pills Bar (Horizontal Swipeable / Geser Samping Sesuai UX Mobile) */}
               <div>
                 <div className="flex items-center space-x-2 overflow-x-auto pb-1.5 -mx-3 px-3 hide-scrollbar">
-                  {[
-                    { id: 'Semua', label: 'Semua Menu', icon: '✨' },
-                    { id: 'Bubur', label: 'Bubur', icon: '🥣' },
-                    { id: 'Kolak', label: 'Kolak', icon: '🍌' },
-                    { id: 'Lopis', label: 'Lopis', icon: '🍃' },
-                    { id: 'Kerupuk', label: 'Kerupuk', icon: '🍘' },
-                    { id: 'Paket', label: 'Paket', icon: '⭐' },
-                  ].map((cat) => {
+                  {(() => {
+                    const defaultCatMeta: Record<string, { label: string; icon: string }> = {
+                      Semua: { label: 'Semua Menu', icon: '✨' },
+                      Bubur: { label: 'Bubur', icon: '🥣' },
+                      Kolak: { label: 'Kolak', icon: '🍌' },
+                      Lopis: { label: 'Lopis', icon: '🍃' },
+                      Kerupuk: { label: 'Kerupuk', icon: '🍘' },
+                      Paket: { label: 'Paket', icon: '⭐' },
+                    };
+                    const dynamicNames = Array.from(
+                      new Set([
+                        'Semua',
+                        'Bubur',
+                        'Kolak',
+                        'Lopis',
+                        'Kerupuk',
+                        'Paket',
+                        ...(storeSettings.customCategories || []),
+                        ...products.map((p) => p.category).filter(Boolean),
+                      ])
+                    );
+                    return dynamicNames.map((catId) => ({
+                      id: catId,
+                      label: defaultCatMeta[catId]?.label || catId,
+                      icon: defaultCatMeta[catId]?.icon || '🍽️',
+                    }));
+                  })().map((cat) => {
                     const count = cat.id === 'Semua' 
                       ? products.length 
                       : products.filter(p => p.category.toLowerCase() === cat.id.toLowerCase()).length;
@@ -2121,7 +2140,9 @@ export function CustomerView() {
                         <div className="font-bold text-matcha-leaf">{item.product.name}</div>
                         <div className="text-[11px] text-stone-500">
                           Rp{item.product.price.toLocaleString('id-ID')} x {item.quantity}
-                          {item.useCup && ' • Cup (+Rp1.000)'}
+                          {item.useCup &&
+                            storeSettings.cupEnabled !== false &&
+                            ` • Cup (+Rp${(storeSettings.cupFee ?? 1000).toLocaleString('id-ID')})`}
                         </div>
                         {item.notes && (
                           <div className="text-[10px] text-spicy-ember italic mt-0.5">
@@ -2286,6 +2307,40 @@ export function CustomerView() {
                           *Setelah order dibuat, Anda dapat mengirim konfirmasi berupa gambar PNG (struk, nomor antrean, &amp; SS M-Banking) langsung ke WhatsApp Admin.
                         </p>
                       </div>
+                    </div>
+                  )}
+
+                  {/* QRIS Barcode Detail Box */}
+                  {paymentMethod === 'QRIS' && (
+                    <div className="mt-2.5 p-3 bg-spicy-light/40 rounded-xl border border-spicy-ember/30 space-y-2 text-center">
+                      <div className="flex items-center justify-between text-left">
+                        <span className="text-[11px] font-bold text-matcha-leaf flex items-center space-x-1">
+                          <span>📱</span>
+                          <span>Pindai Barcode QRIS Resmi:</span>
+                        </span>
+                        <span className="text-[9px] bg-spicy-ember text-white font-black px-1.5 py-0.5 rounded uppercase">
+                          QRIS Standar Nasional
+                        </span>
+                      </div>
+                      <div className="bg-white p-3 rounded-xl border border-stone-200 inline-flex flex-col items-center mx-auto shadow-xs">
+                        <div className="w-40 h-40 relative">
+                          <Image
+                            src={storeSettings?.paymentMethods?.qris?.qrisImageUrl || '/images/qr/qris-bubur-khalid.svg'}
+                            alt="QRIS Bubur Khalid"
+                            fill
+                            className="object-contain"
+                          />
+                        </div>
+                        <div className="text-[10px] font-mono font-bold text-stone-600 mt-1">
+                          NMID: {storeSettings?.paymentMethods?.qris?.nmid || 'ID1020039485721'}
+                        </div>
+                        <div className="text-xs font-black text-spicy-ember mt-0.5">
+                          Total Bayar: Rp{customerCartTotal.total.toLocaleString('id-ID')}
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-stone-600 leading-tight">
+                        Pindai melalui GoPay, OVO, DANA, ShopeePay, atau Mobile Banking Anda sebelum menyelesaikan pesanan.
+                      </p>
                     </div>
                   )}
                 </div>

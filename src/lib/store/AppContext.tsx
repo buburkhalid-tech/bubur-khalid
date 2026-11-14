@@ -35,6 +35,8 @@ interface AppContextType {
   restoreProduct: (id: string) => void;
   hardDeleteProduct: (id: string) => void;
   emptyProductTrash: () => void;
+  renameProductCategory: (oldCategory: string, newCategory: string) => void;
+  addCustomCategory: (category: string) => void;
 
   // Tables
   tables: TableInfo[];
@@ -573,6 +575,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             cupName: cloudSettings.cup_name || prev.cupName,
             cupDescription: cloudSettings.cup_description || prev.cupDescription,
             cupEnabled: cloudSettings.cup_enabled ?? prev.cupEnabled,
+            customCategories: Array.isArray(cloudSettings.payment_methods?._categories)
+              ? cloudSettings.payment_methods._categories
+              : prev.customCategories,
             paymentMethods: {
               qris: {
                 ...prev.paymentMethods.qris,
@@ -891,8 +896,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addAuditLog = (action: string, entity: string, entity_id: string, details: string) => {
     const newLog: AuditLog = {
       id: `log-${Date.now()}`,
-      actor: activeView === 'owner-financial' ? 'Owner Khalid' : activeView === 'pos' ? 'Kasir Siska' : 'Admin Khalid',
-      role: activeView === 'owner-financial' ? 'OWNER' : activeView === 'pos' ? 'CASHIER' : 'ADMIN',
+      actor:
+        currentUser?.name ||
+        (activeView === 'owner-financial' ? 'Owner Khalid' : activeView === 'pos' ? 'Kasir Siska' : 'Admin Khalid'),
+      role:
+        currentUser?.role ||
+        (activeView === 'owner-financial' ? 'OWNER' : activeView === 'pos' ? 'CASHIER' : 'ADMIN'),
       action,
       entity,
       entity_id,
@@ -1041,22 +1050,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       payment_method: paymentMethod,
       subtotal: customerCartTotal.subtotal,
       cup_fee: customerCartTotal.cupFee,
-      cup_count: customerCart.filter((i) => i.useCup).length,
+      cup_count: customerCart.reduce(
+        (sum, i) => sum + (i.useCup && storeSettings.cupEnabled !== false ? i.quantity : 0),
+        0
+      ),
       discount: 0,
       total_amount: customerCartTotal.total,
       notes: 'Pesanan mandiri dari Web Customer',
       transfer_proof_image: transferProof,
-      items: customerCart.map((i, idx) => ({
-        id: `item-${Date.now()}-${idx}`,
-        product_id: i.product.id,
-        product_name_snapshot: i.product.name,
-        unit_price_snapshot: i.product.price,
-        quantity: i.quantity,
-        item_notes: i.notes,
-        use_cup: i.useCup,
-        cup_fee_snapshot: i.useCup ? CUP_FEE : 0,
-        line_total: i.product.price * i.quantity + (i.useCup ? CUP_FEE * i.quantity : 0),
-      })),
+      items: customerCart.map((i, idx) => {
+        const useCupActive = Boolean(i.useCup && storeSettings.cupEnabled !== false);
+        const unitCupFee = useCupActive ? (storeSettings.cupFee ?? CUP_FEE) : 0;
+        return {
+          id: `item-${Date.now()}-${idx}`,
+          product_id: i.product.id,
+          product_name_snapshot: i.product.name,
+          unit_price_snapshot: i.product.price,
+          quantity: i.quantity,
+          item_notes: i.notes,
+          use_cup: useCupActive,
+          cup_fee_snapshot: unitCupFee,
+          line_total: i.product.price * i.quantity + unitCupFee * i.quantity,
+        };
+      }),
       created_at: new Date().toISOString(),
       paid_at: isPaid ? new Date().toISOString() : null,
       status_history: [
@@ -1152,22 +1168,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       payment_method: paymentMethod,
       subtotal: posCartTotal.subtotal,
       cup_fee: posCartTotal.cupFee,
-      cup_count: posCart.filter((i) => i.useCup).length,
+      cup_count: posCart.reduce(
+        (sum, i) => sum + (i.useCup && storeSettings.cupEnabled !== false ? i.quantity : 0),
+        0
+      ),
       discount: 0,
       total_amount: total,
       qris_reference: qrisRef,
       qris_provider: qrisProvider,
-      items: posCart.map((i, idx) => ({
-        id: `pos-item-${Date.now()}-${idx}`,
-        product_id: i.product.id,
-        product_name_snapshot: i.product.name,
-        unit_price_snapshot: i.product.price,
-        quantity: i.quantity,
-        item_notes: i.notes,
-        use_cup: i.useCup,
-        cup_fee_snapshot: i.useCup ? CUP_FEE : 0,
-        line_total: i.product.price * i.quantity + (i.useCup ? CUP_FEE * i.quantity : 0),
-      })),
+      items: posCart.map((i, idx) => {
+        const useCupActive = Boolean(i.useCup && storeSettings.cupEnabled !== false);
+        const unitCupFee = useCupActive ? (storeSettings.cupFee ?? CUP_FEE) : 0;
+        return {
+          id: `pos-item-${Date.now()}-${idx}`,
+          product_id: i.product.id,
+          product_name_snapshot: i.product.name,
+          unit_price_snapshot: i.product.price,
+          quantity: i.quantity,
+          item_notes: i.notes,
+          use_cup: useCupActive,
+          cup_fee_snapshot: unitCupFee,
+          line_total: i.product.price * i.quantity + unitCupFee * i.quantity,
+        };
+      }),
       created_at: new Date().toISOString(),
       paid_at: new Date().toISOString(),
       status_history: [
@@ -1357,15 +1380,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateProduct = (id: string, updated: Partial<Product>) => {
-    setProducts((prev) =>
-      prev.map((p) => {
+    setProducts((prev) => {
+      const next = prev.map((p) => {
         if (p.id === id) {
           addAuditLog('UPDATE_PRODUCT', 'Product', id, `Menu "${p.name}" diperbarui`);
           return { ...p, ...updated };
         }
         return p;
-      })
-    );
+      });
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('bubur_khalid_products', JSON.stringify(next));
+        } catch (e) {}
+      }
+      return next;
+    });
     supabase
       .from('products')
       .update(updated)
@@ -1381,7 +1410,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ...newProdData,
       id: `prod-${Date.now()}`,
     };
-    setProducts((prev) => [...prev, newProduct]);
+    setProducts((prev) => {
+      const next = [...prev, newProduct];
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('bubur_khalid_products', JSON.stringify(next));
+        } catch (e) {}
+      }
+      return next;
+    });
     supabase
       .from('products')
       .upsert([newProduct])
@@ -1453,6 +1490,55 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       });
     addAuditLog('EMPTY_TRASH', 'Product', 'all', `Seluruh tong sampah (${count} menu) dikosongkan permanen`);
     showToast(`Seluruh item (${count} menu) di Tong Sampah telah dihapus permanen.`);
+  };
+
+  const addCustomCategory = (category: string) => {
+    const trimmed = category.trim();
+    if (!trimmed) return;
+    const existingCats = storeSettings.customCategories || [];
+    const nextCats = Array.from(new Set([...existingCats, trimmed]));
+    updateStoreSettings({ customCategories: nextCats });
+  };
+
+  const renameProductCategory = (oldCategory: string, newCategory: string) => {
+    const trimmed = newCategory.trim();
+    if (!trimmed || oldCategory === trimmed) return;
+
+    setProducts((prev) => {
+      const next = prev.map((p) => (p.category === oldCategory ? { ...p, category: trimmed } : p));
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('bubur_khalid_products', JSON.stringify(next));
+        } catch (e) {}
+      }
+      return next;
+    });
+
+    setTrashProducts((prev) => {
+      const next = prev.map((p) => (p.category === oldCategory ? { ...p, category: trimmed } : p));
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('bubur_khalid_trash_products', JSON.stringify(next));
+        } catch (e) {}
+      }
+      return next;
+    });
+
+    supabase
+      .from('products')
+      .update({ category: trimmed })
+      .eq('category', oldCategory)
+      .then(({ error }) => {
+        if (error) console.warn('Supabase rename category error:', error.message);
+      });
+
+    const existingCats = storeSettings.customCategories || [];
+    const nextCats = Array.from(
+      new Set([...existingCats.filter((c) => c !== oldCategory), trimmed])
+    );
+    updateStoreSettings({ customCategories: nextCats });
+    addAuditLog('RENAME_CATEGORY', 'Category', oldCategory, `Kategori "${oldCategory}" diubah menjadi "${trimmed}"`);
+    showToast(`Kategori "${oldCategory}" berhasil diubah menjadi "${trimmed}".`);
   };
 
   // Financial Gate Operations
@@ -1537,6 +1623,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             _salaries: existingPm._salaries ?? staffSalaries,
             _expenses: existingPm._expenses ?? operationalExpenses,
             _promoBanners: existingPm._promoBanners ?? promoBanners,
+            _categories: updated.customCategories ?? existingPm._categories ?? [],
           };
 
           supabase
@@ -1634,6 +1721,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             setCurrentUser(updatedUser);
             try {
               localStorage.setItem('bubur_khalid_logged_user', JSON.stringify(updatedUser));
+              if (localStorage.getItem('bubur_khalid_admin_session')) {
+                localStorage.setItem('bubur_khalid_admin_session', JSON.stringify(updatedUser));
+              }
+              if (sessionStorage.getItem('bubur_khalid_admin_session')) {
+                sessionStorage.setItem('bubur_khalid_admin_session', JSON.stringify(updatedUser));
+              }
             } catch (e) {}
           }
 
@@ -2481,6 +2574,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         restoreProduct,
         hardDeleteProduct,
         emptyProductTrash,
+        renameProductCategory,
+        addCustomCategory,
         tables,
         addTable,
         updateTable,
