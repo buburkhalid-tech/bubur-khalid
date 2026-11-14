@@ -3898,47 +3898,51 @@ export function AdminView() {
 
               {/* Exact Simulation of the Customer Banner */}
               <div className="max-w-md mx-auto bg-matcha-leaf text-tofu-silkblaze p-5 rounded-[24px] shadow-card relative overflow-hidden border border-matcha-surface">
-                <div className="flex items-center space-x-2 mb-3">
-                  <div className="w-8 h-8 rounded-full overflow-hidden bg-spicy-ember flex items-center justify-center text-sm shadow-sm relative flex-shrink-0 border border-white/20">
-                    {storeForm.storeLogo ? (
-                      <Image
-                        src={storeForm.storeLogo}
-                        alt="Logo Toko"
-                        fill
-                        className="object-cover"
-                      />
-                    ) : (
-                      <span>🥣</span>
-                    )}
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-sm text-noodle-cream leading-tight">{storeForm.storeName}</h4>
-                    <span className="text-[10px] text-noodle-dark">{storeForm.storeTagline}</span>
-                  </div>
+                {/* Full-bleed Hero Background Image matching CustomerView */}
+                <div className="absolute inset-0 z-0">
+                  <Image
+                    src={storeForm.bannerImage || '/images/hero-banner-wide.jpg'}
+                    alt="Banner Preview"
+                    fill
+                    className="object-cover object-right"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-r from-matcha-leaf via-matcha-leaf/95 via-55% to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-matcha-leaf/90 via-transparent to-black/40" />
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <div className="max-w-[65%]">
-                    <h3 className="text-lg font-black text-white leading-tight">
+                <div className="relative z-10">
+                  <div className="flex items-center space-x-2 mb-3">
+                    <div className="w-8 h-8 rounded-full overflow-hidden bg-spicy-ember flex items-center justify-center text-sm shadow-sm relative flex-shrink-0 border border-white/20">
+                      {storeForm.storeLogo ? (
+                        <Image
+                          src={storeForm.storeLogo}
+                          alt="Logo Toko"
+                          fill
+                          className="object-cover"
+                        />
+                      ) : (
+                        <span>🥣</span>
+                      )}
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-sm text-noodle-cream leading-tight">{storeForm.storeName}</h4>
+                      <span className="text-[10px] text-noodle-dark">{storeForm.storeTagline}</span>
+                    </div>
+                  </div>
+
+                  <div className="max-w-[68%]">
+                    <h3 className="text-lg font-black text-white leading-tight drop-shadow-md">
                       {storeForm.bannerTitle}
                     </h3>
-                    <p className="text-[11px] text-noodle-cream/90 mt-1 leading-relaxed">
+                    <p className="text-[11px] text-noodle-cream/90 mt-1 leading-relaxed drop-shadow-sm">
                       {storeForm.bannerSubtitle}
                     </p>
                   </div>
-                  <div className="relative w-18 h-18 w-20 h-20 rounded-2xl overflow-hidden border-2 border-spicy-ember/40 shadow-card bg-tofu-silkblaze">
-                    <Image
-                      src={storeForm.bannerImage || '/images/menu/bubur-kampiun.png'}
-                      alt="Banner Preview"
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                </div>
 
-                <div className="mt-3.5 inline-flex items-center space-x-1.5 bg-matcha-deep/80 px-2.5 py-0.5 rounded-full text-[10px] text-noodle-cream border border-matcha-surface">
-                  <span className={`w-2 h-2 rounded-full ${storeForm.isStoreOpen ? 'bg-emerald-400 animate-pulse' : 'bg-red-500'}`} />
-                  <span>{storeForm.isStoreOpen ? storeForm.operatingHours : 'Toko Sedang Tutup'}</span>
+                  <div className="mt-3.5 inline-flex items-center space-x-1.5 bg-matcha-deep/80 px-2.5 py-0.5 rounded-full text-[10px] text-noodle-cream border border-matcha-surface">
+                    <span className={`w-2 h-2 rounded-full ${storeForm.isStoreOpen ? 'bg-emerald-400 animate-pulse' : 'bg-red-500'}`} />
+                    <span>{storeForm.isStoreOpen ? storeForm.operatingHours : 'Toko Sedang Tutup'}</span>
+                  </div>
                 </div>
               </div>
             </div>
