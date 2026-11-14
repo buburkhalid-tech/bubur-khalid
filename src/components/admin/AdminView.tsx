@@ -3414,7 +3414,7 @@ export function AdminView() {
                         Username: <code className="font-bold text-matcha-leaf">@{currentUser?.username || '-'}</code> • Akses:{' '}
                         <span className="font-semibold text-stone-700">
                           {currentUser?.role === 'OWNER'
-                            ? 'Owner / Pemilik Toko (Akses Penuh & Laporan Finansial)'
+                            ? 'Owner / Pemilik Toko'
                             : currentUser?.role === 'ADMIN'
                             ? 'Admin Operasional (Menu, Meja, Banner & Staf)'
                             : 'Kasir / Staf Operasional'}
@@ -3458,27 +3458,15 @@ export function AdminView() {
                     <div>
                       <div className="flex items-center space-x-2">
                         <h4 className="font-black text-sm text-white">
-                          Simulasi Mobile Pelanggan (Customer Web App)
+                          Simulasi Mobile Pelanggan.
                         </h4>
                         <span className="bg-yolk-blaze text-stone-950 text-[9px] font-black px-2 py-0.5 rounded-full uppercase">
                           Live Preview
                         </span>
                       </div>
                       <p className="text-xs text-noodle-cream/90 mt-1 max-w-xl leading-relaxed">
-                        Lihat dan uji coba langsung pengalaman pemesanan bubur dari sudut pandang pelanggan di meja makan atau bungkus (takeaway).
+                        Lihat langsung dari sudut pelanggan di meja makan atau bungkus
                       </p>
-                      <div className="flex items-center space-x-2 mt-1.5 text-[11px] font-mono text-noodle-cream/80">
-                        <span>Link Web Pelanggan:</span>
-                        <a
-                          href="https://bubur-khalid.vercel.app"
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-yolk-blaze hover:underline flex items-center space-x-1 font-bold"
-                        >
-                          <span>https://bubur-khalid.vercel.app</span>
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      </div>
                     </div>
                   </div>
 
@@ -3587,8 +3575,8 @@ export function AdminView() {
                 <div className="bg-white rounded-2xl border border-stone-200 shadow-soft overflow-hidden">
                   <div className="p-4 border-b border-stone-200 flex items-center justify-between">
                     <div>
-                      <h4 className="font-extrabold text-sm text-matcha-leaf">Daftar Pengguna Terdaftar ({users.length})</h4>
-                      <p className="text-[11px] text-stone-500">Seluruh kredensial akun dilindungi hashing dan audit log aktif</p>
+                      <h4 className="font-extrabold text-sm text-matcha-leaf">Daftar User Login</h4>
+                      <p className="text-[11px] text-stone-500">Kredensial akun dilindungi hashing dan audit log aktif.</p>
                     </div>
                     <span className="text-xs font-bold text-stone-500">Security Level: Strict RBAC</span>
                   </div>
@@ -3598,9 +3586,9 @@ export function AdminView() {
                       <thead className="bg-stone-50 text-stone-500 font-bold border-b border-stone-200">
                         <tr>
                           <th className="p-3">Nama & Username</th>
-                          <th className="p-3">Role / Hak Akses</th>
-                          <th className="p-3">Kontak (Email / WA)</th>
-                          <th className="p-3">PIN / Kredensial</th>
+                          <th className="p-3">Hak Akses</th>
+                          <th className="p-3">Kontrak</th>
+                          <th className="p-3">Kredensial</th>
                           <th className="p-3">Status</th>
                           <th className="p-3 text-right">Aksi</th>
                         </tr>
