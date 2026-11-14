@@ -338,7 +338,7 @@ export function PosView() {
                 </button>
                 <div className="min-w-0">
                   <h1 className="font-extrabold text-sm sm:text-base text-matcha-leaf truncate">POS Kasir Bubur Khalid</h1>
-                  <p className="text-[11px] sm:text-xs text-stone-500 truncate">Mode Tablet Touchscreen • Antrean Order di Tempat (OT)</p>
+                  <p className="text-[11px] sm:text-xs text-stone-500 truncate">Mode Touchscreen • Antrean Order di Tempat (OT)</p>
                 </div>
               </div>
             </div>
