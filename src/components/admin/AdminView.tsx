@@ -64,7 +64,7 @@ import {
   Volume2,
   VolumeX,
 } from 'lucide-react';
-import { playNotificationSound } from '@/lib/utils/sound';
+import { playNotificationSound, triggerDeviceVibration } from '@/lib/utils/sound';
 
 export function AdminView() {
   const {
@@ -330,10 +330,10 @@ export function AdminView() {
   // Store Operating Hours & Holiday Modal State (Auto-Save on edit/close)
   const [isStoreHoursModalOpen, setIsStoreHoursModalOpen] = useState<boolean>(false);
 
-  // Notification & Audio Chime States
+  // Notification & Audio Chime + 2x Vibration States
   const [isNotificationOpen, setIsNotificationOpen] = useState<boolean>(false);
   const [isSoundEnabled, setIsSoundEnabled] = useState<boolean>(true);
-  const prevOrdersCountRef = useRef<number>(0);
+  const knownOrderIdsRef = useRef<Set<string> | null>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
 
   // Restore sound preference from localStorage
@@ -361,15 +361,33 @@ export function AdminView() {
     };
   }, [isNotificationOpen]);
 
-  // Auto-play sound when new orders arrive
+  // Auto-play sound & 2x device vibration when new orders arrive
   useEffect(() => {
-    if (prevOrdersCountRef.current > 0 && orders.length > prevOrdersCountRef.current) {
-      if (isSoundEnabled) {
-        playNotificationSound();
+    if (orders.length === 0) return;
+
+    // First hydration: record initial order IDs without triggering false alarm
+    if (knownOrderIdsRef.current === null) {
+      knownOrderIdsRef.current = new Set(orders.map((o) => o.id));
+      return;
+    }
+
+    let hasNewIncomingOrder = false;
+    for (const ord of orders) {
+      if (!knownOrderIdsRef.current.has(ord.id)) {
+        knownOrderIdsRef.current.add(ord.id);
+        if (ord.order_status === 'NEW' || ord.order_status === 'CONFIRMED') {
+          hasNewIncomingOrder = true;
+        }
       }
     }
-    prevOrdersCountRef.current = orders.length;
-  }, [orders.length, isSoundEnabled]);
+
+    if (hasNewIncomingOrder) {
+      triggerDeviceVibration();
+      if (isSoundEnabled) {
+        playNotificationSound(false);
+      }
+    }
+  }, [orders, isSoundEnabled]);
 
   const toggleSound = () => {
     const next = !isSoundEnabled;
@@ -1175,8 +1193,9 @@ export function AdminView() {
                 type="button"
                 onClick={() => {
                   setIsNotificationOpen((prev) => !prev);
+                  triggerDeviceVibration();
                   if (isSoundEnabled) {
-                    playNotificationSound();
+                    playNotificationSound(false);
                   }
                 }}
                 className={`relative w-9 h-9 rounded-xl border flex items-center justify-center transition shadow-xs cursor-pointer active:scale-95 ${

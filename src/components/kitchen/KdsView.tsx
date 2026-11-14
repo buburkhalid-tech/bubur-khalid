@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { useApp } from '@/lib/store/AppContext';
 import { Order, OrderStatus } from '@/lib/types';
+import { playNotificationSound } from '@/lib/utils/sound';
 import {
   ChefHat,
   Clock,
@@ -19,6 +20,28 @@ import {
 export function KdsView() {
   const { orders, updateOrderStatus, setActiveView, storeSettings } = useApp();
   const [filterStatus, setFilterStatus] = useState<'NEW' | 'PREPARING' | 'READY'>('NEW');
+  const knownKdsOrderIdsRef = useRef<Set<string> | null>(null);
+
+  // Auto-play chime + 2x device vibration when new order arrives in KDS
+  useEffect(() => {
+    if (orders.length === 0) return;
+    if (knownKdsOrderIdsRef.current === null) {
+      knownKdsOrderIdsRef.current = new Set(orders.map((o) => o.id));
+      return;
+    }
+    let hasNew = false;
+    for (const ord of orders) {
+      if (!knownKdsOrderIdsRef.current.has(ord.id)) {
+        knownKdsOrderIdsRef.current.add(ord.id);
+        if (ord.order_status === 'NEW' || ord.order_status === 'CONFIRMED') {
+          hasNew = true;
+        }
+      }
+    }
+    if (hasNew) {
+      playNotificationSound(true);
+    }
+  }, [orders]);
 
   // Restore saved filter tab from localStorage so refresh stays on the same tab
   useEffect(() => {
