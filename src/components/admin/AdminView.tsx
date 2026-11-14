@@ -22,6 +22,7 @@ import {
   Search,
   Plus,
   Edit2,
+  Save,
   RotateCcw,
   CheckCircle,
   Check,
@@ -784,6 +785,10 @@ export function AdminView() {
   const [formPrice, setFormPrice] = useState<number>(0);
   const [formCategory, setFormCategory] = useState<string>('Bubur');
   const [isCustomCategory, setIsCustomCategory] = useState(false);
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+  const [editingCategoryName, setEditingCategoryName] = useState<string | null>(null);
+  const [editingCategoryValue, setEditingCategoryValue] = useState('');
+  const [customCategories, setCustomCategories] = useState<string[]>([]);
   const [formDescription, setFormDescription] = useState<string>('');
   const [formImage, setFormImage] = useState<string>('');
   const [formAvailable, setFormAvailable] = useState<boolean>(true);
@@ -2767,60 +2772,162 @@ export function AdminView() {
                         )}
                       </div>
 
-                      <div>
+                      <div className="relative">
                         <label className="block font-bold text-matcha-leaf mb-1">
                           Kategori:
                         </label>
-                        <select
-                          value={isCustomCategory ? '__NEW__' : formCategory}
-                          onChange={(e) => {
-                            if (e.target.value === '__NEW__') {
-                              setIsCustomCategory(true);
-                              setFormCategory('');
-                            } else {
-                              setIsCustomCategory(false);
-                              setFormCategory(e.target.value);
-                            }
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsCategoryDropdownOpen((prev) => !prev);
+                            setEditingCategoryName(null);
+                            setIsCustomCategory(false);
                           }}
-                          className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-xs font-bold text-matcha-leaf focus:outline-none focus:border-spicy-ember"
+                          className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-xs font-bold text-matcha-leaf flex items-center justify-between focus:outline-none focus:border-spicy-ember"
                         >
-                          {Array.from(
-                            new Set([
-                              'Bubur',
-                              'Kolak',
-                              'Lopis',
-                              'Kerupuk',
-                              'Paket',
-                              ...products.map((p) => p.category).filter(Boolean),
-                            ])
-                          ).map((cat) => (
-                            <option key={cat} value={cat}>
-                              {cat}
-                            </option>
-                          ))}
-                          <option value="__NEW__">+ Kategori Baru</option>
-                        </select>
-                        {isCustomCategory && (
-                          <div className="mt-2 flex items-center gap-1.5">
-                            <input
-                              type="text"
-                              required
-                              autoFocus
-                              placeholder="Ketik nama kategori baru..."
-                              value={formCategory}
-                              onChange={(e) => setFormCategory(e.target.value)}
-                              className="flex-1 min-w-0 bg-white border border-spicy-ember rounded-lg px-2.5 py-1.5 text-xs font-bold text-matcha-leaf focus:outline-none"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setIsCustomCategory(false);
-                                setFormCategory('Bubur');
-                              }}
-                              className="shrink-0 px-2 py-1.5 text-[10px] font-bold text-stone-500 hover:text-stone-700 bg-stone-100 rounded-lg"
-                            >
-                              Batal
-                            </button>
+                          <span className="truncate">{formCategory || 'Pilih Kategori'}</span>
+                          <ChevronDown className="w-3.5 h-3.5 text-stone-500 shrink-0" />
+                        </button>
+
+                        {isCategoryDropdownOpen && (
+                          <div className="mt-1.5 bg-white border border-stone-200 rounded-xl shadow-lg overflow-hidden divide-y divide-stone-100">
+                            {Array.from(
+                              new Set([
+                                'Bubur',
+                                'Kolak',
+                                'Lopis',
+                                'Kerupuk',
+                                'Paket',
+                                ...products.map((p) => p.category).filter(Boolean),
+                                ...customCategories,
+                              ])
+                            ).map((cat) => (
+                              <div key={cat} className="px-2.5 py-2 flex items-center justify-between gap-2 hover:bg-stone-50">
+                                {editingCategoryName === cat ? (
+                                  <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                    <input
+                                      type="text"
+                                      autoFocus
+                                      value={editingCategoryValue}
+                                      onChange={(e) => setEditingCategoryValue(e.target.value)}
+                                      className="flex-1 min-w-0 bg-white border border-spicy-ember rounded-lg px-2 py-1 text-xs font-bold text-matcha-leaf focus:outline-none"
+                                    />
+                                    <button
+                                      type="button"
+                                      title="Save"
+                                      aria-label="Save"
+                                      onClick={() => {
+                                        const trimmed = editingCategoryValue.trim();
+                                        if (trimmed) {
+                                          setCustomCategories((prev) =>
+                                            Array.from(new Set([...prev.filter((c) => c !== cat), trimmed]))
+                                          );
+                                          if (formCategory === cat) setFormCategory(trimmed);
+                                        }
+                                        setEditingCategoryName(null);
+                                      }}
+                                      className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 flex items-center justify-center shrink-0"
+                                    >
+                                      <Save className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      title="Close"
+                                      aria-label="Close"
+                                      onClick={() => setEditingCategoryName(null)}
+                                      className="w-7 h-7 rounded-lg bg-stone-100 text-stone-600 hover:bg-stone-200 flex items-center justify-center shrink-0"
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setFormCategory(cat);
+                                        setIsCategoryDropdownOpen(false);
+                                      }}
+                                      className={`flex-1 text-left text-xs font-bold truncate ${
+                                        formCategory === cat ? 'text-spicy-ember' : 'text-matcha-leaf'
+                                      }`}
+                                    >
+                                      {cat}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      title="Edit"
+                                      aria-label="Edit"
+                                      onClick={() => {
+                                        setEditingCategoryName(cat);
+                                        setEditingCategoryValue(cat);
+                                      }}
+                                      className="w-7 h-7 rounded-lg bg-stone-100 hover:bg-stone-200 text-matcha-leaf flex items-center justify-center shrink-0"
+                                    >
+                                      <Edit2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            ))}
+
+                            {/* Tambah Kategori */}
+                            <div className="px-2.5 py-2 bg-stone-50/70">
+                              {isCustomCategory ? (
+                                <div className="flex items-center gap-1.5">
+                                  <input
+                                    type="text"
+                                    autoFocus
+                                    placeholder="Ketik nama kategori..."
+                                    value={editingCategoryValue}
+                                    onChange={(e) => setEditingCategoryValue(e.target.value)}
+                                    className="flex-1 min-w-0 bg-white border border-spicy-ember rounded-lg px-2 py-1 text-xs font-bold text-matcha-leaf focus:outline-none"
+                                  />
+                                  <button
+                                    type="button"
+                                    title="Save"
+                                    aria-label="Save"
+                                    onClick={() => {
+                                      const trimmed = editingCategoryValue.trim();
+                                      if (trimmed) {
+                                        setCustomCategories((prev) => Array.from(new Set([...prev, trimmed])));
+                                        setFormCategory(trimmed);
+                                        setIsCategoryDropdownOpen(false);
+                                      }
+                                      setIsCustomCategory(false);
+                                      setEditingCategoryValue('');
+                                    }}
+                                    className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 flex items-center justify-center shrink-0"
+                                  >
+                                    <Save className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    title="Close"
+                                    aria-label="Close"
+                                    onClick={() => {
+                                      setIsCustomCategory(false);
+                                      setEditingCategoryValue('');
+                                    }}
+                                    className="w-7 h-7 rounded-lg bg-stone-100 text-stone-600 hover:bg-stone-200 flex items-center justify-center shrink-0"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setIsCustomCategory(true);
+                                    setEditingCategoryName(null);
+                                    setEditingCategoryValue('');
+                                  }}
+                                  className="w-full text-left text-xs font-extrabold text-spicy-ember hover:underline"
+                                >
+                                  Tambah Kategori
+                                </button>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>
