@@ -782,7 +782,8 @@ export function AdminView() {
   const [isAddMode, setIsAddMode] = useState<boolean>(false);
   const [formName, setFormName] = useState<string>('');
   const [formPrice, setFormPrice] = useState<number>(0);
-  const [formCategory, setFormCategory] = useState<'Bubur' | 'Kolak' | 'Lopis' | 'Kerupuk' | 'Paket'>('Bubur');
+  const [formCategory, setFormCategory] = useState<string>('Bubur');
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
   const [formDescription, setFormDescription] = useState<string>('');
   const [formImage, setFormImage] = useState<string>('');
   const [formAvailable, setFormAvailable] = useState<boolean>(true);
@@ -851,6 +852,7 @@ export function AdminView() {
     setFormName(p.name);
     setFormPrice(p.price);
     setFormCategory(p.category);
+    setIsCustomCategory(false);
     setFormDescription(p.description);
     setFormImage(p.image);
     setFormAvailable(p.is_available);
@@ -862,6 +864,7 @@ export function AdminView() {
     setFormName('');
     setFormPrice(8000);
     setFormCategory('Bubur');
+    setIsCustomCategory(false);
     setFormDescription('');
     setFormImage('/images/menu/bubur-kampiun.png');
     setFormAvailable(true);
@@ -889,7 +892,7 @@ export function AdminView() {
       addProduct({
         name: formName,
         price: formPrice,
-        category: formCategory,
+        category: (formCategory.trim() || 'Bubur') as any,
         description: formDescription,
         image: formImage || '/images/menu/bubur-kampiun.png',
         is_available: formAvailable,
@@ -900,7 +903,7 @@ export function AdminView() {
       updateProduct(editingProduct.id, {
         name: formName,
         price: formPrice,
-        category: formCategory,
+        category: (formCategory.trim() || 'Bubur') as any,
         description: formDescription,
         image: formImage,
         is_available: formAvailable,
@@ -2769,16 +2772,57 @@ export function AdminView() {
                           Kategori:
                         </label>
                         <select
-                          value={formCategory}
-                          onChange={(e) => setFormCategory(e.target.value as any)}
+                          value={isCustomCategory ? '__NEW__' : formCategory}
+                          onChange={(e) => {
+                            if (e.target.value === '__NEW__') {
+                              setIsCustomCategory(true);
+                              setFormCategory('');
+                            } else {
+                              setIsCustomCategory(false);
+                              setFormCategory(e.target.value);
+                            }
+                          }}
                           className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-xs font-bold text-matcha-leaf focus:outline-none focus:border-spicy-ember"
                         >
-                          <option value="Bubur">Bubur</option>
-                          <option value="Kolak">Kolak</option>
-                          <option value="Lopis">Lopis</option>
-                          <option value="Kerupuk">Kerupuk</option>
-                          <option value="Paket">Paket</option>
+                          {Array.from(
+                            new Set([
+                              'Bubur',
+                              'Kolak',
+                              'Lopis',
+                              'Kerupuk',
+                              'Paket',
+                              ...products.map((p) => p.category).filter(Boolean),
+                            ])
+                          ).map((cat) => (
+                            <option key={cat} value={cat}>
+                              {cat}
+                            </option>
+                          ))}
+                          <option value="__NEW__">+ Kategori Baru</option>
                         </select>
+                        {isCustomCategory && (
+                          <div className="mt-2 flex items-center gap-1.5">
+                            <input
+                              type="text"
+                              required
+                              autoFocus
+                              placeholder="Ketik nama kategori baru..."
+                              value={formCategory}
+                              onChange={(e) => setFormCategory(e.target.value)}
+                              className="flex-1 min-w-0 bg-white border border-spicy-ember rounded-lg px-2.5 py-1.5 text-xs font-bold text-matcha-leaf focus:outline-none"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsCustomCategory(false);
+                                setFormCategory('Bubur');
+                              }}
+                              className="shrink-0 px-2 py-1.5 text-[10px] font-bold text-stone-500 hover:text-stone-700 bg-stone-100 rounded-lg"
+                            >
+                              Batal
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
 
