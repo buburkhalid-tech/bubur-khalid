@@ -3892,7 +3892,7 @@ export function AdminView() {
                   </p>
                 </div>
                 <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-300">
-                  Pratinjau Nyata
+                  Live
                 </span>
               </div>
 
