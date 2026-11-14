@@ -261,6 +261,13 @@ export function AdminView() {
   // Derived financial & channel calculations for donut & KPIs
   const onlineOrders = orders.filter((o) => o.queue_channel === 'ONLINE');
   const inStoreOrders = orders.filter((o) => o.queue_channel === 'IN_STORE');
+  const activeQueueStatuses = ['NEW', 'CONFIRMED', 'PREPARING', 'READY'];
+  const activeOnlineOrders = onlineOrders
+    .filter((o) => activeQueueStatuses.includes(o.order_status))
+    .sort((a, b) => a.global_queue_sequence - b.global_queue_sequence);
+  const activeInStoreOrders = inStoreOrders
+    .filter((o) => activeQueueStatuses.includes(o.order_status))
+    .sort((a, b) => a.global_queue_sequence - b.global_queue_sequence);
   const cancelledOrders = orders.filter((o) => o.order_status === 'CANCELLED');
   const totalOrdersCount = orders.length;
   const channelOnlinePct = totalOrdersCount > 0 ? Math.round((onlineOrders.length / totalOrdersCount) * 100) : 0;
@@ -2164,36 +2171,46 @@ export function AdminView() {
                   <div className="flex space-x-1.5 bg-stone-100 p-1 rounded-xl">
                     <button
                       onClick={() => setActiveQueueTab('ONLINE')}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 ${
                         activeQueueTab === 'ONLINE'
                           ? 'bg-spicy-ember text-white shadow-sm'
                           : 'text-stone-600 hover:text-matcha-leaf'
                       }`}
                     >
-                      Online Order (ON)
+                      <span>Online Order (ON)</span>
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                        activeQueueTab === 'ONLINE' ? 'bg-black/20 text-white' : 'bg-stone-200 text-stone-700'
+                      }`}>
+                        {activeOnlineOrders.length}
+                      </span>
                     </button>
                     <button
                       onClick={() => setActiveQueueTab('IN_STORE')}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 ${
                         activeQueueTab === 'IN_STORE'
                           ? 'bg-matcha-leaf text-white shadow-sm'
                           : 'text-stone-600 hover:text-matcha-leaf'
                       }`}
                     >
-                      Di Tempat (OT)
+                      <span>Di Tempat (OT)</span>
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                        activeQueueTab === 'IN_STORE' ? 'bg-black/20 text-white' : 'bg-stone-200 text-stone-700'
+                      }`}>
+                        {activeInStoreOrders.length}
+                      </span>
                     </button>
                   </div>
                 </div>
 
                 {/* Queue Cards List */}
                 <div className="space-y-3">
-                  {(activeQueueTab === 'ONLINE' ? onlineOrders : inStoreOrders).length === 0 ? (
+                  {(activeQueueTab === 'ONLINE' ? activeOnlineOrders : activeInStoreOrders).length === 0 ? (
                     <div className="py-12 px-4 text-center flex flex-col items-center justify-center text-stone-400 bg-stone-50/70 rounded-2xl border border-dashed border-stone-200">
                       <span className="text-3xl mb-2">{activeQueueTab === 'ONLINE' ? '🛵' : '🏪'}</span>
                       <p className="text-xs font-bold text-stone-700">
                         {activeQueueTab === 'ONLINE'
-                          ? 'Belum ada antrean pesanan online'
-                          : 'Belum ada antrean kasir di tempat'}
+                          ? 'Belum ada antrean pesanan online aktif'
+                          : 'Belum ada antrean kasir di tempat aktif'}
                       </p>
                       <p className="text-[11px] text-stone-400 mt-1 max-w-sm">
                         {activeQueueTab === 'ONLINE'
@@ -2202,7 +2219,7 @@ export function AdminView() {
                       </p>
                     </div>
                   ) : (
-                    (activeQueueTab === 'ONLINE' ? onlineOrders : inStoreOrders).map((ord) => (
+                    (activeQueueTab === 'ONLINE' ? activeOnlineOrders : activeInStoreOrders).map((ord) => (
                     <div
                       key={ord.id}
                       className="p-3.5 rounded-xl border border-stone-200 hover:border-noodle-dark bg-stone-50 flex items-start justify-between gap-3 transition"
