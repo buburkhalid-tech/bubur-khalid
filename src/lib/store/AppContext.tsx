@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useRef } from 'react';
 import { Product, Order, OrderStatus, PaymentMethod, TableInfo, AuditLog, FinancialSummary, StoreSettings, SystemUser, PromoBanner, UserRole, StaffSalary, OperationalExpense } from '../types';
 import { INITIAL_PRODUCTS, INITIAL_TABLES, CUP_FEE, INITIAL_STORE_SETTINGS, INITIAL_USERS, INITIAL_PROMO_BANNERS, INITIAL_STAFF_SALARIES, INITIAL_OPERATIONAL_EXPENSES } from '../constants';
 import { MOCK_ORDERS, MOCK_FINANCIAL_SUMMARY, MOCK_AUDIT_LOGS } from '../mock-data';
@@ -225,6 +225,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<SystemUser | null>(null);
   const [staffSalaries, setStaffSalaries] = useState<StaffSalary[]>(INITIAL_STAFF_SALARIES);
   const [operationalExpenses, setOperationalExpenses] = useState<OperationalExpense[]>(INITIAL_OPERATIONAL_EXPENSES);
+
+  // Track in-flight order mutations on THIS device to prevent race conditions during background polling
+  // without letting stale localStorage from other devices overwrite Supabase Cloud
+  const pendingOrderUpdatesRef = useRef<Map<string, { order: Order; updatedAt: number }>>(new Map());
+  const pendingNewOrdersRef = useRef<Map<string, { order: Order; createdAt: number }>>(new Map());
 
   // Initialize and restore all data from localStorage on client mount
   useEffect(() => {
@@ -462,10 +467,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               status_history: Array.isArray(o.status_history) ? o.status_history : [],
             }));
 
-          setOrders((currentOrders) => {
-            const localMap = new Map<string, Order>();
-            currentOrders.forEach((o) => localMap.set(o.id, o));
-
+          setOrders(() => {
+            const now = Date.now();
             const statusWeight: Record<OrderStatus, number> = {
               NEW: 0,
               CONFIRMED: 1,
@@ -479,38 +482,50 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             const mergedList: Order[] = [];
             const processedIds = new Set<string>();
 
-            // Merge cloud orders with local state
+            // Supabase Cloud is the Single Source of Truth across Mobile, Tablet, and Desktop.
+            // Only preserve an in-flight local mutation if it was triggered on THIS device within the last 20s.
             for (const cloudOrd of cleanCloudOrders) {
               processedIds.add(cloudOrd.id);
-              const localOrd = localMap.get(cloudOrd.id);
+              const pendingUpdate = pendingOrderUpdatesRef.current.get(cloudOrd.id);
 
-              if (!localOrd) {
-                // Cloud order not present locally yet
-                mergedList.push(cloudOrd);
-              } else {
-                const localW = statusWeight[localOrd.order_status] ?? 0;
+              if (pendingUpdate && now - pendingUpdate.updatedAt < 20000) {
+                const pendingW = statusWeight[pendingUpdate.order.order_status] ?? 0;
                 const cloudW = statusWeight[cloudOrd.order_status] ?? 0;
-                const localHistLen = localOrd.status_history?.length || 0;
-                const cloudHistLen = cloudOrd.status_history?.length || 0;
 
-                // If local order has more advanced status or newer history, retain local & re-sync to cloud
-                if (localW > cloudW || (localW === cloudW && localHistLen > cloudHistLen)) {
-                  mergedList.push(localOrd);
-                  syncOrderToCloud(localOrd);
+                if (cloudOrd.order_status === pendingUpdate.order.order_status) {
+                  // Cloud has caught up with our mutation
+                  pendingOrderUpdatesRef.current.delete(cloudOrd.id);
+                  mergedList.push(cloudOrd);
+                } else if (pendingW >= cloudW) {
+                  // Mutation is still in flight -> keep optimistic state & ensure cloud receives it
+                  mergedList.push(pendingUpdate.order);
+                  syncOrderToCloud(pendingUpdate.order);
                 } else {
-                  // Cloud is equal or ahead -> accept cloud
                   mergedList.push(cloudOrd);
                 }
+              } else {
+                if (pendingUpdate) {
+                  pendingOrderUpdatesRef.current.delete(cloudOrd.id);
+                }
+                mergedList.push(cloudOrd);
+              }
+
+              if (pendingNewOrdersRef.current.has(cloudOrd.id)) {
+                pendingNewOrdersRef.current.delete(cloudOrd.id);
               }
             }
 
-            // Keep any local orders not yet in cloud (e.g. freshly created POS or online order)
-            for (const localOrd of currentOrders) {
-              if (!processedIds.has(localOrd.id)) {
-                mergedList.push(localOrd);
-                syncOrderToCloud(localOrd);
+            // Keep only freshly created orders on THIS device (< 60s old) that haven't finished initial upload yet
+            pendingNewOrdersRef.current.forEach((entry, id) => {
+              if (now - entry.createdAt < 60000) {
+                if (!processedIds.has(id)) {
+                  mergedList.push(entry.order);
+                  syncOrderToCloud(entry.order);
+                }
+              } else {
+                pendingNewOrdersRef.current.delete(id);
               }
-            }
+            });
 
             // Sort by created_at descending
             mergedList.sort(
@@ -650,14 +665,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       // Instant cross-tab sync when localStorage updates
       const handleStorageChange = (e: StorageEvent) => {
-        if (e.key === 'bubur_khalid_products' && e.newValue) {
-          try {
-            const parsed = JSON.parse(e.newValue);
-            if (Array.isArray(parsed)) {
-              setProducts(parsed);
-            }
-          } catch {}
-        }
+        if (!e.newValue) return;
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (e.key === 'bubur_khalid_products' && Array.isArray(parsed)) {
+            setProducts(parsed);
+          } else if (e.key === 'bubur_khalid_orders' && Array.isArray(parsed)) {
+            setOrders(parsed);
+          } else if (e.key === 'bubur_khalid_tables' && Array.isArray(parsed)) {
+            setTables(parsed);
+          } else if (e.key === 'bubur_khalid_settings' && parsed && typeof parsed === 'object') {
+            setStoreSettings((prev) => ({ ...prev, ...parsed }));
+          }
+        } catch {}
       };
 
       window.addEventListener('focus', handleFocus);
@@ -994,8 +1014,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       showToast(`❌ ${msg}`);
       throw new Error(msg);
     }
-    const onlineSeq = orders.filter((o) => o.queue_channel === 'ONLINE').length + 1;
-    const globalSeq = orders.length + 1;
+    const maxOnlineNum = orders
+      .filter((o) => o.queue_channel === 'ONLINE')
+      .reduce((max, o) => {
+        const num = parseInt(String(o.queue_number || '').replace(/\D/g, ''), 10);
+        return !isNaN(num) && num > max ? num : max;
+      }, 0);
+    const onlineSeq = maxOnlineNum + 1;
+    const globalSeq =
+      orders.reduce((max, o) => Math.max(max, Number(o.global_queue_sequence) || 0), 0) + 1;
     const queueNum = `ON-${String(onlineSeq).padStart(3, '0')}`;
     const isPaid = paymentMethod === 'QRIS';
 
@@ -1047,6 +1074,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ],
     };
 
+    pendingNewOrdersRef.current.set(newOrder.id, { order: newOrder, createdAt: Date.now() });
     setOrders((prev) => {
       const next = [newOrder, ...prev.filter((o) => o.id !== newOrder.id)];
       try {
@@ -1092,8 +1120,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     qrisRef?: string,
     qrisProvider?: string
   ) => {
-    const otSeq = orders.filter((o) => o.queue_channel === 'IN_STORE').length + 1;
-    const globalSeq = orders.length + 1;
+    const maxOtNum = orders
+      .filter((o) => o.queue_channel === 'IN_STORE')
+      .reduce((max, o) => {
+        const num = parseInt(String(o.queue_number || '').replace(/\D/g, ''), 10);
+        return !isNaN(num) && num > max ? num : max;
+      }, 0);
+    const otSeq = maxOtNum + 1;
+    const globalSeq =
+      orders.reduce((max, o) => Math.max(max, Number(o.global_queue_sequence) || 0), 0) + 1;
     const queueNum = `OT-${String(otSeq).padStart(3, '0')}`;
     const total = posCartTotal.total;
     const change = cashReceived && cashReceived > total ? cashReceived - total : 0;
@@ -1146,6 +1181,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ],
     };
 
+    pendingNewOrdersRef.current.set(newOrder.id, { order: newOrder, createdAt: Date.now() });
     setOrders((prev) => {
       const next = [newOrder, ...prev.filter((o) => o.id !== newOrder.id)];
       try {
@@ -1193,10 +1229,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const shouldMarkPaid =
       ['CONFIRMED', 'PREPARING', 'READY', 'COMPLETED'].includes(newStatus) &&
       currentOrder?.payment_status === 'PENDING';
-    const nextPaymentStatus = shouldMarkPaid ? 'PAID' : currentOrder?.payment_status;
-    const nextPaidAt = shouldMarkPaid ? new Date().toISOString() : currentOrder?.paid_at;
+    const nextPaymentStatus = (shouldMarkPaid ? 'PAID' : currentOrder?.payment_status) || 'PAID';
+    const nextPaidAt = shouldMarkPaid ? new Date().toISOString() : (currentOrder?.paid_at ?? null);
 
-    let updatedOrderObj: Order | null = null;
+    // Construct updatedOrder synchronously BEFORE setOrders so React 18 batching never skips cloud sync
+    const syncTarget: Order | null = currentOrder
+      ? {
+          ...currentOrder,
+          order_status: newStatus,
+          payment_status: nextPaymentStatus,
+          paid_at: nextPaidAt,
+          status_history: nextHistory,
+        }
+      : null;
+
+    if (syncTarget) {
+      pendingOrderUpdatesRef.current.set(orderId, {
+        order: syncTarget,
+        updatedAt: Date.now(),
+      });
+    }
 
     setOrders((prev) => {
       const next = prev.map((ord) => {
@@ -1208,7 +1260,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             paid_at: nextPaidAt ?? ord.paid_at,
             status_history: nextHistory,
           };
-          updatedOrderObj = updated;
+          pendingOrderUpdatesRef.current.set(orderId, {
+            order: updated,
+            updatedAt: Date.now(),
+          });
+          if (!syncTarget) {
+            syncOrderToCloud(updated);
+          }
           return updated;
         }
         return ord;
@@ -1219,9 +1277,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return next;
     });
 
-    // Sync status change & fresh status_history to Supabase Cloud
-    if (updatedOrderObj) {
-      syncOrderToCloud(updatedOrderObj);
+    // Immediately persist status change to Supabase Cloud (direct update + full upsert fallback)
+    supabase
+      .from('orders')
+      .update({
+        order_status: newStatus,
+        payment_status: nextPaymentStatus,
+        paid_at: nextPaidAt,
+        status_history: nextHistory,
+      })
+      .eq('id', orderId)
+      .then(({ error }) => {
+        if (error && syncTarget) {
+          syncOrderToCloud(syncTarget);
+        }
+      });
+
+    if (syncTarget) {
+      syncOrderToCloud(syncTarget);
     }
 
     addAuditLog('UPDATE_ORDER_STATUS', 'Order', orderId, `Status diperbarui menjadi ${newStatus} oleh ${actor}`);
@@ -2331,6 +2404,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const clearAllOrders = async () => {
     try {
       showToast('Membersihkan data transaksi...');
+      pendingOrderUpdatesRef.current.clear();
+      pendingNewOrdersRef.current.clear();
       await supabase.from('orders').delete().neq('id', 'keep-none');
       setOrders([]);
       try {
@@ -2347,6 +2422,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       showToast('Mereset seluruh data omzet & gaji ke Rp 0...');
       // 1. Reset orders di Supabase & local state
+      pendingOrderUpdatesRef.current.clear();
+      pendingNewOrdersRef.current.clear();
       await supabase.from('orders').delete().neq('id', 'keep-none');
       setOrders([]);
       try {
